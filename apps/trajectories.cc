@@ -1,10 +1,12 @@
 #include <cassert>
+#include <fstream>
 #include <iostream>
 
 #include <gflags/gflags.h>
 
 #include <network/dynamics.h>
 #include <network/network.h>
+#include <network/writer.h>
 
 DEFINE_int32(N, 0, "N");
 DEFINE_int32(k, 0, "k");
@@ -23,27 +25,39 @@ int main(int argc, char** argv) {
   assert(FLAGS_k <= FLAGS_N);
   assert(FLAGS_num_trials > 0);
 
-  network::DynamicsConfig config;
-  config.N = FLAGS_N;
-  config.k = FLAGS_k;
-  config.num_trials = FLAGS_num_trials;
-  config.seed = FLAGS_seed;
+  network::NetworkConfig network_config;
+  network_config.N = FLAGS_N;
+  network_config.k = FLAGS_k;
+  network_config.seed = FLAGS_seed;
 
   network::BooleanThresholdNetwork network;
-  GetNetwork(config, &network);
+  GetNetwork(network_config, &network);
+
+  network::DynamicsConfig dynamics_config;
+  dynamics_config.num_trials = FLAGS_num_trials;
+  dynamics_config.seed = FLAGS_seed;
 
   network::MetaData metadata;
   metadata.tag = FLAGS_tag;
   metadata.start_time = std::chrono::system_clock::now();
 
   network::Trajectories trajectories;
-  network::ComputeTrajectories(config, &trajectories);
+  network::ComputeTrajectories(network, dynamics_config, &trajectories);
 
   std::cout << "done" << std::endl;
   metadata.end_time = std::chrono::system_clock::now();
 
-  const std::string output_file_name = network::GetOutputFileName("trajectories-", metadata.start_time);
+  const std::string output_file_name = network::GetOutputFileName(
+    "trajectories-",
+    metadata.start_time
+  );
   std::ofstream ofs{"data/" + output_file_name + ".json"};
 
-  network::WriteTrajectoriesToStream(trajectories, config, metadata, &ofs);
+  network::WriteTrajectoriesToStream(
+    trajectories,
+    network_config,
+    dynamics_config,
+    metadata,
+    &ofs
+  );
 }
