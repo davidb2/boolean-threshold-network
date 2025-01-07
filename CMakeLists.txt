@@ -82,6 +82,12 @@ FetchContent_Declare(
         GIT_TAG master
 )
 
+FetchContent_Declare(
+        eigen
+        GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
+        GIT_TAG 3.4.0
+)
+
 
 # Adds Catch2::Catch2.
 FetchContent_MakeAvailable(catch2)
@@ -110,6 +116,14 @@ if (NOT prettyprint_POPULATED)
     # This is overkill since we only need a single file. Though it is a clean solution.
     add_library(prettyprint INTERFACE)
     target_include_directories(prettyprint INTERFACE ${prettyprint_SOURCE_DIR})
+endif ()
+
+FetchContent_GetProperties(eigen)
+if (NOT eigen_POPULATED)
+    FetchContent_Populate(eigen)
+    # This is overkill since we only need a single file. Though it is a clean solution.
+    add_library(eigen INTERFACE)
+    target_include_directories(eigen INTERFACE ${eigen_SOURCE_DIR})
 endif ()
 
 # The executables are here.

@@ -1,4 +1,6 @@
-#include <network/dynamics.h>
+#include <boolean_network/dynamics.h>
+
+#include <Eigen/Sparse>
 
 namespace network {
 

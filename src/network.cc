@@ -1,4 +1,4 @@
-#include <network/network.h>
+#include <boolean_network/network.h>
 
 namespace network {
 

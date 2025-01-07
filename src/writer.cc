@@ -1,6 +1,6 @@
 #include <nlohmann/json.hpp>
 
-#include <network/writer.h>
+#include <boolean_network/writer.h>
 
 namespace network {
 

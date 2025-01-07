@@ -4,9 +4,9 @@
 
 #include <gflags/gflags.h>
 
-#include <network/dynamics.h>
-#include <network/network.h>
-#include <network/writer.h>
+#include <boolean_network/dynamics.h>
+#include <boolean_network/network.h>
+#include <boolean_network/writer.h>
 
 DEFINE_int32(N, 0, "N");
 DEFINE_int32(k, 0, "k");
