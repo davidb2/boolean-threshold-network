@@ -19,7 +19,7 @@ add_library(network ${SOURCE_LIST} ${HEADER_LIST})
 target_include_directories(network PUBLIC "${Network_SOURCE_DIR}/include/")
 message("headers ${Network_SOURCE_DIR}")
 
-target_link_libraries(network PRIVATE OpenMP::OpenMP_CXX nlohmann_json eigen)
+target_link_libraries(network PUBLIC eigen PRIVATE OpenMP::OpenMP_CXX nlohmann_json)
 
 # IDEs should put the headers in a nice place
 source_group(TREE "${PROJECT_SOURCE_DIR}/include" PREFIX "Header Files" FILES ${HEADER_LIST})

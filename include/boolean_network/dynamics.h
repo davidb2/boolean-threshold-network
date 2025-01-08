@@ -7,7 +7,7 @@ namespace network {
 
 struct DynamicsConfig {
   int num_trials;
-  int seed;
+  int num_steps;
 };
 
 void ComputeTrajectories(
