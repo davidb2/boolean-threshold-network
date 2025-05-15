@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+// Trajectories
+message Trajectories {
+  MetaData metadata = 1;
+  DynamicsConfig dynamics_config = 2;
+  NetworkConfig network_config = 3;
+  Network network = 4;
+  repeated Result results = 5;
+}
+
+/* Helper messages below. */
+
+message DynamicsConfig {
+  int32 num_steps = 1;
+  int32 num_trials = 2;
+  int32 seed = 3;
+}
+
+message MetaData {
+  int32 end_time_s = 1;
+  int32 start_time_s = 2;
+  string tag = 3;
+}
+
+message Network {
+  repeated Edge edges = 1;
+  repeated double thresholds = 2;
+}
+
+message Edge {
+  int32 from = 1;
+  int32 to = 2;
+  double weight = 3;
+}
+
+message NetworkConfig {
+  int32 N = 1;
+  double gamma = 2;
+  int32 seed = 3;
+}
+
+message Result {
+  repeated State states = 1;
+  repeated int32 trial = 2;
+}
+
+message State {
+  repeated bool state = 1;
+  int32 step_num = 2;
+}

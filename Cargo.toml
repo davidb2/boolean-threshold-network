@@ -1,0 +1,19 @@
+[package]
+name = "boolean_threshold_network"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rayon      = "1.10.0"    # data-parallelism
+sprs       = "0.11.3"
+chrono     = "0.4.41"   # sparse linear algebra
+rand       = "0.9.1"
+rand_distr = "0.5.1"
+clap = { version = "4.5.38", features = ["derive"] }
+anyhow = "1.0.98"
+
+[dev-dependencies]
+# e.g. for test helpers
+
+[profile.release]
+lto = true
