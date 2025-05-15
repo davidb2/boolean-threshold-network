@@ -6,7 +6,7 @@ use rand_distr::weighted::WeightedIndex;
 use rand_distr::Distribution;
 use sprs::{TriMat};
 
-use crate::types::{BooleanThresholdNetwork, NetworkConfig, State, WeightedEdge};
+use crate::types::{BooleanThresholdNetwork, NetworkConfig, State, Edge};
 
 fn uniform_weight<R: Rng>(rng: &mut R) -> f64 {
   let dist = Uniform::new(-1., 1.).unwrap();
@@ -64,10 +64,10 @@ impl BooleanThresholdNetwork {
   }
 
   /// Flatten out into a list of WeightedEdges (from, to, weight).
-  pub fn get_representation_of_network(&self) -> Vec<WeightedEdge> {
+  pub fn get_representation_of_network(&self) -> Vec<Edge> {
     let mut edges = Vec::new();
     for (&w, (row, col)) in self.out_weights.iter() {
-      edges.push(WeightedEdge {
+      edges.push(Edge {
         from: row,
         to: col,
         weight: w,

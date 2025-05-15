@@ -30,7 +30,7 @@ pub struct NetworkConfig {
   pub seed: usize,
 }
 
-pub struct WeightedEdge {
+pub struct Edge {
   pub from: usize,
   pub to: usize,
   pub weight: f64,

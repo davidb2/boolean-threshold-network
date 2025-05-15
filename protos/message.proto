@@ -1,4 +1,5 @@
 syntax = "proto3";
+package boolean_threshold_network;
 
 // Trajectories
 message Trajectories {
@@ -12,14 +13,14 @@ message Trajectories {
 /* Helper messages below. */
 
 message DynamicsConfig {
-  int32 num_steps = 1;
-  int32 num_trials = 2;
-  int32 seed = 3;
+  uint32 num_steps = 1;
+  uint32 num_trials = 2;
+  uint32 seed = 3;
 }
 
 message MetaData {
-  int32 end_time_s = 1;
-  int32 start_time_s = 2;
+  uint32 end_time_s = 1;
+  uint32 start_time_s = 2;
   string tag = 3;
 }
 
@@ -29,23 +30,23 @@ message Network {
 }
 
 message Edge {
-  int32 from = 1;
-  int32 to = 2;
+  uint32 from = 1;
+  uint32 to = 2;
   double weight = 3;
 }
 
 message NetworkConfig {
-  int32 N = 1;
+  uint32 N = 1;
   double gamma = 2;
-  int32 seed = 3;
+  uint32 seed = 3;
 }
 
 message Result {
   repeated State states = 1;
-  repeated int32 trial = 2;
+  repeated uint32 trial = 2;
 }
 
 message State {
   repeated bool state = 1;
-  int32 step_num = 2;
+  uint32 step_num = 2;
 }

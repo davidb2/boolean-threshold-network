@@ -8,9 +8,15 @@ use boolean_threshold_network::{
   types::BooleanThresholdNetwork,
   types::MetaData,
   dynamics::compute_trajectories,
+  writer::write_protobuf,
   // GetOutputFileName,
   // write_trajectories_to_stream,
 };
+
+// use generated::boolean_threshold_network::;
+pub mod pb {
+  include!(concat!(env!("OUT_DIR"), "/boolean_threshold_network.rs"));
+}
 
 /// Record the states of a boolean network with randomized initial starting states.
 #[derive(Parser, Debug)]
@@ -45,7 +51,8 @@ struct Args {
   tag: String,
 }
 
-fn main() -> anyhow::Result<()> {
+
+fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
   let args = Args::parse();
 
   assert!(args.N > 0, "N must be > 0");
@@ -71,8 +78,18 @@ fn main() -> anyhow::Result<()> {
     end_time: Utc::now(),
   };
 
-  let _trajectories = compute_trajectories(&mut network, &dynamics_config);
+  let trajectories = compute_trajectories(&mut network, &dynamics_config);
   metadata.end_time = Utc::now();
+
+  write_protobuf(
+    "data/out.trajpb",
+    &trajectories,
+    &metadata,
+    &dynamics_config,
+    &network_config,
+    &network,
+  )?;
+  println!("Wrote {}", "out.trajpb");
   println!("done");
 
   // let fname = GetOutputFileName("trajectories-", metadata.start_time);

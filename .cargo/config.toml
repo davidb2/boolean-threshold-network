@@ -1,2 +1,5 @@
 [build]
 rustflags = ["-A", "non_snake_case"]
+
+[env]
+PROTOC = "/opt/homebrew/bin/PROTOC"
