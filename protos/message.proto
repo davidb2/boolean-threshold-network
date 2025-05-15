@@ -39,6 +39,7 @@ message NetworkConfig {
   uint32 N = 1;
   double gamma = 2;
   uint32 seed = 3;
+  double K = 4;
 }
 
 message Result {

@@ -1,6 +1,6 @@
 use clap::Parser;
 use chrono::Utc;
-
+use rand_distr::Gamma;
 // Bring in your library’s types & functions:
 use boolean_threshold_network::{
   types::NetworkConfig,
@@ -12,6 +12,7 @@ use boolean_threshold_network::{
   // GetOutputFileName,
   // write_trajectories_to_stream,
 };
+use boolean_threshold_network::utils::{average_connectivity, find_gamma};
 
 // use generated::boolean_threshold_network::;
 pub mod pb {
@@ -28,7 +29,11 @@ struct Args {
 
   /// Threshold parameter
   #[arg(long)]
-  gamma: f64,
+  gamma: Option<f64>,
+
+  /// Average connectivity
+  #[arg(long)]
+  K: Option<f64>,
 
   /// How many independent trials to run
   #[arg(long, default_value_t = 1)]
@@ -58,10 +63,28 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
   assert!(args.N > 0, "N must be > 0");
   assert!(args.num_trials > 0, "num_trials must be > 0");
   assert!(args.num_steps > 0, "num_steps must be > 0");
+  assert!(args.gamma.is_some() ^ args.K.is_some(), "only one of gamma or K should be provided");
+
+  let gamma = match args.gamma {
+    Some(gamma) => gamma,
+    None => match args.K {
+      None => panic!("only one of gamma or K should be provided."),
+      Some(K) => {
+        assert!(K >= 1., "K needs to be at least 1 if supplied.");
+        find_gamma(K, args.N)
+      },
+    }
+  };
+
+  let K = match args.K {
+    Some(K) => K,
+    None => average_connectivity(gamma, args.N),
+  };
 
   let network_config = NetworkConfig {
     N: args.N,
-    gamma: args.gamma,
+    gamma,
+    K,
     seed: args.network_seed,
   };
   let dynamics_config = DynamicsConfig {
@@ -91,20 +114,5 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
   )?;
   println!("Wrote {}", "out.trajpb");
   println!("done");
-
-  // let fname = GetOutputFileName("trajectories-", metadata.start_time);
-  // let path = format!("data/{}.json", fname);
-
-  // let file = File::create(&path)?;
-  // let mut writer = BufWriter::new(file);
-  // write_trajectories_to_stream(
-  //   &trajectories,
-  //   &network,
-  //   &network_config,
-  //   &dynamics_config,
-  //   &metadata,
-  //   &mut writer,
-  // )?;
-
   Ok(())
 }

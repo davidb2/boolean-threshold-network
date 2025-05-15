@@ -17,6 +17,7 @@ anyhow = "1.0.98"
 prost = "0.13"
 # Only necessary if using Protobuf well-known types:
 prost-types = "0.13"
+rootfinder = "0.3.2"
 
 [profile.release]
 lto = true

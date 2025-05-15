@@ -3,3 +3,4 @@ pub mod types;
 pub mod network;
 pub mod dynamics;
 pub mod writer;
+pub mod utils;

@@ -27,6 +27,7 @@ pub struct DynamicsConfig {
 pub struct NetworkConfig {
   pub N: usize,
   pub gamma: f64,
+  pub K: f64,
   pub seed: usize,
 }
 

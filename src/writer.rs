@@ -57,6 +57,7 @@ impl From<&NetworkConfig> for PBNetCfg {
   fn from(c: &NetworkConfig) -> PBNetCfg {
     PBNetCfg {
       n:     c.N as u32,
+      k:     c.K,
       gamma: c.gamma,
       seed:  c.seed as u32,
     }
@@ -125,11 +126,7 @@ impl ToProtoTrajectories for Trajectories {
       num_trials: dyn_cfg.num_trials as u32,
       seed:       dyn_cfg.seed       as u32,
     };
-    let netcfg_pb = pb::NetworkConfig {
-      n:     net_cfg.N     as u32,
-      gamma: net_cfg.gamma,
-      seed:  net_cfg.seed  as u32,
-    };
+    let netcfg_pb = net_cfg.into();
     //  b) Flatten your BooleanThresholdNetwork → pb::Network
     let network_pb = net.into();
     //  c) Convert each trial in self (Vec<Vec<State>>)

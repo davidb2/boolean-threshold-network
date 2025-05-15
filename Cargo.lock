@@ -127,6 +127,7 @@ dependencies = [
  "rand",
  "rand_distr",
  "rayon",
+ "rootfinder",
  "sprs",
 ]
 
@@ -699,6 +700,15 @@ name = "regex-syntax"
 version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
+
+[[package]]
+name = "rootfinder"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "054529890d2847e2c038b8303862d7dbe5e7b32dfc64cbc99ba0a8ee725c1909"
+dependencies = [
+ "once_cell",
+]
 
 [[package]]
 name = "rustix"
