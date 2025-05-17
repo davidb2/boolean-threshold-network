@@ -1,15 +1,30 @@
 use rayon::prelude::*;
 use crate::drug::get_perturbed_network;
 use crate::network::get_uniformly_random_state;
-use crate::types::{Network, DynamicsConfig, State, NetworkConfig, DrugConfig, ExperimentConfig, ExperimentResults, ExperimentResult, Trajectories, Trajectory, Perturbation};
+use crate::types::{
+  Network,
+  DynamicsConfig,
+  State,
+  NetworkConfig,
+  DrugConfig,
+  ExperimentConfig,
+  ExperimentResults,
+  ExperimentResult,
+  Trajectories,
+  Trajectory,
+  Perturbation,
+};
 
 fn run_for_one_initial_condition(
   initial_condition_idx: usize,
+  network_idx: usize,
   perturbed_network: &Network,
   experiment_config: &ExperimentConfig
 ) -> Trajectory {
   let dynamics_config = DynamicsConfig {
-    seed: experiment_config.dynamics_config.seed + initial_condition_idx,
+    seed: experiment_config.dynamics_config.seed + (
+      experiment_config.dynamics_config.num_initial_conditions * network_idx + initial_condition_idx
+    ),
     ..experiment_config.dynamics_config
   };
   let mut state = get_uniformly_random_state(&perturbed_network, &dynamics_config);
@@ -25,9 +40,17 @@ fn run_for_one_initial_condition(
     states,
   }
 }
-fn run_for_one_drug(drug_idx: usize, network: &Network, experiment_config: &ExperimentConfig) -> Perturbation {
+fn run_for_one_drug(
+  drug_idx: usize,
+  network_idx: usize,
+  network: &Network,
+  experiment_config: &ExperimentConfig
+) -> Perturbation {
   let drug_config = DrugConfig {
-    seed: experiment_config.drug_config.seed + drug_idx,
+    // Seed is unique to network and drug
+    seed: experiment_config.drug_config.seed + (
+      experiment_config.drug_config.num_drugs * network_idx + drug_idx
+    ),
     ..experiment_config.drug_config
   };
   let perturbed_network: Network = match drug_idx {
@@ -37,17 +60,28 @@ fn run_for_one_drug(drug_idx: usize, network: &Network, experiment_config: &Expe
 
   let trajectories =
     (0..experiment_config.dynamics_config.num_initial_conditions)
-      .map(|initial_condition_idx| run_for_one_initial_condition(initial_condition_idx, &perturbed_network, experiment_config))
+      .map(|initial_condition_idx| run_for_one_initial_condition(
+        initial_condition_idx,
+        network_idx,
+        &perturbed_network,
+        experiment_config
+      ))
       .collect();
 
   Perturbation {
-    name: match drug_idx { 0 => "control".to_string(), _ => format!("drug-{drug_idx}", drug_idx=drug_idx)},
+    name: match drug_idx {
+      0 => "control".to_string(),
+      _ => format!("drug-{drug_idx}", drug_idx=drug_idx),
+    },
     perturbed_network,
     trajectories,
   }
 }
 
-fn run_for_one_network(network_idx: usize, experiment_config: &ExperimentConfig) -> ExperimentResult {
+fn run_for_one_network(
+  network_idx: usize,
+  experiment_config: &ExperimentConfig,
+) -> ExperimentResult {
   let network_config = NetworkConfig {
     seed: experiment_config.network_config.seed + network_idx,
     ..experiment_config.network_config
@@ -55,7 +89,7 @@ fn run_for_one_network(network_idx: usize, experiment_config: &ExperimentConfig)
   let network = Network::new(&network_config);
   let perturbations =
     (0..experiment_config.drug_config.num_drugs+1) // drug_idx 0 is the control
-      .map(|drug_idx| run_for_one_drug(drug_idx, &network, experiment_config))
+      .map(|drug_idx| run_for_one_drug(drug_idx, network_idx, &network, experiment_config))
       .collect();
 
   ExperimentResult {
