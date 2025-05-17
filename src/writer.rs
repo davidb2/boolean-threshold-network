@@ -40,6 +40,11 @@ fn to_pb_network(network: &Network) -> PBNetwork {
       .collect()
   }
 }
+
+// TODO: For each network, write a Result protobuf per file (i.e. sharding). Put all results under
+// the same directory. This would significantly reduce I/O time both in serialization and
+// deserialization if we use threads to read/write to the files. The downside though is that
+// the data storage format gets more complicated. For now, we leave it as is.
 pub fn write_protobuf(
   experiment_results: &ExperimentResults,
   experiment_config: &ExperimentConfig,
