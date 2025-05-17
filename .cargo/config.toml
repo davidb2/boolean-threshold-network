@@ -3,3 +3,43 @@ rustflags = ["-A", "non_snake_case"]
 
 [env]
 PROTOC = "/opt/homebrew/bin/PROTOC"
+
+[alias]
+run-dev = """
+run \
+    --package boolean_threshold_network \
+    -- \
+    -n 10 \
+    --gamma 2.4 \
+    --num-steps 1 \
+    --network-seed 1 \
+    --num-networks 1 \
+    --num-initial-conditions 3 \
+    --dynamics-seed 0 \
+    --num-drugs 1 \
+    --num-targets-per-drug 3 \
+    --drug-strength .25 \
+    --drug-seed 0 \
+    --tag v0.1.0 \
+    --output-directory data \
+"""
+
+run-release = """
+run \
+    --package boolean_threshold_network \
+    --release \
+    -- \
+    -n 10 \
+    --gamma 2.4 \
+    --num-steps 1 \
+    --network-seed 1 \
+    --num-networks 1 \
+    --num-initial-conditions 3 \
+    --dynamics-seed 0 \
+    --num-drugs 1 \
+    --num-targets-per-drug 3 \
+    --drug-strength .25 \
+    --drug-seed 0 \
+    --tag v0.1.0 \
+    --output-directory data \
+"""
