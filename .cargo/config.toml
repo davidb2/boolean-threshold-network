@@ -29,17 +29,17 @@ run \
     --package boolean_threshold_network \
     --release \
     -- \
-    -n 500 \
+    -n 500000 \
     -k 2.1 \
-    --num-steps 50 \
+    --num-steps 0 \
     --network-seed 0 \
     --num-networks 100 \
-    --num-initial-conditions 12 \
+    --num-initial-conditions 0 \
     --dynamics-seed 0 \
-    --num-drugs 50 \
-    --num-targets-per-drug 10 \
+    --num-drugs 0 \
+    --num-targets-per-drug 0 \
     --drug-strength .25 \
     --drug-seed 0 \
-    --tag v0.1.2 \
+    --tag v0.1.3 \
     --output-directory data \
 """
