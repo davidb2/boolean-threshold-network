@@ -1,8 +1,11 @@
-use chrono::Utc;
 use prost::Message;
-use sprs::CsMat;
 
-use crate::types::{Network, DynamicsConfig, MetaData, NetworkConfig, State, Trajectories, ExperimentConfig, ExperimentResults};
+use crate::types::{
+  Network,
+  MetaData,
+  ExperimentConfig,
+  ExperimentResults,
+};
 
 pub mod pb {
   include!(concat!(env!("OUT_DIR"), "/boolean_threshold_network.rs"));
@@ -21,6 +24,7 @@ use pb::{
   Perturbation as PBPerturbation,
   DrugConfig as PBDrugConfig,
   Experiment as PBExperiment,
+  EdgePerturbation as PBEdgePerturbation,
 };
 
 fn to_pb_network(network: &Network) -> PBNetwork {
@@ -96,7 +100,15 @@ pub fn write_protobuf(
                     .collect()
                 })
                 .collect(),
-              perturbed_network: Some(to_pb_network(&perturbation.perturbed_network)),
+              edge_perturbations: perturbation
+                .edge_perturbations
+                .iter()
+                .map(|edge_perturbation| PBEdgePerturbation {
+                  source: edge_perturbation.source as u32,
+                  target: edge_perturbation.target as u32,
+                  delta: edge_perturbation.delta,
+                })
+                .collect(),
             })
             .collect(),
           original_network: Some(to_pb_network(&experiment_result.original_network))

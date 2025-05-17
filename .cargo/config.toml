@@ -33,13 +33,13 @@ run \
     -k 2.1 \
     --num-steps 50 \
     --network-seed 0 \
-    --num-networks 10 \
+    --num-networks 100 \
     --num-initial-conditions 12 \
     --dynamics-seed 0 \
     --num-drugs 50 \
     --num-targets-per-drug 10 \
     --drug-strength .25 \
     --drug-seed 0 \
-    --tag v0.1.1 \
+    --tag v0.1.2 \
     --output-directory data \
 """

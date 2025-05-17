@@ -6,7 +6,7 @@ use rand_distr::weighted::WeightedIndex;
 use rand_distr::Distribution;
 use sprs::{TriMat};
 
-use crate::types::{Network, NetworkConfig, State, Edge, DynamicsConfig};
+use crate::types::{Network, NetworkConfig, State, Edge, DynamicsConfig, EdgePerturbationLookup};
 use crate::utils::sample_nodes;
 
 fn uniform_weight<R: Rng>(rng: &mut R) -> f64 {
@@ -29,7 +29,11 @@ impl Network {
   }
 
   /// Compute the next state given the previous.
-  pub fn get_next_state(&self, previous: &State) -> State {
+  pub fn get_next_state(
+    &self,
+    previous: &State,
+    edge_perturbation_lookup: &EdgePerturbationLookup,
+  ) -> State {
     assert_eq!(previous.len(), self.N);
     assert!(self.out_weights.is_csc());
     let mut next = vec![false; self.N];
@@ -38,13 +42,18 @@ impl Network {
       let mut sum = 0.0;
       // iterate over nonzeros in column j
       // sprs stores CSR by rows, so we can transpose or iterate rows of transposed:
-      for (i, &w) in self
+      for (i, &weight) in self
         .out_weights
         .outer_view(j).expect("invalid CSC")
         .iter()
       {
-        let b: f64 = previous[i].into();
-        sum += w * b;
+        if previous[i] {
+          let perturbed_weight = weight + match edge_perturbation_lookup.get(&(i, j)) {
+            None => 0.,
+            Some(delta) => *delta,
+          };
+          sum += perturbed_weight;
+        }
       }
       next[j] = activation(sum, previous[j]);
     }
@@ -88,10 +97,10 @@ impl Network {
 } // end impl BooleanThresholdNetwork
 
 /// Sample a uniformly random Boolean state of length N.
-pub fn get_uniformly_random_state(network: &Network, dynamics_config: &DynamicsConfig) -> State {
+pub fn get_uniformly_random_state(network_size: usize, dynamics_config: &DynamicsConfig) -> State {
   let mut initial_condition_rng = StdRng::seed_from_u64(dynamics_config.seed as u64);
   let coin = Bernoulli::new(0.5).unwrap();
-  (0..network.N)
+  (0..network_size)
     .map(|_| initial_condition_rng.sample(&coin))
     .collect::<Vec<bool>>()
 }
@@ -109,7 +118,7 @@ fn generate_out_degree_distribution<R: Rng>(network: &mut Network, params: &Netw
     .collect()
 }
 
-/// Activation: if sum == threshold, stay same; else true iff sum > threshold.
+/// Activation: if sum == 0, stay same; else true iff sum > threshold.
 fn activation(sum: f64, prev: bool) -> bool {
   if sum.abs() < f64::EPSILON {
     prev

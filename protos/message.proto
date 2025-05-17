@@ -47,9 +47,17 @@ message Result {
   uint32 network_idx = 3;
 }
 
+message EdgePerturbation {
+  uint32 source = 1;
+  uint32 target = 2;
+  // new weight <- old_weight + delta
+  // so, old_weight <- new_weight - delta
+  double delta = 3;
+}
+
 message Perturbation {
   string name = 1;
-  Network perturbed_network = 2;
+  repeated EdgePerturbation edge_perturbations = 2;
   repeated Trajectory trajectories = 3;
 }
 

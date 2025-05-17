@@ -1,5 +1,5 @@
 use rayon::prelude::*;
-use crate::drug::get_perturbed_network;
+use crate::drug::get_edge_perturbations;
 use crate::network::get_uniformly_random_state;
 use crate::types::{
   Network,
@@ -10,15 +10,19 @@ use crate::types::{
   ExperimentConfig,
   ExperimentResults,
   ExperimentResult,
-  Trajectories,
   Trajectory,
   Perturbation,
+  EdgePerturbations,
+  EdgePerturbationLookup,
 };
+
+
 
 fn run_for_one_initial_condition(
   initial_condition_idx: usize,
   network_idx: usize,
-  perturbed_network: &Network,
+  original_network: &Network,
+  edge_perturbation_lookup: &EdgePerturbationLookup,
   experiment_config: &ExperimentConfig
 ) -> Trajectory {
   let dynamics_config = DynamicsConfig {
@@ -27,12 +31,12 @@ fn run_for_one_initial_condition(
     ),
     ..experiment_config.dynamics_config
   };
-  let mut state = get_uniformly_random_state(&perturbed_network, &dynamics_config);
+  let mut state = get_uniformly_random_state(experiment_config.network_config.N, &dynamics_config);
   let steps_plus_one = experiment_config.dynamics_config.num_steps + 1;
   let mut states: Vec<State> = Vec::with_capacity(steps_plus_one);
   for _ in 0..steps_plus_one {
     states.push(state.clone());
-    state = perturbed_network.get_next_state(&state);
+    state = original_network.get_next_state(&state, edge_perturbation_lookup);
   }
 
   Trajectory {
@@ -53,17 +57,26 @@ fn run_for_one_drug(
     ),
     ..experiment_config.drug_config
   };
-  let perturbed_network: Network = match drug_idx {
-    0 => network.clone(),
-    _ => get_perturbed_network(&network, &drug_config),
+  let edge_perturbations: EdgePerturbations = match drug_idx {
+    0 => EdgePerturbations::new(),
+    _ => get_edge_perturbations(&network, &drug_config),
   };
+
+  // Convert edge perturbations to fast lookup data structure.
+  let edge_perturbation_lookup: EdgePerturbationLookup = edge_perturbations
+    .iter()
+    .map(|edge_perturbation| {
+      ((edge_perturbation.source, edge_perturbation.target), edge_perturbation.delta)
+    })
+    .collect();
 
   let trajectories =
     (0..experiment_config.dynamics_config.num_initial_conditions)
       .map(|initial_condition_idx| run_for_one_initial_condition(
         initial_condition_idx,
         network_idx,
-        &perturbed_network,
+        network,
+        &edge_perturbation_lookup,
         experiment_config
       ))
       .collect();
@@ -73,7 +86,7 @@ fn run_for_one_drug(
       0 => "control".to_string(),
       _ => format!("drug-{drug_idx}", drug_idx=drug_idx),
     },
-    perturbed_network,
+    edge_perturbations,
     trajectories,
   }
 }

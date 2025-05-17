@@ -1,4 +1,4 @@
-use rand::rngs::StdRng;
+use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use sprs::CsMat;
 
@@ -6,7 +6,10 @@ pub type State = Vec<bool>;
 pub type Trajectories = Vec<Trajectory>;
 pub type States = Vec<State>;
 pub type Perturbations = Vec<Perturbation>;
+pub type EdgePerturbations = Vec<EdgePerturbation>;
 pub type ExperimentResults = Vec<ExperimentResult>;
+pub type EdgeIndex = (usize, usize);
+pub type EdgePerturbationLookup = HashMap<EdgeIndex, f64>;
 
 pub struct ExperimentConfig {
   pub num_networks: usize,
@@ -49,7 +52,7 @@ pub struct ExperimentResult {
 
 pub struct Perturbation {
   pub name: String,
-  pub perturbed_network: Network,
+  pub edge_perturbations: EdgePerturbations,
   pub trajectories: Trajectories,
 }
 
@@ -70,4 +73,12 @@ pub struct Edge {
   pub source: usize,
   pub target: usize,
   pub weight: f64,
+}
+
+pub struct EdgePerturbation {
+  pub source: usize,
+  pub target: usize,
+  /// new weight <- old_weight + delta
+  /// so, old_weight <- new_weight - delta
+  pub delta: f64,
 }
