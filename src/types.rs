@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use chrono::{DateTime, Utc};
+use clap::ValueEnum;
 use sprs::CsMat;
 
 pub type State = Vec<bool>;
@@ -11,6 +12,23 @@ pub type ExperimentResults = Vec<ExperimentResult>;
 pub type EdgeIndex = (usize, usize);
 pub type EdgePerturbationLookup = HashMap<EdgeIndex, f64>;
 
+#[derive(ValueEnum, Debug, Clone)]
+pub enum OutDegreeDistributionType {
+  Homogeneous,
+  PowerLaw,
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum DegreeDistribution {
+  /// Poisson distribution.
+  Homogeneous {
+    lambda: f64,
+  },
+  /// Power law / scale-free distribution.
+  PowerLaw {
+    gamma: f64,
+  },
+}
 pub struct ExperimentConfig {
   pub num_networks: usize,
   pub drug_config: DrugConfig,
@@ -32,8 +50,8 @@ pub struct DynamicsConfig {
 
 pub struct NetworkConfig {
   pub N: usize,
-  pub gamma: f64,
   pub K: f64,
+  pub out_degree_distribution: DegreeDistribution,
   pub seed: usize,
 }
 

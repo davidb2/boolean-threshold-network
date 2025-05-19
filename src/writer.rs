@@ -5,6 +5,7 @@ use crate::types::{
   MetaData,
   ExperimentConfig,
   ExperimentResults,
+  DegreeDistribution,
 };
 
 pub mod pb {
@@ -25,6 +26,11 @@ use pb::{
   DrugConfig as PBDrugConfig,
   Experiment as PBExperiment,
   EdgePerturbation as PBEdgePerturbation,
+  PowerLawDistribution as PBPowerLawDistribution,
+  HomogeneousDistribution as PBHomogenousDistribution,
+  network_config::OutDegreeDistribution::PoissonOutDegreeDistribution as PBPoissonOutDegreeDistribution,
+  network_config::OutDegreeDistribution::PowerLawOutDegreeDistribution as PBPowerLawOutDegreeDistribution,
+  OutDegreeDistributionType as PBOutDegreeDistributionType,
 };
 
 fn to_pb_network(network: &Network) -> PBNetwork {
@@ -76,7 +82,14 @@ pub fn write_protobuf(
       network_config: Some(PBNetworkConfig {
         network_size: experiment_config.network_config.N as u32,
         expected_connectivity: experiment_config.network_config.K,
-        gamma: experiment_config.network_config.gamma,
+        out_degree_distribution_type: match experiment_config.network_config.out_degree_distribution {
+          DegreeDistribution::Homogeneous { .. }  => PBOutDegreeDistributionType::Homogeneous as i32,
+          DegreeDistribution::PowerLaw { .. }  => PBOutDegreeDistributionType::PowerLaw as i32,
+        },
+        out_degree_distribution: Some(match experiment_config.network_config.out_degree_distribution {
+          DegreeDistribution::Homogeneous { lambda } => PBPoissonOutDegreeDistribution(PBHomogenousDistribution { lambda }),
+          DegreeDistribution::PowerLaw { gamma } => PBPowerLawOutDegreeDistribution(PBPowerLawDistribution { gamma }),
+        }),
         seed: experiment_config.network_config.seed as u32
       })
     }),

@@ -1,6 +1,19 @@
 syntax = "proto3";
 package boolean_threshold_network;
 
+message HomogeneousDistribution {
+  double lambda = 1;
+}
+
+message PowerLawDistribution {
+  double gamma = 1;
+}
+
+enum OutDegreeDistributionType {
+  OUT_DEGREE_DISTRIBUTION_TYPE_HOMOGENEOUS = 0;
+  OUT_DEGREE_DISTRIBUTION_TYPE_POWER_LAW = 1;
+}
+
 message Experiment {
   MetaData metadata = 1;
   ExperimentConfig experiment_config = 2;
@@ -24,8 +37,12 @@ message MetaData {
 message NetworkConfig {
   uint32 network_size = 1;
   double expected_connectivity = 2;
-  double gamma = 3;
-  uint32 seed = 4;
+  OutDegreeDistributionType out_degree_distribution_type = 3;
+  oneof out_degree_distribution {
+    HomogeneousDistribution poisson_out_degree_distribution = 6;
+    PowerLawDistribution power_law_out_degree_distribution = 7;
+  };
+  uint32 seed = 5;
 }
 
 message DynamicsConfig {

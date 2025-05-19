@@ -2,9 +2,14 @@ use std::path::PathBuf;
 use chrono::Utc;
 use clap::Parser;
 use boolean_threshold_network::experiment::run_experiment;
-use boolean_threshold_network::types::{DrugConfig, DynamicsConfig, ExperimentConfig, MetaData, NetworkConfig};
-use boolean_threshold_network::utils::{average_connectivity, find_gamma};
+use boolean_threshold_network::types::{DrugConfig, DynamicsConfig, ExperimentConfig, MetaData, NetworkConfig, OutDegreeDistributionType};
+use boolean_threshold_network::types::DegreeDistribution::{Homogeneous, PowerLaw};
+use boolean_threshold_network::utils::{
+  average_connectivity,
+  find_gamma,
+};
 use boolean_threshold_network::writer::write_protobuf;
+
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -25,6 +30,14 @@ struct Args {
   /// the value \gamma in P_{out}(k) \propto k^{-\gamma}
   #[arg(long)]
   gamma: Option<f64>,
+
+  /// the value for the poisson distribution
+  #[arg(long)]
+  lambda: Option<f64>,
+
+  /// the distribution of the out degrees.
+  #[arg(long, value_enum)]
+  out_degree_distribution: OutDegreeDistributionType,
 
   /// base seed to use for creating networks
   #[arg(long)]
@@ -83,25 +96,26 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
   assert!(args.output_directory.exists(), "the provided output directory does not exist.");
 
   /* BEGIN: Network config. */
-  let gamma = match args.gamma {
-    Some(gamma) => {
-      assert!(gamma >= 0., "gamma cannot be negative.");
-      gamma
-    },
-    None => match args.K {
-      None => panic!("only one of gamma or K should be provided."),
-      Some(K) => {
-        assert!(K > 0., "K needs to be positive if supplied.");
-        find_gamma(K, args.N)
-      },
-    }
+  let out_degree_distribution = match (args.out_degree_distribution, args.K, args.gamma, args.lambda) {
+    (_, None, None, None) => panic!("need to specify one of K, lambda, or gamma."),
+    (_, Some(_), Some(_), _) |
+    (_, _, Some(_), Some(_)) |
+    (_, Some(_), _, Some(_)) => panic!("can only specify one of K, lambda, or gamma."),
+    (OutDegreeDistributionType::Homogeneous, Some(K), _, _) => Homogeneous { lambda: K },
+    (OutDegreeDistributionType::Homogeneous, _, _, Some(lambda)) => Homogeneous { lambda },
+    (OutDegreeDistributionType::PowerLaw, Some(K), _, _) => PowerLaw { gamma: find_gamma(K, args.N) },
+    (OutDegreeDistributionType::PowerLaw, _, Some(gamma), _) => PowerLaw { gamma },
+    (_, _, _, _) => panic!("specified out degree distribution does not match given parameters.")
   };
-  let K = match args.K {
-    Some(K) => K,
-    None => average_connectivity(gamma, args.N),
+  let K = match out_degree_distribution {
+    Homogeneous { lambda} => lambda,
+    PowerLaw { gamma } => average_connectivity(gamma, args.N),
   };
   let network_config = NetworkConfig {
-    N: args.N, K, gamma, seed: args.network_seed,
+    N: args.N,
+    K,
+    out_degree_distribution,
+    seed: args.network_seed,
   };
   /* END: Network config. */
 

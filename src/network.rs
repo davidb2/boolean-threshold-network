@@ -1,12 +1,12 @@
 // src/lib/network.rs
 use rand::{SeedableRng, Rng};
 use rand::rngs::StdRng;
-use rand_distr::{Bernoulli, Uniform};
+use rand_distr::{Bernoulli, Poisson, Uniform};
 use rand_distr::weighted::WeightedIndex;
 use rand_distr::Distribution;
 use sprs::{TriMat};
 
-use crate::types::{Network, NetworkConfig, State, Edge, DynamicsConfig, EdgePerturbationLookup};
+use crate::types::{Network, NetworkConfig, State, Edge, DynamicsConfig, EdgePerturbationLookup, DegreeDistribution};
 use crate::utils::sample_nodes;
 
 fn uniform_weight<R: Rng>(rng: &mut R) -> f64 {
@@ -105,10 +105,27 @@ pub fn get_uniformly_random_state(network_size: usize, dynamics_config: &Dynamic
     .collect::<Vec<bool>>()
 }
 
-fn generate_out_degree_distribution<R: Rng>(network: &mut Network, params: &NetworkConfig, rng: &mut R) -> Vec<usize> {
+fn generate_out_degree_distribution<R: Rng>(network: &Network, params: &NetworkConfig, rng: &mut R) -> Vec<usize> {
+  match params.out_degree_distribution {
+    DegreeDistribution::Homogeneous { lambda } => generate_out_degree_distribution_homogeneous(network, lambda, rng),
+    DegreeDistribution::PowerLaw { gamma } => generate_out_degree_distribution_powerlaw(network, gamma, rng),
+  }
+}
+
+fn generate_out_degree_distribution_homogeneous<R: Rng>(network: &Network, lambda: f64, rng: &mut R) -> Vec<usize> {
+  // P(k) ∝ \lambda^k/k!, for k = 1..N where \lambda = K
+  let dist = Poisson::new(lambda).unwrap();
+
+  // sample one per node
+  (0..network.N)
+    .map(|_| dist.sample(rng) as usize)
+    .collect()
+}
+
+fn generate_out_degree_distribution_powerlaw<R: Rng>(network: &Network, gamma: f64, rng: &mut R) -> Vec<usize> {
   // P(k) ∝ k^{-γ}, for k = 1..N
   let weights: Vec<f64> = (1..=network.N)
-    .map(|k| (k as f64).powf(-params.gamma))
+    .map(|k| (k as f64).powf(-gamma))
     .collect();
   let dist = WeightedIndex::new(&weights).unwrap();
 
