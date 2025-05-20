@@ -29,18 +29,18 @@ run \
     --package boolean_threshold_network \
     --release \
     -- \
-    -n 50 \
-    -k 2.1 \
-    --out-degree-distribution homogeneous \
-    --num-steps 0 \
+    -n 500 \
+    -k 14.5 \
+    --out-degree-distribution power-law \
+    --num-steps 30 \
     --network-seed 0 \
     --num-networks 100 \
-    --num-initial-conditions 0 \
+    --num-initial-conditions 20 \
     --dynamics-seed 0 \
-    --num-drugs 1 \
+    --num-drugs 0 \
     --num-targets-per-drug 0 \
-    --drug-strength .25 \
+    --drug-strength 0 \
     --drug-seed 0 \
-    --tag v0.1.4 \
-    --output-directory data \
+    --tag v0.1.5 \
+    --output-directory data/no-drug-power-law-phase-transition \
 """
