@@ -56,6 +56,10 @@ struct Args {
   /// base seed use for dynamics
   #[arg(long)]
   dynamics_seed: usize,
+
+  /// the correlation for the initial states of each network->drug trial
+  #[arg(long)]
+  initial_condition_correlation: f64,
   /* END: Dynamics config. */
 
   /* START: Drug config. */
@@ -93,6 +97,11 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
   // Validate the args.
   println!("Validating inputs...");
   assert!(args.drug_strength >= 0., "drug strength cannot be negative.");
+  assert!(
+    0. <= args.initial_condition_correlation
+    && args.initial_condition_correlation <= 1.,
+    "initial condition correlation must be in [0, 1]."
+  );
   assert!(args.output_directory.exists(), "the provided output directory does not exist.");
 
   /* BEGIN: Network config. */
@@ -123,6 +132,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
   let dynamics_config = DynamicsConfig {
     num_steps: args.num_steps,
     num_initial_conditions: args.num_initial_conditions,
+    initial_condition_correlation: args.initial_condition_correlation,
     seed: args.dynamics_seed,
   };
   /* END: Dynamics config. */

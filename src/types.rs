@@ -43,6 +43,7 @@ pub struct MetaData {
 }
 
 pub struct DynamicsConfig {
+  pub initial_condition_correlation: f64,
   pub num_initial_conditions: usize,
   pub num_steps: usize,
   pub seed: usize,

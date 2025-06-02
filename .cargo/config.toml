@@ -27,22 +27,24 @@ run \
 run-release = """
 run \
     --package boolean_threshold_network \
+    --bin perform_experiment \
     --release \
     -- \
     -n 500 \
     -k 14.5 \
-    --out-degree-distribution power-law \
+    --out-degree-distribution homogeneous \
     --num-steps 30 \
     --network-seed 0 \
-    --num-networks 100 \
-    --num-initial-conditions 20 \
+    --num-networks 50 \
+    --num-initial-conditions 30 \
+    --initial-condition-correlation .9 \
     --dynamics-seed 0 \
     --num-drugs 0 \
     --num-targets-per-drug 0 \
     --drug-strength 0 \
     --drug-seed 0 \
-    --tag v0.1.5 \
-    --output-directory data/no-drug-power-law-phase-transition \
+    --tag v0.2.0 \
+    --output-directory data/no-drug-homogeneous-phase-transition-correlation/raw \
 """
 
 run-analysis = """

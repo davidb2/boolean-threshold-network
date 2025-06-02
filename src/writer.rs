@@ -77,7 +77,8 @@ pub fn write_protobuf(
       dynamics_config: Some(PBDynamicsConfig {
         num_steps: experiment_config.dynamics_config.num_steps as u32,
         num_initial_conditions: experiment_config.dynamics_config.num_initial_conditions as u32,
-        seed: experiment_config.dynamics_config.seed as u32
+        seed: experiment_config.dynamics_config.seed as u32,
+        initial_condition_correlation: experiment_config.dynamics_config.initial_condition_correlation,
       }),
       network_config: Some(PBNetworkConfig {
         network_size: experiment_config.network_config.N as u32,

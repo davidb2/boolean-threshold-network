@@ -1,4 +1,8 @@
+use rand::SeedableRng;
 use rayon::prelude::*;
+use rand::Rng;
+use rand::rngs::StdRng;
+use rand_distr::Bernoulli;
 use crate::drug::get_edge_perturbations;
 use crate::network::get_uniformly_random_state;
 use crate::types::{
@@ -16,7 +20,18 @@ use crate::types::{
   EdgePerturbationLookup,
 };
 
-
+fn flip_some_bits(state: &State, correlation: f64, seed: usize) -> State {
+  assert!(0. <= correlation && correlation <= 1., "Correlation must be in [0, 1]");
+  let mut flip_rng = StdRng::seed_from_u64(seed as u64);
+  let biased_coin = Bernoulli::new(1.-correlation).unwrap();
+  state
+    .iter()
+    .map(|b| match flip_rng.sample(&biased_coin) {
+      false => *b,
+      true => !b,
+    })
+    .collect()
+}
 
 fn run_for_one_initial_condition(
   initial_condition_idx: usize,
@@ -25,13 +40,19 @@ fn run_for_one_initial_condition(
   edge_perturbation_lookup: &EdgePerturbationLookup,
   experiment_config: &ExperimentConfig
 ) -> Trajectory {
+  let base_seed =  experiment_config.dynamics_config.seed + (
+    experiment_config.dynamics_config.num_initial_conditions * network_idx
+  );
   let dynamics_config = DynamicsConfig {
-    seed: experiment_config.dynamics_config.seed + (
-      experiment_config.dynamics_config.num_initial_conditions * network_idx + initial_condition_idx
-    ),
+    seed: base_seed,
     ..experiment_config.dynamics_config
   };
+
   let mut state = get_uniformly_random_state(experiment_config.network_config.N, &dynamics_config);
+  if initial_condition_idx > 0 {
+    state = flip_some_bits(&state, experiment_config.dynamics_config.initial_condition_correlation, base_seed + initial_condition_idx);
+  }
+
   let steps_plus_one = experiment_config.dynamics_config.num_steps + 1;
   let mut states: Vec<State> = Vec::with_capacity(steps_plus_one);
   for _ in 0..steps_plus_one {

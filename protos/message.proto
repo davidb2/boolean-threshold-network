@@ -49,6 +49,8 @@ message DynamicsConfig {
   uint32 num_steps = 1;
   uint32 num_initial_conditions = 2;
   uint32 seed = 3;
+  // How similar should the initial condition be for subsequent trials of the same drug/network?
+  double initial_condition_correlation = 4;
 }
 
 message DrugConfig {
