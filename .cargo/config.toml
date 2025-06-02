@@ -44,3 +44,13 @@ run \
     --tag v0.1.5 \
     --output-directory data/no-drug-power-law-phase-transition \
 """
+
+run-analysis = """
+run \
+    --package boolean_threshold_network \
+    --bin analyze_data \
+    --release
+    -- \
+    --input-directory data/no-drug-homogeneous-phase-transition/raw \
+    --output-directory data/no-drug-homogeneous-phase-transition/derived
+"""
