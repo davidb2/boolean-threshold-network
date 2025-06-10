@@ -19,11 +19,14 @@ use pb::{
   Experiment as PBExperiment,
   Trajectory as PBTrajectory,
   ExperimentConfig as PBExperimentConfig,
+  PowerLawDistribution as PBPowerLawDistribution,
+  network_config::OutDegreeDistribution::PowerLawOutDegreeDistribution as PBPowerLawOutDegreeDistribution,
 };
 
 struct HammingDistanceRecord {
   pub expected_connectivity: f64,
   pub hamming_distance: f64,
+  pub gamma: Option<f64>,
 }
 
 struct MutualInfoRecord {
@@ -33,9 +36,13 @@ struct MutualInfoRecord {
 
 fn write_hamming_distances(hamming_distances: &Vec<HammingDistanceRecord>, output_filename: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>>  {
   let mut csv_writer = Writer::from_path(output_filename)?;
-  _ = csv_writer.write_record(&["expected_connectivity", "hamming_distance"]);
+  _ = csv_writer.write_record(&["expected_connectivity", "gamma", "hamming_distance"]);
   _ = hamming_distances.iter().for_each(|record|
-    _ = csv_writer.write_record(&[record.expected_connectivity, record.hamming_distance].iter().map(|x| x.to_string()).collect::<Vec<String>>())
+    _ = csv_writer.write_record(&[
+      record.expected_connectivity,
+      record.gamma.unwrap_or_else(|| 0.),
+      record.hamming_distance,
+    ].iter().map(|x| x.to_string()).collect::<Vec<String>>())
   );
   Ok(())
 }
@@ -132,7 +139,7 @@ fn mutual_info(trajectories: &[PBTrajectory], time: usize, experiment_config: &P
 }
 
 fn compute_hamming_distances(experiments: &[PBExperiment]) -> Vec<HammingDistanceRecord> {
-  let last_step = experiments[0].experiment_config.unwrap().dynamics_config.unwrap().num_steps;
+  let dynamics_config = experiments[0].experiment_config.unwrap().dynamics_config.unwrap();
   experiments
     .iter()
     .par_bridge()
@@ -144,10 +151,16 @@ fn compute_hamming_distances(experiments: &[PBExperiment]) -> Vec<HammingDistanc
             .combinations(2)
             .map(|initial_condition_idxs| HammingDistanceRecord {
               expected_connectivity: experiment.experiment_config.unwrap().network_config.unwrap().expected_connectivity,
-              hamming_distance: hamming_distance(
-                &result.perturbations[0].trajectories[initial_condition_idxs[0] as usize].states[last_step as usize].state,
-                &result.perturbations[0].trajectories[initial_condition_idxs[1] as usize].states[last_step as usize].state,
-              )
+              gamma: match experiment.experiment_config.unwrap().network_config.unwrap().out_degree_distribution.unwrap() {
+                 PBPowerLawOutDegreeDistribution(PBPowerLawDistribution { gamma }) => Some(gamma),
+                _ => None,
+              },
+              hamming_distance: (0..dynamics_config.num_final_states_to_store)
+                .map(|step| hamming_distance(
+                    &result.perturbations[0].trajectories[initial_condition_idxs[0] as usize].states[step as usize].state,
+                    &result.perturbations[0].trajectories[initial_condition_idxs[1] as usize].states[step as usize].state,
+                  )
+                ).sum::<f64>() / (dynamics_config.num_final_states_to_store as f64),
             }
             )
             .collect::<Vec<HammingDistanceRecord>>()
@@ -160,7 +173,7 @@ fn compute_hamming_distances(experiments: &[PBExperiment]) -> Vec<HammingDistanc
 }
 
 fn compute_mutual_infos(experiments: &[PBExperiment]) -> Vec<MutualInfoRecord> {
-  let last_step = experiments[0].experiment_config.unwrap().dynamics_config.unwrap().num_steps;
+  let dynamics_config = experiments[0].experiment_config.unwrap().dynamics_config.unwrap();
   experiments
     .iter()
     .par_bridge()
@@ -169,11 +182,13 @@ fn compute_mutual_infos(experiments: &[PBExperiment]) -> Vec<MutualInfoRecord> {
         .iter()
         .map(|result| MutualInfoRecord {
           expected_connectivity: experiment.experiment_config.unwrap().network_config.unwrap().expected_connectivity,
-          mutual_info: mutual_info(
-            result.perturbations[0].trajectories.as_slice(),
-            last_step as usize,
-            &experiments[0].experiment_config.unwrap(),
-          ),
+          mutual_info: (0..dynamics_config.num_final_states_to_store)
+            .map(|step| mutual_info(
+                result.perturbations[0].trajectories.as_slice(),
+                step as usize,
+                &experiments[0].experiment_config.unwrap(),
+              ),
+            ).sum::<f64>()  / (dynamics_config.num_final_states_to_store as f64),
         })
         .collect::<Vec<MutualInfoRecord>>()
     )
@@ -224,20 +239,22 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
   {
     let hamming_distances = compute_hamming_distances(&experiments);
     let output_path = args.output_directory.join(
-      format!("hamming-distances-{timestamp}.csv", timestamp = start_time.timestamp())
+      format!("hamming-distances-{timestamp}.csv", timestamp = start_time.timestamp_millis())
     );
     let output_filename = output_path.to_str().unwrap();
     _ = write_hamming_distances(&hamming_distances, output_filename);
   }
 
+  /**
   {
     let mutual_infos = compute_mutual_infos(&experiments);
     let output_path = args.output_directory.join(
-      format!("mutual-infos-{timestamp}.csv", timestamp = start_time.timestamp())
+      format!("mutual-infos-{timestamp}.csv", timestamp = start_time.timestamp_millis())
     );
     let output_filename = output_path.to_str().unwrap();
     _ = write_mutual_infos(&mutual_infos, output_filename);
   }
+  */
 
 
   Ok(())

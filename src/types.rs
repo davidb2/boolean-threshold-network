@@ -46,6 +46,7 @@ pub struct DynamicsConfig {
   pub initial_condition_correlation: f64,
   pub num_initial_conditions: usize,
   pub num_steps: usize,
+  pub num_final_states_to_store: usize,
   pub seed: usize,
 }
 

@@ -53,12 +53,14 @@ fn run_for_one_initial_condition(
     state = flip_some_bits(&state, experiment_config.dynamics_config.initial_condition_correlation, base_seed + initial_condition_idx);
   }
 
-  let steps_plus_one = experiment_config.dynamics_config.num_steps + 1;
-  let mut states: Vec<State> = Vec::with_capacity(steps_plus_one);
-  for _ in 0..steps_plus_one {
-    states.push(state.clone());
+  let mut states: Vec<State> = Vec::with_capacity(experiment_config.dynamics_config.num_steps + 1);
+  for step in 0..experiment_config.dynamics_config.num_steps {
+    if experiment_config.dynamics_config.num_steps - step < experiment_config.dynamics_config.num_final_states_to_store {
+      states.push(state.clone());
+    }
     state = original_network.get_next_state(&state, edge_perturbation_lookup);
   }
+  states.push(state.clone());
 
   Trajectory {
     initial_condition_idx,

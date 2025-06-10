@@ -60,6 +60,10 @@ struct Args {
   /// the correlation for the initial states of each network->drug trial
   #[arg(long)]
   initial_condition_correlation: f64,
+
+  /// number of final states to store
+  #[arg(long)]
+  num_final_states_to_store: usize,
   /* END: Dynamics config. */
 
   /* START: Drug config. */
@@ -102,6 +106,10 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     && args.initial_condition_correlation <= 1.,
     "initial condition correlation must be in [0, 1]."
   );
+  assert!(
+    args.num_final_states_to_store <= args.num_steps,
+    "cannot store more final states than number of steps"
+  );
   assert!(args.output_directory.exists(), "the provided output directory does not exist.");
 
   /* BEGIN: Network config. */
@@ -133,6 +141,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     num_steps: args.num_steps,
     num_initial_conditions: args.num_initial_conditions,
     initial_condition_correlation: args.initial_condition_correlation,
+    num_final_states_to_store: args.num_final_states_to_store,
     seed: args.dynamics_seed,
   };
   /* END: Dynamics config. */
@@ -155,7 +164,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
   /* END: Metadata. */
 
   let output_path = args.output_directory.join(
-   format!("experiment-{timestamp}.pb", timestamp=metadata.start_time.timestamp())
+   format!("experiment-{timestamp}.pb", timestamp=metadata.start_time.timestamp_millis())
   );
   let output_filename = output_path.to_str().unwrap();
 

@@ -30,21 +30,21 @@ run \
     --bin perform_experiment \
     --release \
     -- \
-    -n 500 \
+    -n 50 \
     -k 14.5 \
     --out-degree-distribution homogeneous \
     --num-steps 30 \
     --network-seed 0 \
     --num-networks 50 \
     --num-initial-conditions 30 \
-    --initial-condition-correlation .9 \
+    --initial-condition-correlation .99 \
     --dynamics-seed 0 \
     --num-drugs 0 \
     --num-targets-per-drug 0 \
     --drug-strength 0 \
     --drug-seed 0 \
     --tag v0.2.0 \
-    --output-directory data/no-drug-homogeneous-phase-transition-correlation/raw \
+    --output-directory data/no-drug-homogeneous-phase-transition-correlation-0.99/raw \
 """
 
 run-analysis = """
