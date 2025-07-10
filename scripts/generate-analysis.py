@@ -2,22 +2,24 @@ import numpy as np
 import os
 import tqdm
 
-N = 5000
+N = 50_000
 c = 0.99
 
+DISTRIBUTION = "homogeneous"
 analyze_data = f"""
-cargo run \
+  RAYON_NUM_THREADS=1 \
+  cargo run \
   --package boolean_threshold_network \
   --bin analyze_data \
   --release \
   -- \
-  --input-directory data/no-drug-homogeneous-phase-transition/N{N}-c{c}/raw \
-  --output-directory data/no-drug-homogeneous-phase-transition/N{N}-c{c}/derived \
+  --input-directory data/no-drug-{DISTRIBUTION}-phase-transition/N{N}-demo/raw \
+  --output-directory data/no-drug-{DISTRIBUTION}-phase-transition/N{N}-demo/derived \
 """
 
 
 def main():
-  os.makedirs(f"data/no-drug-homogeneous-phase-transition/N{N}-c{c}/derived", exist_ok=True)
+  os.makedirs(f"data/no-drug-{DISTRIBUTION}-phase-transition/N{N}-demo/derived", exist_ok=True)
   os.system(analyze_data)
 
 

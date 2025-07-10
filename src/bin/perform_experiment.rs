@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 use chrono::Utc;
+use uuid::Uuid;
 use clap::Parser;
 use boolean_threshold_network::experiment::run_experiment;
 use boolean_threshold_network::types::{DrugConfig, DynamicsConfig, ExperimentConfig, MetaData, NetworkConfig, OutDegreeDistributionType};
@@ -118,15 +119,22 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     (_, Some(_), Some(_), _) |
     (_, _, Some(_), Some(_)) |
     (_, Some(_), _, Some(_)) => panic!("can only specify one of K, lambda, or gamma."),
-    (OutDegreeDistributionType::Homogeneous, Some(K), _, _) => Homogeneous { lambda: K },
+    (OutDegreeDistributionType::Homogeneous, Some(K), _, _) => {
+      assert!(0. <= K && K <= (args.N as f64), "for homogeneous distributions, it must be that 0 <= K <= N");
+      Homogeneous { lambda: K }
+    },
     (OutDegreeDistributionType::Homogeneous, _, _, Some(lambda)) => Homogeneous { lambda },
-    (OutDegreeDistributionType::PowerLaw, Some(K), _, _) => PowerLaw { gamma: find_gamma(K, args.N) },
+    (OutDegreeDistributionType::PowerLaw, Some(K), _, _) => {
+      assert!(1. <= K && K <= (args.N+1) as f64 / 2., "for power law distributions, it must be that 1 <= K <= (N+1)/2.");
+      PowerLaw { gamma: find_gamma(K, args.N) }
+    },
     (OutDegreeDistributionType::PowerLaw, _, Some(gamma), _) => PowerLaw { gamma },
     (_, _, _, _) => panic!("specified out degree distribution does not match given parameters.")
   };
-  let K = match out_degree_distribution {
-    Homogeneous { lambda} => lambda,
-    PowerLaw { gamma } => average_connectivity(gamma, args.N),
+  let K = match (args.K, out_degree_distribution) {
+    (Some(K), _) => K,
+    (_, Homogeneous { lambda}) => lambda,
+    (_, PowerLaw { gamma }) => average_connectivity(gamma, args.N),
   };
   let network_config = NetworkConfig {
     N: args.N,
@@ -164,7 +172,11 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
   /* END: Metadata. */
 
   let output_path = args.output_directory.join(
-   format!("experiment-{timestamp}.pb", timestamp=metadata.start_time.timestamp_millis())
+   format!(
+     "experiment-{timestamp}-{id}.pb",
+     timestamp=metadata.start_time.timestamp_millis(),
+     id=Uuid::new_v4().to_string(),
+   )
   );
   let output_filename = output_path.to_str().unwrap();
 

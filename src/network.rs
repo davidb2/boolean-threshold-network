@@ -113,7 +113,10 @@ fn generate_out_degree_distribution<R: Rng>(network: &Network, params: &NetworkC
 }
 
 fn generate_out_degree_distribution_homogeneous<R: Rng>(network: &Network, lambda: f64, rng: &mut R) -> Vec<usize> {
-  // P(k) ∝ \lambda^k/k!, for k = 1..N where \lambda = K
+  if lambda == 0. {
+    return (0..network.N).map(|_| 0).collect();
+  }
+  // P(k) ∝ \lambda^k/k!, for k = 0..N where \lambda = K
   let dist = Poisson::new(lambda).unwrap();
 
   // sample one per node
