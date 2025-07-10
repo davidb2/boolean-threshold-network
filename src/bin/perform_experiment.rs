@@ -101,7 +101,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
   // Validate the args.
   println!("Validating inputs...");
-  assert!(args.drug_strength >= 0., "drug strength cannot be negative.");
+  assert!(0. <= args.drug_strength && args.drug_strength <= 1., "drug strength must be between 0 and 1.");
   assert!(
     0. <= args.initial_condition_correlation
     && args.initial_condition_correlation <= 1.,
