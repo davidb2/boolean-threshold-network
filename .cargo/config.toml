@@ -30,21 +30,22 @@ run \
     --bin perform_experiment \
     --release \
     -- \
-    -n 50 \
-    -k 14.5 \
-    --out-degree-distribution homogeneous \
-    --num-steps 30 \
+    -n 5000 \
+    --gamma 2.0  \
+    --out-degree-distribution power-law \
+    --num-steps 100 \
     --network-seed 0 \
     --num-networks 50 \
-    --num-initial-conditions 30 \
+    --num-final-states-to-store 10 \
+    --num-initial-conditions 10 \
     --initial-condition-correlation .99 \
     --dynamics-seed 0 \
-    --num-drugs 0 \
-    --num-targets-per-drug 0 \
-    --drug-strength 0 \
+    --num-drugs 10 \
+    --num-targets-per-drug 250 \
+    --drug-strength 1 \
     --drug-seed 0 \
-    --tag v0.2.0 \
-    --output-directory data/no-drug-homogeneous-phase-transition-correlation-0.99/raw \
+    --tag v1.0.0 \
+    --output-directory data/drug-power-law-phase-transition-max-drug-strength-250/raw \
 """
 
 run-analysis = """
@@ -55,4 +56,14 @@ run \
     -- \
     --input-directory data/no-drug-homogeneous-phase-transition/raw \
     --output-directory data/no-drug-homogeneous-phase-transition/derived
+"""
+
+run-extraction = """
+run \
+    --package boolean_threshold_network \
+    --bin extract_states \
+    --release
+    -- \
+    --input-directory  data/drug-power-law-phase-transition-max-drug-strength-250/raw \
+    --output-directory data/drug-power-law-phase-transition-max-drug-strength-250/derived
 """
