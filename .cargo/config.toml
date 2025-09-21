@@ -41,11 +41,12 @@ run \
     --initial-condition-correlation .99 \
     --dynamics-seed 0 \
     --num-drugs 10 \
-    --num-targets-per-drug 250 \
+    --num-targets-per-drug 50 \
     --drug-strength 1 \
     --drug-seed 0 \
-    --tag v1.0.0 \
-    --output-directory data/drug-power-law-phase-transition-max-drug-strength-250/raw \
+    --tag v1.0.1 \
+    --reversed-edges \
+    --output-directory data/drug-power-law-phase-transition-max-drug-strength-50-reversed-edges/raw \
 """
 
 run-analysis = """
@@ -64,6 +65,6 @@ run \
     --bin extract_states \
     --release
     -- \
-    --input-directory  data/drug-power-law-phase-transition-max-drug-strength-250/raw \
-    --output-directory data/drug-power-law-phase-transition-max-drug-strength-250/derived
+    --input-directory  data/drug-power-law-phase-transition-max-drug-strength-50-reversed-edges/raw \
+    --output-directory data/drug-power-law-phase-transition-max-drug-strength-50-reversed-edges/derived
 """

@@ -54,6 +54,7 @@ pub struct NetworkConfig {
   pub N: usize,
   pub K: f64,
   pub out_degree_distribution: DegreeDistribution,
+  pub reversed_edges: bool,
   pub seed: usize,
 }
 

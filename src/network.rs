@@ -87,7 +87,11 @@ impl Network {
       let neighbors = sample_nodes(self.N, out_degrees[u], rng);
       for &v in &neighbors {
         let w = uniform_weight(rng);
-        tri.add_triplet(u, v, w);
+        if params.reversed_edges {
+          tri.add_triplet(v, u, w);
+        } else {
+          tri.add_triplet(u, v, w);
+        }
       }
     }
 

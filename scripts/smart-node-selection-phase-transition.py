@@ -23,8 +23,9 @@ N = 5_000
 DEPENDENT_VARIABLES: Final[List[str]] = [f'node-{x}' for x in range(N)]
 CONTROL: Final[str] = 'control'
 SEED: int = 2025
-# DATA_FILE: Final[str] = 'data/drug-power-law-phase-transition-max-drug-strength-250/derived/states-1752989241736.csv'
+# DATA_FILE: Final[str] = 'data/drug-power-law-phase-transition-max-drug-strength/derived/states-1752795739394.csv'
 DATA_FILE: Final[str] = 'data/drug-power-law-phase-transition-max-drug-strength-50-reversed-edges/derived/states-1756847167231.csv'
+NETWORKS_FILE: Final[str] = 'data/drug-power-law-phase-transition-max-drug-strength-50-reversed-edges/derived/networks-1756847167231.csv'
 TRAIN_SIZES = [50]
 TEST_SIZES = TRAIN_SIZES
 NUM_PREDICTIONS = 100
@@ -143,7 +144,81 @@ class Result:
   num_features: int
   accuracy: float
 
-def get_accuracies(particular_states_df: pd.DataFrame):
+def get_accuracies(particular_tpl):
+  particular_states_df, particular_network_df = particular_tpl
+  # build network
+  G = nx.DiGraph()
+  G.add_nodes_from(range(len(DEPENDENT_VARIABLES)))
+  for _, row in particular_network_df.iterrows():
+    G.add_edge(int(row['source']), int(row['target']), weight=row['weight'])
+  
+  def get_dep_vars():
+    # max in-degree 
+    return [
+      f'node-{v}' 
+      for v in sorted(
+        G,
+        key=lambda v: G.in_degree(v),
+        reverse=True,
+      )
+    ]
+
+  # def get_dep_vars():
+  #   not_seen_dep = set(G.nodes()) 
+  #   seen_regs = set()
+  #   dep_vars = []
+  #   while not_seen_dep:
+  #     v = max(
+  #       (
+  #         v
+  #         for v in not_seen_dep
+  #       ),
+  #       key=lambda v: len(set(u for u, _ in G.in_edges(v))-seen_regs) if seen_regs else (G.in_degree(v), random.random()),
+  #     )
+  #     dep_vars.append(f'node-{v}')
+  #     not_seen_dep.remove(v)
+  #     seen_regs.update(u for u, _ in G.in_edges(v))
+  #   return dep_vars
+
+  # def get_dep_vars():
+  #   not_seen_dep = set(u for u in G.nodes() if G.in_degree(u) > 0)
+  #   dep_vars = []
+  #   while not_seen_dep:
+  #     v, _ = max(
+  #       (
+  #         (v, random.random()) #-max(G.out_degree(u) for u, _ in G.in_edges(v)))
+  #         for v in not_seen_dep
+  #       ),
+  #       key=lambda args: (G.in_degree(args[0]), args[1]),
+  #     )
+  #     dep_vars.append(f'node-{v}')
+  #     not_seen_dep.remove(v)
+  #   return dep_vars + [f'node-{v}' for v in G.nodes() if G.in_degree(v) == 0]
+
+  # def get_dep_vars():
+  #   not_seen_dep = set(u for u in G.nodes() if G.in_degree(u) > 0)
+  #   seen_reg = set()
+  #   dep_vars = []
+  #   while not_seen_dep:
+  #     v, _ = min(
+  #       (
+  #         (v, all(u in seen_reg for u, _ in G.in_edges(v)))
+  #         for v in not_seen_dep
+  #       ),
+  #       key=lambda args: (G.in_degree(args[0]), args[1]),
+  #     )
+  #     dep_vars.append(f'node-{v}')
+
+  #     for u, _ in G.in_edges(v):
+  #       if u not in seen_reg:
+  #         seen_reg.add(u)
+  #         break
+  #     not_seen_dep.remove(v)
+  #   return dep_vars
+
+
+
+
   particular_states_df = particular_states_df.drop(columns=['original_network_idx', "initial_condition_idx"])
   return list(itertools.chain(
     *(
@@ -152,21 +227,28 @@ def get_accuracies(particular_states_df: pd.DataFrame):
         for top_k in [int(x) for x in 2 ** np.arange(0, int(np.log2(N+1)))] + [N]
       )
       for _ in range(1)
-      if (dep_vars := sorted(DEPENDENT_VARIABLES, key=lambda _: random.random()))
+      if (dep_vars := get_dep_vars())
     )
   ))
-
 
 if __name__ == '__main__':
   states_df = pd.read_csv(DATA_FILE, index_col=0)
   states_df = states_df.reset_index().rename(columns={"drug_name": "Drug"})
 
+  network_df = pd.read_csv(NETWORKS_FILE, index_col=0)
+
+  grps = {}
+  states_grps = dict(tuple(states_df.groupby('original_network_idx')))
+  network_grps = dict(tuple(network_df.groupby('original_network_idx')))
+  for original_network_idx in states_grps:
+    grps[original_network_idx] = (states_grps[original_network_idx], network_grps[original_network_idx])
+
   with multiprocessing.Pool() as pool:
     accuracy_data = list(itertools.chain(*tqdm.tqdm(pool.imap(
         get_accuracies,
         (
-          particular_states_df
-          for _, particular_states_df in states_df.groupby('original_network_idx')
+          (particular_states_df, particular_network_df)
+          for particular_states_df, particular_network_df in grps.values()
         )
       ),
       total=50,
@@ -179,4 +261,4 @@ if __name__ == '__main__':
     ],
     columns=['num_features', 'accuracy'],
   )
-  accuracy_df.to_csv('data/random-forests/retention-vs-accuracy-v2-50-reversed.csv', index=False)
+  accuracy_df.to_csv('data/random-forests/max-in-degree-retention-vs-accuracy-v2-50-reversed.csv', index=False)

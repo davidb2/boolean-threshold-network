@@ -92,6 +92,7 @@ pub fn write_protobuf(
           DegreeDistribution::Homogeneous { lambda } => PBPoissonOutDegreeDistribution(PBHomogenousDistribution { lambda }),
           DegreeDistribution::PowerLaw { gamma } => PBPowerLawOutDegreeDistribution(PBPowerLawDistribution { gamma }),
         }),
+        reversed_edges: experiment_config.network_config.reversed_edges,
         seed: experiment_config.network_config.seed as u32
       })
     }),

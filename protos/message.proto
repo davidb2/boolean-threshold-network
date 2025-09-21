@@ -42,6 +42,7 @@ message NetworkConfig {
     HomogeneousDistribution poisson_out_degree_distribution = 6;
     PowerLawDistribution power_law_out_degree_distribution = 7;
   };
+  bool reversed_edges = 8;
   uint32 seed = 5;
 }
 

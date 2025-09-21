@@ -40,6 +40,10 @@ struct Args {
   #[arg(long, value_enum)]
   out_degree_distribution: OutDegreeDistributionType,
 
+  /// if true, all edges will be reversed.
+  #[arg(long)]
+  reversed_edges: bool,
+
   /// base seed to use for creating networks
   #[arg(long)]
   network_seed: usize,
@@ -140,6 +144,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     N: args.N,
     K,
     out_degree_distribution,
+    reversed_edges: args.reversed_edges,
     seed: args.network_seed,
   };
   /* END: Network config. */
