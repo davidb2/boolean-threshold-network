@@ -30,23 +30,22 @@ run \
     --bin perform_experiment \
     --release \
     -- \
-    -n 5000 \
+    -n 500 \
     --gamma 2.0  \
     --out-degree-distribution power-law \
-    --num-steps 100 \
+    --num-steps 50 \
     --network-seed 0 \
     --num-networks 50 \
     --num-final-states-to-store 10 \
     --num-initial-conditions 10 \
     --initial-condition-correlation .99 \
     --dynamics-seed 0 \
-    --num-drugs 10 \
-    --num-targets-per-drug 50 \
+    --num-drugs 2 \
+    --num-targets-per-drug 5 \
     --drug-strength 1 \
     --drug-seed 0 \
-    --tag v1.0.1 \
-    --reversed-edges \
-    --output-directory data/drug-power-law-phase-transition-max-drug-strength-50-reversed-edges/raw \
+    --tag v1.0.2 \
+    --output-directory data/drug-v1211d-N500-2drugs/raw \
 """
 
 run-analysis = """
@@ -65,6 +64,6 @@ run \
     --bin extract_states \
     --release
     -- \
-    --input-directory  data/drug-power-law-phase-transition-max-drug-strength-50-reversed-edges/raw \
-    --output-directory data/drug-power-law-phase-transition-max-drug-strength-50-reversed-edges/derived
+    --input-directory  data/drug-v1211d-N500-2drugs/raw \
+    --output-directory data/drug-v1211d-N500-2drugs/derived
 """
