@@ -256,8 +256,9 @@ def greedy_mmse_columns_safe(G, Sigma, k, ridge=1e-9, tol=1e-12, max_tries=None)
 
       return S
     
-    best_j = get_S(m=8)[-1]
-    return get_S(m=k, seed=best_j)
+    # best_j = get_S(m=8)[-1]
+    # return get_S(m=k, seed=best_j)
+    return get_S(m=k, seed=None)
 
 
 @dataclass(frozen=True)
