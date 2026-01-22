@@ -11,6 +11,7 @@ import seaborn as sns
 import tqdm
 
 from dataclasses import dataclass
+from enum import Enum, auto
 from typing import *
 from multiprocessing.pool import Pool
 
@@ -26,6 +27,9 @@ DATA_FILE: Final[str] = 'data/drug-power-law-phase-transition-max-drug-strength/
 
 # We use an asexual x-ploid version of the Wright-Fisher process
 # (instead of the Moran process) to take advantage of parallel fitness/accuracy evaluation.
+class TypeOfReproduction(Enum):
+  CROSSOVER = auto()
+  COPY_WITH_MUTATION = auto()
 
 @dataclass(frozen=True)
 class Individual:
@@ -92,22 +96,57 @@ class Population:
       )
     ]
 
+
+  def _breed_individual(self, tor: TypeOfReproduction):
+    if tor == TypeOfReproduction.CROSSOVER: return self._breed_individual_crossover()
+    if tor == TypeOfReproduction.COPY_WITH_MUTATION: return self._breed_individual_copy_with_mutation()
+    raise ValueError(f'cannot breed individual using {tor}')
+
+
   def next_generation(self, pool: Pool):
-    self.individuals = pool.map(self._breed_individual, range(self.population_size))
+    crossover_amount = self.population_size // 2
+    type_of_reproductions = (
+      [TypeOfReproduction.CROSSOVER] * crossover_amount + 
+      [TypeOfReproduction.COPY_WITH_MUTATION] * (self.population_size-crossover_amount)
+    )
 
+    self.individuals = pool.map(self._breed_individual, type_of_reproductions)
 
-  def _get_feature_from_population(self):
-    parent, = random.choices(
+  def _get_individual_from_population(self):
+    individual, = random.choices(
       population=self.individuals,
       weights=np.exp(np.array([individual.accuracy for individual in self.individuals])),
     )
+    return individual
+
+  def _get_feature_from_population(self):
+    parent = self._get_individual_from_population()
     return (
       f'node-{random.randint(0, N-1)}'
       if random.random() < MUTATION_PROBABILITY
       else random.choice(list(parent.features))
     )
 
-  def _breed_individual(self, *args, **kwargs):
+  def _breed_individual_copy_with_mutation(self, *args, **kwargs):
+    parent = self._get_individual_from_population()
+    features = {
+      (
+        self._get_feature_from_population()
+        if random.random() < MUTATION_PROBABILITY
+        else feature
+      )
+      for feature in parent.features
+    }
+    return Individual(
+      features=features,
+      accuracy=get_score(
+        features=features,
+        original_network_idx=self.original_network_idx,
+        particular_states_df=self.particular_states_df,
+      ),
+    )
+
+  def _breed_individual_crossover(self, *args, **kwargs):
     features = {
       self._get_feature_from_population()
       for _ in range(self.max_num_features)
@@ -174,7 +213,7 @@ def main(args: argparse.Namespace):
     ],
     columns=['original_network_idx', 'max_num_features', 'accuracy', 'features'],
   )
-  accuracy_df.to_csv(f'data/random-forests/retention-vs-accuracy-v1217d-N5k-10drugs-genetic-shard/{args.original_network_idx}.csv', index=False)
+  accuracy_df.to_csv(f'data/random-forests/retention-vs-accuracy-v0122d-N5k-10drugs-genetic-shard/{args.original_network_idx}.csv', index=False)
 
 
 def parse_args() -> argparse.Namespace:
