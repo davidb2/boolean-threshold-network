@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import warnings
 
 from dataclasses import dataclass
 from sklearn.ensemble import RandomForestClassifier
@@ -64,10 +65,16 @@ def get_performance_data(
 ):
   performance_data = []
   dependent_variables = dep_vars 
-  df_train = (
-    df.groupby('Drug', group_keys=False)
-      .apply(lambda x: x.sample(n=train_size) if len(x) >= train_size else pd.Series(dtype=np.float64))
-  )
+  with warnings.catch_warnings():
+    warnings.simplefilter(action='ignore', category=FutureWarning)
+
+    # FutureWarning: DataFrameGroupBy.apply operated on the grouping columns.
+    # This behavior is deprecated, and in a future version of pandas the grouping columns will be excluded from the operation.
+    # Either pass `include_groups=False` to exclude the groupings or explicitly select the grouping columns after groupby to silence this warning.
+    df_train = (
+      df.groupby('Drug', group_keys=False)
+        .apply(lambda x: x.sample(n=train_size) if len(x) >= train_size else pd.Series(dtype=np.float64))
+    )
   df_test = df.drop(df_train.index)
   X_train, y_train = df_train[dependent_variables], df_train['Drug']
 

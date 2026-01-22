@@ -16,12 +16,13 @@ from multiprocessing.pool import Pool
 
 from classifier import train_and_test, Result
 
-N = 500
+N = 5000
 MUTATION_PROBABILITY = .05
 NUM_GENERATIONS = 20
 POPULATION_SIZE = 64
 # DATA_FILE: Final[str] = 'data/drug-v1211d-N500/derived/states-1765502180766.csv'
-DATA_FILE: Final[str] = 'data/drug-v1211d-N500-2drugs/derived/states-1765513688975.csv'
+# DATA_FILE: Final[str] = 'data/drug-v1211d-N500-2drugs/derived/states-1765513688975.csv'
+DATA_FILE: Final[str] = 'data/drug-power-law-phase-transition-max-drug-strength/derived/states-1752795739394.csv'
 
 # We use an asexual x-ploid version of the Wright-Fisher process
 # (instead of the Moran process) to take advantage of parallel fitness/accuracy evaluation.
@@ -128,7 +129,7 @@ def get_accuracies(particular_states_df: pd.DataFrame, original_network_idx: int
   )
 
   results: List[Result] = []
-  for max_num_features in [8]: #[1,2,4,8,16,32,64]:
+  for max_num_features in [1,2,4,8,16,32,64,128]:
     population = Population(
       population_size=POPULATION_SIZE,
       max_num_features=max_num_features,
@@ -139,10 +140,12 @@ def get_accuracies(particular_states_df: pd.DataFrame, original_network_idx: int
 
     for generation_num in range(NUM_GENERATIONS):
       print('evolving generation number', generation_num)
+      print(f'k={max_num_features}')
       print('best accuracy so far', max(population.individuals, key=lambda individual: individual.accuracy).accuracy)
       print('average accuracy so far', np.mean(np.array([individual.accuracy for individual in population.individuals])))
+      print('----------------------------------', flush=True)
       population.next_generation(pool)
-      
+
     best_individual = max(population.individuals, key=lambda individual: individual.accuracy)
     result = Result(
       original_network_idx=original_network_idx,
@@ -152,7 +155,7 @@ def get_accuracies(particular_states_df: pd.DataFrame, original_network_idx: int
     )
     results.append(result)
 
-  return results 
+  return results
 
 def main(args: argparse.Namespace):
   states_df = pd.read_csv(DATA_FILE, index_col=0)
@@ -171,7 +174,7 @@ def main(args: argparse.Namespace):
     ],
     columns=['original_network_idx', 'max_num_features', 'accuracy', 'features'],
   )
-  accuracy_df.to_csv(f'data/random-forests/retention-vs-accuracy-v1217d-2drugs-genetic-shard/{args.original_network_idx}.csv', index=False)
+  accuracy_df.to_csv(f'data/random-forests/retention-vs-accuracy-v1217d-N5k-10drugs-genetic-shard/{args.original_network_idx}.csv', index=False)
 
 
 def parse_args() -> argparse.Namespace:
