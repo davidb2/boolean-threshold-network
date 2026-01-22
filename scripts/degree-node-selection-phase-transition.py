@@ -19,12 +19,14 @@ FORMAT = "%(asctime)s :: [%(levelname)-8s] :: %(message)s"
 logging.basicConfig(format=FORMAT)
 logger.setLevel(logging.INFO)
 
-N = 5_000
+N = 5_00
 DEPENDENT_VARIABLES: Final[List[str]] = [f'node-{x}' for x in range(N)]
 CONTROL: Final[str] = 'control'
 SEED: int = 2025
-DATA_FILE: Final[str] = 'data/drug-power-law-phase-transition-max-drug-strength/derived/states-1752795739394.csv'
-NETWORKS_FILE: Final[str] = 'data/drug-power-law-phase-transition-max-drug-strength/derived/networks-1752795739394.csv'
+# DATA_FILE: Final[str] = 'data/drug-power-law-phase-transition-max-drug-strength/derived/states-1752795739394.csv'
+# NETWORKS_FILE: Final[str] = 'data/drug-power-law-phase-transition-max-drug-strength/derived/networks-1752795739394.csv'
+DATA_FILE: Final[str] = 'data/drug-v1211d-N500-2drugs/derived/states-1765513688975.csv'
+NETWORKS_FILE: Final[str] = 'data/drug-v1211d-N500-2drugs/derived/networks-1765513688975.csv'
 TRAIN_SIZES = [50]
 TEST_SIZES = TRAIN_SIZES
 NUM_PREDICTIONS = 100
@@ -151,7 +153,7 @@ def get_accuracies(particular_tpl):
   for _, row in particular_network_df.iterrows():
     G.add_edge(int(row['source']), int(row['target']), weight=row['weight'])
   degree_map = {
-    f'node-{u}': G.out_degree(u)
+    f'node-{u}': G.in_degree(u)
     for u in G
   }
   # print(degree_map)
@@ -168,7 +170,7 @@ def get_accuracies(particular_tpl):
         for top_k in [int(x) for x in 2 ** np.arange(0, int(np.log2(N+1)))] + [N]
       )
       for _ in range(1)
-      if (dep_vars := sorted(dep_vars_unsorted, key=lambda feature_name: degree_map[feature_name], reverse=False))
+      if (dep_vars := sorted(dep_vars_unsorted, key=lambda feature_name: degree_map[feature_name], reverse=True))
     )
   ))
 
@@ -202,4 +204,4 @@ if __name__ == '__main__':
     ],
     columns=['num_features', 'accuracy'],
   )
-  accuracy_df.to_csv('data/random-forests/min-out-degree-retention-vs-accuracy-v2-50.csv', index=False)
+  accuracy_df.to_csv('data/random-forests/max-in-degree-retention-vs-accuracy-v1217d-50.csv', index=False)

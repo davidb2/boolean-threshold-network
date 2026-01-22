@@ -19,12 +19,14 @@ FORMAT = "%(asctime)s :: [%(levelname)-8s] :: %(message)s"
 logging.basicConfig(format=FORMAT)
 logger.setLevel(logging.INFO)
 
-N = 5_000
+N = 5_00
 DEPENDENT_VARIABLES: Final[List[str]] = [f'node-{x}' for x in range(N)]
 CONTROL: Final[str] = 'control'
 SEED: int = 2025
-DATA_FILE: Final[str] = 'data/drug-power-law-phase-transition-max-drug-strength/derived/states-1752795739394.csv'
-NETWORKS_FILE: Final[str] = 'data/drug-power-law-phase-transition-max-drug-strength/derived/networks-1752795739394.csv'
+# DATA_FILE: Final[str] = 'data/drug-power-law-phase-transition-max-drug-strength/derived/states-1752795739394.csv'
+# NETWORKS_FILE: Final[str] = 'data/drug-power-law-phase-transition-max-drug-strength/derived/networks-1752795739394.csv'
+DATA_FILE: Final[str] = 'data/drug-v1211d-N500-2drugs/derived/states-1765513688975.csv'
+NETWORKS_FILE: Final[str] = 'data/drug-v1211d-N500-2drugs/derived/networks-1765513688975.csv'
 TRAIN_SIZES = [50]
 TEST_SIZES = TRAIN_SIZES
 NUM_PREDICTIONS = 100
@@ -289,12 +291,12 @@ def get_accuracies(particular_tpl):
   #       H.remove_edge(v)
   #   return dep_vars
 
-  def get_dep_vars():
+  def get_dep_vars(k):
     # only look at states of the unmodified network
     df = particular_states_df[particular_states_df['Drug'] == 'control'].drop(columns=['Drug'])
     # es_df = states_df[states_df['original_network_idx'] == original_network_idx].drop(columns=['original_network_idx', "initial_condition_idx"])
     μ, Σ = sample_mean_cov(df)   # your function from earlier
-    k = 64
+    # k = 64
     idx = greedy_mmse_columns_safe(G, Σ, k, ridge=1e-8, tol=1e-12)
     selected_cols = df.columns[idx]
     return selected_cols.tolist()
@@ -338,9 +340,9 @@ def get_accuracies(particular_tpl):
           int(x)
           for x in 2 ** np.arange(0, int(np.log2(N+1)))
         ] + [N]
+        if top_k <= 64 and (dep_vars := get_dep_vars(top_k))
       )
       for _ in range(1)
-      if (dep_vars := get_dep_vars())
     )
   ))
 
@@ -374,4 +376,4 @@ if __name__ == '__main__':
     ],
     columns=['original_network_idx', 'num_features', 'accuracy', 'features'],
   )
-  accuracy_df.to_csv('data/random-forests/dynamics-more-info-red-retention-vs-accuracy-v2-50.csv', index=False)
+  accuracy_df.to_csv('data/random-forests/dynamics-retention-vs-accuracy-v1217d-50.csv', index=False)
