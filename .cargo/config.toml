@@ -31,7 +31,7 @@ run \
     --release \
     -- \
     -n 500 \
-    --gamma 2.0  \
+    --gamma 1.  \
     --out-degree-distribution power-law \
     --num-steps 50 \
     --network-seed 0 \
