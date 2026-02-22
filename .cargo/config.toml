@@ -64,6 +64,6 @@ run \
     --bin extract_states \
     --release
     -- \
-    --input-directory  data/drug-v0129d-N5k-gamma1.8-10drugs/raw \
-    --output-directory data/drug-v0129d-N5k-gamma1.8-10drugs/derived
+    --input-directory  data/drug-v0129d-N5k-gamma1.6-10drugs/raw \
+    --output-directory data/drug-v0129d-N5k-gamma1.6-10drugs/derived
 """

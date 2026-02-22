@@ -21,6 +21,7 @@ struct StateRecord {
   network_idx: u32,
   drug_name: String,
   state: Vec<bool>,
+  step_num: u32,
 }
 
 struct NetworkRecord {
@@ -35,7 +36,7 @@ fn write_states(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>  {
   let mut csv_writer = Writer::from_path(output_filename)?;
   _ = csv_writer.write_record(
-    vec!["drug_name", "original_network_idx", "initial_condition_idx"]
+    vec!["drug_name", "original_network_idx", "initial_condition_idx", "step_num"]
       .iter()
       .map(|s| String::from(*s))
       .chain((0..num_features).map(|idx| format!("node-{:?}", idx)))
@@ -47,6 +48,7 @@ fn write_states(
         record.drug_name.clone(),
         record.network_idx.to_string(),
         record.initial_condition_idx.to_string(),
+        record.step_num.to_string(),
       ].into_iter()
        .chain(record.state.iter().map(|value| value.to_string()))
        .collect::<Vec<String>>()
@@ -98,6 +100,7 @@ fn compute_states(experiments: &Vec<PBExperiment>) -> Vec<StateRecord> {
               drug_name: perturbation.name.clone(),
               network_idx: result.network_idx,
               state: state.state.clone(),
+              step_num: state.step_num,
             }
           }).collect::<Vec<StateRecord>>()
         }).flatten().collect::<Vec<StateRecord>>()
