@@ -30,22 +30,22 @@ run \
     --bin perform_experiment \
     --release \
     -- \
-    -n 500 \
-    --gamma 2.0  \
+    -n 5000 \
+    --gamma 1.6  \
     --out-degree-distribution power-law \
-    --num-steps 50 \
+    --num-steps 1000 \
     --network-seed 0 \
     --num-networks 50 \
     --num-final-states-to-store 10 \
     --num-initial-conditions 10 \
     --initial-condition-correlation .99 \
     --dynamics-seed 0 \
-    --num-drugs 2 \
-    --num-targets-per-drug 5 \
+    --num-drugs 10 \
+    --num-targets-per-drug 50 \
     --drug-strength 1 \
     --drug-seed 0 \
-    --tag v1.0.2 \
-    --output-directory data/drug-v1211d-N500-2drugs/raw \
+    --tag v1.1.1 \
+    --output-directory data/drug-v0129d-N5k-gamma1.6-10drugs/raw \
 """
 
 run-analysis = """
@@ -64,6 +64,6 @@ run \
     --bin extract_states \
     --release
     -- \
-    --input-directory  data/drug-v1211d-N500-2drugs/raw \
-    --output-directory data/drug-v1211d-N500-2drugs/derived
+    --input-directory  data/drug-v0129d-N5k-gamma1.8-10drugs/raw \
+    --output-directory data/drug-v0129d-N5k-gamma1.8-10drugs/derived
 """

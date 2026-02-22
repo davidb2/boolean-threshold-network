@@ -6,6 +6,7 @@ import multiprocessing
 import networkx as nx
 import numpy as np
 import pandas as pd
+import pathlib
 import random
 import seaborn as sns
 import tqdm
@@ -23,7 +24,8 @@ NUM_GENERATIONS = 20
 POPULATION_SIZE = 64
 # DATA_FILE: Final[str] = 'data/drug-v1211d-N500/derived/states-1765502180766.csv'
 # DATA_FILE: Final[str] = 'data/drug-v1211d-N500-2drugs/derived/states-1765513688975.csv'
-DATA_FILE: Final[str] = 'data/drug-power-law-phase-transition-max-drug-strength/derived/states-1752795739394.csv'
+# DATA_FILE: Final[str] = 'data/drug-power-law-phase-transition-max-drug-strength/derived/states-1752795739394.csv'
+# DATA_FILE: Final[str] = 'data/drug-v0127d-N5k-gamma1.8-10drugs/derived/states-1769568379340.csv'
 
 # We use an asexual x-ploid version of the Wright-Fisher process
 # (instead of the Moran process) to take advantage of parallel fitness/accuracy evaluation.
@@ -37,7 +39,7 @@ class Individual:
   # original_network_idx: int
   # max_num_features: int
   features: Set[str]
-  accuracy: float 
+  accuracy: float
 
 
 def get_score(
@@ -106,7 +108,7 @@ class Population:
   def next_generation(self, pool: Pool):
     crossover_amount = self.population_size // 2
     type_of_reproductions = (
-      [TypeOfReproduction.CROSSOVER] * crossover_amount + 
+      [TypeOfReproduction.CROSSOVER] * crossover_amount +
       [TypeOfReproduction.COPY_WITH_MUTATION] * (self.population_size-crossover_amount)
     )
 
@@ -197,7 +199,10 @@ def get_accuracies(particular_states_df: pd.DataFrame, original_network_idx: int
   return results
 
 def main(args: argparse.Namespace):
-  states_df = pd.read_csv(DATA_FILE, index_col=0)
+  if pathlib.Path(f'{args.output_dir}/{args.original_network_idx}.csv').exists():
+    return None
+
+  states_df = pd.read_csv(args.states_file, index_col=0)
   states_df = states_df.reset_index().rename(columns={"drug_name": "Drug"})
 
   with multiprocessing.Pool() as pool:
@@ -213,12 +218,14 @@ def main(args: argparse.Namespace):
     ],
     columns=['original_network_idx', 'max_num_features', 'accuracy', 'features'],
   )
-  accuracy_df.to_csv(f'data/random-forests/retention-vs-accuracy-v0122d-N5k-10drugs-genetic-shard/{args.original_network_idx}.csv', index=False)
+  accuracy_df.to_csv(f'{args.output_dir}/{args.original_network_idx}.csv', index=False)
 
 
 def parse_args() -> argparse.Namespace:
   parser = argparse.ArgumentParser()
   parser.add_argument('--original-network-idx', type=int, required=True)
+  parser.add_argument('--states-file', type=str, required=True)
+  parser.add_argument('--output-dir', type=str, required=True)
   args = parser.parse_args()
   return args
 
