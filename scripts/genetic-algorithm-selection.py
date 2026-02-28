@@ -19,9 +19,13 @@ from multiprocessing.pool import Pool
 
 from classifier import train_and_test, Result
 
-MUTATION_PROBABILITY = .05
-NUM_GENERATIONS = 40
-POPULATION_SIZE = 128
+MUTATION_PROBABILITY = .1
+NUM_GENERATIONS = 30
+POPULATION_SIZE = 100
+PATIENCE  = 101     # stop a feature-size run if best accuracy doesn't improve for this many generations
+MIN_DELTA = 1e-3   # minimum improvement to reset the patience counter
+SELECTION_TEMPERATURE = 0.1   # lower = sharper selection pressure; 1.0 = original exp(accuracy)
+NUM_FITNESS_TRIALS = 1        # RF evaluations per individual fitness call (reduces noise)
 # DATA_FILE: Final[str] = 'data/drug-v1211d-N500/derived/states-1765502180766.csv'
 # DATA_FILE: Final[str] = 'data/drug-v1211d-N500-2drugs/derived/states-1765513688975.csv'
 # DATA_FILE: Final[str] = 'data/drug-power-law-phase-transition-max-drug-strength/derived/states-1752795739394.csv'
@@ -49,7 +53,7 @@ def get_score(
 ) -> float:
   return train_and_test(
     particular_states_df,
-    num_trials=1,
+    num_trials=NUM_FITNESS_TRIALS,
     original_network_idx=original_network_idx,
     dep_vars=list(features),
   )[0]['correct'].mean()
@@ -108,18 +112,23 @@ class Population:
 
 
   def next_generation(self, pool: Pool):
-    crossover_amount = self.population_size // 2
+    # Elitism: carry top 10% of individuals forward unchanged
+    n_elites = max(1, self.population_size // 10)
+    elites = sorted(self.individuals, key=lambda ind: ind.accuracy, reverse=True)[:n_elites]
+
+    n_breed = self.population_size - n_elites
+    crossover_amount = n_breed // 2
     type_of_reproductions = (
       [TypeOfReproduction.CROSSOVER] * crossover_amount +
-      [TypeOfReproduction.COPY_WITH_MUTATION] * (self.population_size-crossover_amount)
+      [TypeOfReproduction.COPY_WITH_MUTATION] * (n_breed - crossover_amount)
     )
-
-    self.individuals = pool.map(self._breed_individual, type_of_reproductions)
+    offspring = pool.map(self._breed_individual, type_of_reproductions)
+    self.individuals = elites + offspring
 
   def _get_individual_from_population(self):
     individual, = random.choices(
       population=self.individuals,
-      weights=np.exp(np.array([individual.accuracy for individual in self.individuals])),
+      weights=np.exp(np.array([individual.accuracy for individual in self.individuals]) / SELECTION_TEMPERATURE),
     )
     return individual
 
@@ -184,7 +193,7 @@ def get_accuracies(
   )
 
   if feature_sizes is None:
-    powers = [4**i for i in range(int(math.log(network_size, 4)) + 1)]
+    powers = [2**i for i in range(int(math.log(network_size, 2)) + 1)]
     feature_sizes = powers if powers[-1] == network_size else powers + [network_size]
 
   for max_num_features in feature_sizes:
@@ -200,22 +209,41 @@ def get_accuracies(
 
     # generation 0: initial population before any evolution
     best = max(population.individuals, key=lambda individual: individual.accuracy)
-    rows.append((original_network_idx, max_num_features, 0, best.accuracy, best.features))
-    print(f'generation 0, k={max_num_features}, best={best.accuracy:.4f}', flush=True)
+    avg = np.mean([ind.accuracy for ind in population.individuals])
+    rows.append((original_network_idx, max_num_features, 0, best.accuracy, avg, best.features))
+    print(f'generation 0, k={max_num_features}, best={best.accuracy:.4f}, avg={avg:.4f}', flush=True)
 
+    perfect = False
+    best_so_far = max(population.individuals, key=lambda individual: individual.accuracy).accuracy
+    patience_counter = 0
     for generation_num in range(1, NUM_GENERATIONS + 1):
       population.next_generation(pool)
       best = max(population.individuals, key=lambda individual: individual.accuracy)
       avg = np.mean([ind.accuracy for ind in population.individuals])
-      rows.append((original_network_idx, max_num_features, generation_num, best.accuracy, best.features))
+      rows.append((original_network_idx, max_num_features, generation_num, best.accuracy, avg, best.features))
       print(f'generation {generation_num}, k={max_num_features}, best={best.accuracy:.4f}, avg={avg:.4f}', flush=True)
+      if best.accuracy >= 1.0:
+        print(f'perfect accuracy at generation {generation_num}, k={max_num_features} — stopping early', flush=True)
+        perfect = True
+        break
+      if best.accuracy > best_so_far + MIN_DELTA:
+        best_so_far = best.accuracy
+        patience_counter = 0
+      else:
+        patience_counter += 1
+      if patience_counter >= PATIENCE:
+        print(f'plateau ({PATIENCE} generations without >{MIN_DELTA:.3f} gain), k={max_num_features} — moving on', flush=True)
+        break
 
     yield rows
 
+    # if perfect:
+    #   return  # no point trying larger feature sizes
+
 
 def main(args: argparse.Namespace):
-  output_path = pathlib.Path(f'{args.output_dir}/{args.original_network_idx}.csv')
-  done_path = pathlib.Path(f'{args.output_dir}/{args.original_network_idx}.done')
+  output_path = pathlib.Path(f'{args.output_dir}/{args.original_network_idx}-full.csv')
+  done_path = pathlib.Path(f'{args.output_dir}/{args.original_network_idx}-full.done')
   if done_path.exists():
     return None
 
@@ -225,9 +253,9 @@ def main(args: argparse.Namespace):
   # remove any partial csv from a previous incomplete run
   output_path.unlink(missing_ok=True)
 
-  cols = ['original_network_idx', 'max_num_features', 'generation', 'best_accuracy', 'features']
+  cols = ['original_network_idx', 'max_num_features', 'generation', 'best_accuracy', 'avg_accuracy', 'features']
   first_chunk = True
-  with multiprocessing.Pool() as pool:
+  with multiprocessing.Pool(processes=args.num_workers) as pool:
     for rows in get_accuracies(
       original_network_idx=args.original_network_idx,
       particular_states_df=states_df[states_df['original_network_idx'] == args.original_network_idx],
@@ -248,7 +276,9 @@ def parse_args() -> argparse.Namespace:
   parser.add_argument('--output-dir', type=str, required=True)
   parser.add_argument('--network-size', type=int, default=5000)
   parser.add_argument('--feature-sizes', type=int, nargs='+', default=None,
-                      help='feature set sizes to test (default: powers of 2 up to network-size)')
+                      help='feature set sizes to test (default: powers of 4 up to network-size)')
+  parser.add_argument('--num-workers', type=int, default=None,
+                      help='multiprocessing pool size (default: os.cpu_count()); reduce if OOM')
   args = parser.parse_args()
   return args
 

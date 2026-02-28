@@ -13,11 +13,11 @@ from typing import *
 logger = logging.getLogger(__name__)
 FORMAT = "%(asctime)s :: [%(levelname)-8s] :: %(message)s"
 logging.basicConfig(format=FORMAT)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.CRITICAL)
 
 TRAIN_SIZES = [50]
 TEST_SIZES = TRAIN_SIZES
-NUM_PREDICTIONS = 100
+NUM_PREDICTIONS = 20
 
 
 @dataclass(frozen=True)
