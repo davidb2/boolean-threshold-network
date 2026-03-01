@@ -75,12 +75,13 @@ class Population:
     self.max_num_features = max_num_features
     self.original_network_idx = original_network_idx
     self.particular_states_df = particular_states_df
+    self.all_possible_features = {f'node-{i}' for i in range(self.network_size)}
     self._initialize_individuals(pool)
 
   def _initialize_individuals(self, pool: Pool):
     unscored_individuals = [
       Individual(
-        features={f'node-{random.randint(0, self.network_size-1)}' for _ in range(self.max_num_features)},
+        features={f'node-{i}' for i in random.sample(range(self.network_size), self.max_num_features)},
         accuracy=0,
       )
       for _ in range(self.population_size)
@@ -150,6 +151,10 @@ class Population:
       )
       for feature in parent.features
     }
+    # Collisions can shrink the set — fill back up to the target size without replacement.
+    if (n_missing_features := self.max_num_features - len(features)) > 0:
+      remaining_features = list(self.all_possible_features - features)
+      features.update(random.sample(remaining_features, n_missing_features))
     return Individual(
       features=features,
       accuracy=get_score(
@@ -160,10 +165,11 @@ class Population:
     )
 
   def _breed_individual_crossover(self, *args, **kwargs):
-    features = {
-      self._get_feature_from_population()
-      for _ in range(self.max_num_features)
-    }
+    features = {self._get_feature_from_population() for _ in range(self.max_num_features)}
+    # Collisions can shrink the set — fill back up to the target size without replacement.
+    if (n_missing_features := self.max_num_features - len(features)) > 0:
+      remaining_features = list(self.all_possible_features - features)
+      features.update(random.sample(remaining_features, n_missing_features))
 
     return Individual(
       features=features,
