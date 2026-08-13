@@ -1,0 +1,462 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1.1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{booktabs}
+\usepackage{hyperref}
+
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{theorem}{Theorem}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\newcommand{\sgn}{\operatorname{sgn}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Prob}{\mathbb{P}}
+\newcommand{\Kmin}{K_{\mathrm{min}}}
+\newcommand{\Kmax}{K_{\mathrm{max}}}
+
+\title{The Order--Chaos Transition in Scale-Free Boolean \emph{Threshold}
+Networks: a Critical Degree Exponent $\gamma_c(N)$}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We adapt Aldana's annealed analysis of scale-free Kauffman networks to Boolean
+\emph{threshold} networks with binary states $\sigma\in\{0,1\}$ and continuous
+random couplings. The essential difference is that the single-node damage
+propagation probability of a threshold unit is not a constant, as it is for a
+random Boolean lookup table, but decays as $K^{-1/2}$ in the in-degree $K$ of the
+receiving node. Consequently the criticality condition depends on the
+\emph{half-order} moment $\langle K^{1/2}\rangle$ of the in-degree distribution
+rather than on the mean $\langle K\rangle$. For a scale-free in-degree
+distribution $P(K)\propto K^{-\gamma}$ with the natural finite-size cutoff
+$\Kmax=\Kmin N^{1/(\gamma-1)}$ this yields an implicit equation for the critical
+exponent $\gamma_c(N)$, which we solve asymptotically in closed form.
+\end{abstract}
+
+\section{The model}
+
+Let $G$ be a directed network on $N$ nodes. Node $i$ carries a binary state
+$\sigma_i(t)\in\{0,1\}$. We write $w_{ij}$ for the coupling \emph{from} node $i$
+\emph{to} node $j$, and $\partial j=\{i: i\to j\}$ for the set of inputs of
+node $j$, with in-degree $K_j=|\partial j|$.
+
+The local field of node $j$ is
+\begin{equation}
+  S_j(t) \;=\; \sum_{i\in\partial j} w_{ij}\,\sigma_i(t),
+  \label{eq:field}
+\end{equation}
+and the synchronous update rule is the zero-threshold Heaviside map
+\begin{equation}
+  \sigma_j(t+1) \;=\; \Theta\big(S_j(t)\big),
+  \qquad
+  \Theta(x)=\begin{cases}1,& x>0,\\ 0,& x\le 0.\end{cases}
+  \label{eq:update}
+\end{equation}
+
+\paragraph{Couplings.} The weights $\{w_{ij}\}$ are i.i.d.\ draws from a
+distribution $\mathcal{W}$ that is symmetric about zero. We record the two
+functionals of $\mathcal{W}$ that enter the analysis,
+\begin{equation}
+  \mu \;\equiv\; \E\big[|w|\big],
+  \qquad
+  s^2 \;\equiv\; \operatorname{Var}(w)=\E\big[w^2\big],
+  \label{eq:weightmoments}
+\end{equation}
+the second equality holding because $\E[w]=0$ by symmetry. For the uniform
+case $\mathcal{W}=\mathrm{Unif}[-1,1]$ used in our simulations,
+\begin{equation}
+  \mu=\tfrac12,\qquad s^2=\tfrac13 .
+  \label{eq:uniform}
+\end{equation}
+
+\paragraph{Topology.} In-degrees $K_j$ are drawn i.i.d.\ from a distribution
+$P(K)$, and the $K_j$ inputs of node $j$ are chosen uniformly at random among
+the $N$ nodes. This is the construction used by Aldana, and it is what
+legitimises the annealed treatment of Section~\ref{sec:derrida}.
+
+\section{Exact damage condition for a threshold unit}
+
+We first isolate the effect of flipping a single input, making no distributional
+assumption whatsoever. This is the step where the $\{0,1\}$ state alphabet
+matters, and where the threshold model departs from the Kauffman model.
+
+\begin{lemma}[Sign-change condition]
+\label{lem:flip}
+Fix a node $j$ and single out one of its inputs, labelled $i=1$ without loss of
+generality. Decompose the field \eqref{eq:field} as
+\begin{equation}
+  S_j \;=\; w_{1j}\sigma_1 \;+\; R,
+  \qquad
+  R \;\equiv\; \sum_{i\in\partial j\setminus\{1\}} w_{ij}\,\sigma_i ,
+  \label{eq:split}
+\end{equation}
+so that $R$ is independent of both $\sigma_1$ and $w_{1j}$. Then flipping
+$\sigma_1$ between $0$ and $1$ changes the output $\Theta(S_j)$ if and only if
+\begin{equation}
+  R\,\big(R+w_{1j}\big) \;<\; 0,
+  \label{eq:condition}
+\end{equation}
+equivalently, if and only if $R$ lies strictly between $0$ and $-w_{1j}$:
+\begin{equation}
+  R \;\in\; \Big(\min\{0,-w_{1j}\},\ \max\{0,-w_{1j}\}\Big).
+  \label{eq:window}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+With $\sigma_1=0$ the field equals $R$; with $\sigma_1=1$ it equals $R+w_{1j}$.
+Both flip directions ($0\to1$ and $1\to0$) therefore compare the same pair of
+values $\{R,\,R+w_{1j}\}$, and $\Theta$ separates them precisely when they have
+opposite signs, which is \eqref{eq:condition}. If $w_{1j}>0$ the two conditions
+$R<0$ and $R+w_{1j}>0$ hold simultaneously iff $-w_{1j}<R<0$; if $w_{1j}<0$ the
+same argument gives $0<R<-w_{1j}$. Both cases are summarised by
+\eqref{eq:window}.
+\end{proof}
+
+\begin{remark}[Why the $\{0,1\}$ alphabet is not a relabelling]
+\label{rem:alphabet}
+For the $\pm1$ alphabet the flip is $\sigma_1\to-\sigma_1$, the field moves from
+$R+w_{1j}\sigma_1$ to $R-w_{1j}\sigma_1$, and the damage condition is the
+\emph{symmetric} window $|R|<|w_{1j}|$ of total width $2|w_{1j}|$ straddling the
+origin. For the $\{0,1\}$ alphabet the field moves by a single weight rather than
+two, and \eqref{eq:window} is a \emph{one-sided} window of width $|w_{1j}|$
+sitting entirely on one side of the origin. The resulting sensitivity is smaller
+by a factor $\sqrt2$ (see Remark~\ref{rem:pm1}), so the two conventions give
+genuinely different critical connectivities.
+\end{remark}
+
+\section{The sensitivity $q(K)$}
+
+\paragraph{Activity level.} Let $p\equiv\Prob[\sigma_i=1]$ in the stationary
+regime. Because $\mathcal{W}$ is symmetric, $S_j$ is a symmetric random variable
+whenever at least one input is active, whence
+\begin{equation}
+  p \;=\; \tfrac12\Big(1-(1-p)^{K}\Big).
+  \label{eq:selfconsistent}
+\end{equation}
+The correction term $(1-p)^K$ is the probability that every input of $j$ is
+silent, in which case $S_j=0$ and the convention $\Theta(0)=0$ forces the output
+low. For $K\gtrsim 5$ this correction is already below $4\%$ and
+\eqref{eq:selfconsistent} gives $p^\star\to\tfrac12$ exponentially fast in $K$.
+We therefore set $p^\star=\tfrac12$ throughout, treating \eqref{eq:selfconsistent}
+as a finite-$K$ refinement.
+
+\paragraph{Statistics of $R$.} A feature peculiar to the $\{0,1\}$ alphabet is
+that $\sigma_i^2=\sigma_i$, so an inactive input contributes \emph{nothing} to
+the field rather than contributing with the opposite sign. Hence each summand of
+$R$ has $\E[w_{ij}\sigma_i]=0$ and
+\begin{equation}
+  \operatorname{Var}(w_{ij}\sigma_i)
+  \;=\; \E[w_{ij}^2]\,\E[\sigma_i^2]
+  \;=\; s^2\,p ,
+\end{equation}
+so that, by the central limit theorem for $K\gg1$,
+\begin{equation}
+  R \;\xrightarrow{\ d\ }\; \mathcal{N}\big(0,\ (K-1)\,s^2 p\big),
+  \qquad
+  f_R(0)\;=\;\frac{1}{\sqrt{2\pi (K-1)\,s^2 p}} .
+  \label{eq:Rdist}
+\end{equation}
+Note that the activity $p$ enters the \emph{variance} here; for the $\pm1$
+alphabet it would not.
+
+\begin{proposition}[Single-node sensitivity]
+\label{prop:q}
+Let $q(K)$ denote the probability that the output of a node of in-degree $K$
+changes when one of its inputs is flipped. Then, to leading order in $1/K$,
+\begin{equation}
+  q(K) \;=\; \mu\, f_R(0) \;+\; O(K^{-3/2})
+  \;=\; \frac{\mu}{s\sqrt{2\pi p\,(K-1)}}
+  \;=\; \frac{c}{\sqrt{K}}\Big(1+O(K^{-1})\Big),
+  \label{eq:qK}
+\end{equation}
+with the weight- and activity-dependent constant
+\begin{equation}
+  \boxed{\;c \;=\; \frac{\mu}{s\sqrt{2\pi p^\star}}
+  \;\overset{p^\star=1/2}{=}\; \frac{\mu}{s\sqrt{\pi}} \;}
+  \label{eq:c}
+\end{equation}
+For $\mathcal{W}=\mathrm{Unif}[-1,1]$, substituting \eqref{eq:uniform},
+\begin{equation}
+  c \;=\; \frac{1/2}{\sqrt{1/3}\,\sqrt{\pi}}
+    \;=\; \sqrt{\frac{3}{4\pi}} \;\approx\; 0.48860 .
+  \label{eq:cuniform}
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+By Lemma~\ref{lem:flip}, conditional on $w_{1j}$ the output flips iff $R$ falls
+in an interval of length $|w_{1j}|$ with an endpoint at the origin. Since
+$|w_{1j}|=O(1)$ while the scale of $R$ is $\sqrt{K}s\sqrt{p}\to\infty$, the
+density $f_R$ is constant across that interval up to a relative error
+$O(1/K)$, giving $\Prob[\,\text{flip}\mid w_{1j}\,]=|w_{1j}|f_R(0)+O(K^{-3/2})$.
+Averaging over $w_{1j}$ and using $\E|w|=\mu$ together with \eqref{eq:Rdist}
+yields \eqref{eq:qK}. Replacing $K-1$ by $K$ incurs a further $O(K^{-1})$
+relative error.
+\end{proof}
+
+\begin{remark}[Contrast with Kauffman networks]
+In a random Boolean network with lookup tables of bias $p$, flipping one input
+resamples the output, so the damage probability is $2p(1-p)$ --- a constant,
+\emph{independent of $K$}. For a threshold unit the $K$ inputs must
+cooperatively overcome one another, and a single flip perturbs a sum whose
+typical magnitude grows like $\sqrt K$; hence $q(K)\sim K^{-1/2}$. This single
+change of functional form is what drives every difference in the results below.
+\end{remark}
+
+\begin{remark}[The $\pm1$ convention]
+\label{rem:pm1}
+Repeating the calculation with $\sigma\in\{\pm1\}$: the window of
+Remark~\ref{rem:alphabet} has width $2|w|$ and $\operatorname{Var}(R)=(K-1)s^2$
+with no factor of $p$, so $q_{\pm}(K)=2\mu/\sqrt{2\pi K s^2}
+=\mu\sqrt{2}/(s\sqrt{\pi K})$, i.e.\ $c_{\pm}=\sqrt2\,c$. Threshold networks on
+$\{0,1\}$ are thus \emph{less} sensitive, and their critical connectivity is
+larger by a factor of $2$.
+\end{remark}
+
+\section{Annealed damage propagation and the branching parameter}
+\label{sec:derrida}
+
+Let $\rho_t$ be the normalised Hamming distance between two trajectories at time
+$t$. Under the annealed approximation the inputs of each node are re-randomised
+at every step, so damage spreads as on a tree.
+
+\begin{proposition}[Derrida map, linearised]
+\label{prop:lambda}
+To first order in $\rho_t$,
+\begin{equation}
+  \rho_{t+1} \;=\; \lambda\,\rho_t,
+  \qquad
+  \lambda \;=\; \big\langle K\,q(K)\big\rangle_{P},
+  \label{eq:derrida}
+\end{equation}
+where $\langle\cdot\rangle_P$ denotes the average over the in-degree
+distribution $P(K)$.
+\end{proposition}
+
+\begin{proof}
+Node $j$ selects its $K_j$ inputs uniformly at random, so each perturbed node is
+an input of $j$ with probability $K_j/N$; the expected number of perturbed
+inputs of $j$ is $K_j\rho_t$. To first order in $\rho_t$ the events that
+distinct perturbed inputs flip $j$ are disjoint, so
+$\Prob[j\text{ flips}]=K_j\rho_t\,q(K_j)+O(\rho_t^2)$. Averaging over $j$,
+\begin{equation}
+  \rho_{t+1}
+  \;=\; \frac1N\sum_{j=1}^{N} K_j\,q(K_j)\,\rho_t
+  \;=\; \big\langle K q(K)\big\rangle_P\,\rho_t . \qedhere
+\end{equation}
+\end{proof}
+
+\begin{remark}[The moment does \emph{not} factorise]
+\label{rem:nofactor}
+It is tempting to write $\lambda=\langle K^{\mathrm{out}}\rangle\,\langle
+q(K^{\mathrm{in}})\rangle=\langle K\rangle\langle q(K)\rangle$, treating the
+out-degree of the damaged node and the in-degree of the receiving node as
+independent. This is incorrect. A node of in-degree $K$ is $K$ times more likely
+to be reached by any given perturbation, so the in-degree seen along an edge is
+size-biased, $P_{\mathrm{edge}}(K)=KP(K)/\langle K\rangle$; the two factors are
+positively correlated and the joint average $\langle Kq(K)\rangle$ must be kept
+intact. The distinction is invisible for Kauffman networks --- there $q$ is
+constant and $\langle Kq\rangle=q\langle K\rangle$ trivially --- but it is
+material here, and it changes $\gamma_c$ substantially. Applied to the Kauffman
+case, \eqref{eq:derrida} correctly reproduces Aldana's
+$\lambda=2p(1-p)\langle K\rangle$.
+\end{remark}
+
+Combining Propositions~\ref{prop:q} and \ref{prop:lambda}, the branching
+parameter of the threshold network is
+\begin{equation}
+  \boxed{\;\lambda \;=\; c\,\big\langle K^{1/2}\big\rangle\;}
+  \label{eq:lambda}
+\end{equation}
+and the phase of the network is determined by
+\begin{equation}
+  \lambda<1 \ \text{(frozen)},\qquad
+  \lambda=1 \ \text{(critical)},\qquad
+  \lambda>1 \ \text{(chaotic)} .
+\end{equation}
+The criticality condition is therefore the remarkably compact statement
+\begin{equation}
+  \boxed{\;\big\langle K^{1/2}\big\rangle \;=\; \frac1c
+  \;=\; \frac{s\sqrt{\pi}}{\mu}\;}
+  \label{eq:criticality}
+\end{equation}
+
+\section{Homogeneous networks: a consistency check}
+
+For $P(K)=\delta_{K,K_0}$ one has $\langle K^{1/2}\rangle=\sqrt{K_0}$, and
+\eqref{eq:criticality} gives the critical connectivity
+\begin{equation}
+  K_c \;=\; \frac{1}{c^2} \;=\; \frac{\pi s^2}{\mu^2}
+  \qquad\Longrightarrow\qquad
+  K_c \;=\; \frac{4\pi}{3} \;\approx\; 4.1888
+  \quad\text{for }\mathrm{Unif}[-1,1].
+  \label{eq:Kc}
+\end{equation}
+For the $\pm1$ alphabet the same formula with $c_\pm=\sqrt2 c$ gives
+$K_c^{\pm}=2\pi/3\approx2.0944$; and for $\pm1$ states with $\pm1$ weights
+($\mu=s=1$) it returns $K_c=\pi/2$, the classical Rohlf--Bornholdt value for
+random threshold networks. This agreement at three independent parameter points
+is a useful check on \eqref{eq:c} and \eqref{eq:lambda}.
+
+\section{Scale-free topology at finite $N$}
+
+Let the in-degree distribution be a truncated power law,
+\begin{equation}
+  P(K) \;=\; C\,K^{-\gamma},
+  \qquad K\in[\Kmin,\Kmax],
+  \label{eq:powerlaw}
+\end{equation}
+treated as a continuous density. Normalisation $\int_{\Kmin}^{\Kmax}P=1$ gives
+\begin{equation}
+  C(\gamma)\;=\;\frac{\gamma-1}{\Kmin^{1-\gamma}-\Kmax^{1-\gamma}} ,
+  \qquad \gamma\neq1 .
+  \label{eq:C}
+\end{equation}
+The moment required by \eqref{eq:criticality} is
+\begin{equation}
+  \big\langle K^{1/2}\big\rangle
+  \;=\; C\!\int_{\Kmin}^{\Kmax}\! K^{\frac12-\gamma}\,dK
+  \;=\; C\,\frac{\Kmax^{\frac32-\gamma}-\Kmin^{\frac32-\gamma}}{\tfrac32-\gamma},
+  \qquad \gamma\neq\tfrac32 .
+  \label{eq:moment}
+\end{equation}
+(At the exceptional values $\gamma=1,\tfrac32$ the integrals degenerate to
+logarithms; these are removable singularities of the combined expression.)
+
+\paragraph{Finite-size cutoff.} The largest in-degree realised among $N$ i.i.d.\
+draws from \eqref{eq:powerlaw} follows from the extreme-value condition
+$N\int_{\Kmax}^{\infty}P(K)\,dK\simeq1$, giving the natural cutoff
+\begin{equation}
+  \boxed{\;\Kmax(\gamma,N)\;=\;\Kmin\,N^{1/(\gamma-1)}\;}
+  \label{eq:cutoff}
+\end{equation}
+This is the sole source of $N$-dependence, and because it involves $\gamma$ the
+resulting criticality condition cannot be inverted in closed form.
+
+\begin{theorem}[Implicit equation for $\gamma_c(N)$]
+\label{thm:main}
+A scale-free Boolean threshold network with $N$ nodes, in-degree exponent
+$\gamma$, minimum degree $\Kmin$ and symmetric couplings of moments $(\mu,s)$ is
+critical if and only if
+\begin{equation}
+  c\;\frac{\gamma-1}{\Kmin^{1-\gamma}-\Kmax^{1-\gamma}}\;
+  \frac{\Kmax^{\frac32-\gamma}-\Kmin^{\frac32-\gamma}}{\tfrac32-\gamma}
+  \;=\;1,
+  \qquad
+  \Kmax=\Kmin N^{1/(\gamma-1)},
+  \label{eq:main}
+\end{equation}
+with $c=\mu/(s\sqrt\pi)$ as in \eqref{eq:c}. For $\Kmin=1$ this simplifies,
+using $\Kmax^{1-\gamma}=N^{-1}$, to
+\begin{equation}
+  c\;\frac{(\gamma-1)N}{N-1}\;
+  \frac{N^{\frac{3/2-\gamma}{\gamma-1}}-1}{\tfrac32-\gamma}\;=\;1 .
+  \label{eq:main1}
+\end{equation}
+The network is frozen when the left-hand side is $<1$ (i.e.\ $\gamma>\gamma_c$)
+and chaotic when it is $>1$ (i.e.\ $\gamma<\gamma_c$).
+\end{theorem}
+
+Equation \eqref{eq:main} is one nonlinear equation in the single unknown
+$\gamma$; since $\gamma$ appears both in the exponents and inside
+$\Kmax(\gamma,N)$, it must be solved numerically (bisection is robust, the
+left-hand side being monotonically decreasing in $\gamma$).
+
+\section{Asymptotics: the $N\to\infty$ limit}
+
+For $\gamma>\tfrac32$ the half-order moment converges as $\Kmax\to\infty$, since
+$\Kmax^{3/2-\gamma}\to0$:
+\begin{equation}
+  \big\langle K^{1/2}\big\rangle
+  \;\xrightarrow[N\to\infty]{}\;
+  \frac{\gamma-1}{\gamma-\tfrac32}\,\Kmin^{1/2}.
+  \label{eq:asympmoment}
+\end{equation}
+For $\gamma<\tfrac32$ the moment diverges with $N$ and the network is chaotic for
+any sufficiently large $N$. Inserting \eqref{eq:asympmoment} into
+\eqref{eq:criticality} and writing
+\begin{equation}
+  A \;\equiv\; \frac{1}{c\sqrt{\Kmin}} \;=\; \frac{s\sqrt{\pi}}{\mu\sqrt{\Kmin}},
+\end{equation}
+the criticality condition becomes \emph{linear} in $\gamma$,
+\begin{equation}
+  \frac{\gamma-1}{\gamma-\tfrac32}\;=\;A
+  \qquad\Longleftrightarrow\qquad
+  \boxed{\;\gamma_c(\infty)\;=\;\frac{3A-2}{2\,(A-1)}\;}
+  \label{eq:gammainf}
+\end{equation}
+
+\begin{remark}[Existence]
+A solution with $\gamma_c>\tfrac32$ requires $A>1$, i.e.
+$\Kmin<1/c^2=K_c$. If the minimum degree already exceeds the homogeneous
+critical connectivity \eqref{eq:Kc}, then $\langle K^{1/2}\rangle\ge
+\Kmin^{1/2}>1/c$ for every $\gamma$ and the network is chaotic regardless of the
+tail exponent.
+\end{remark}
+
+\paragraph{Uniform couplings, $\Kmin=1$.} Here $A=1/c=2\sqrt{\pi/3}\approx
+2.046653$, and \eqref{eq:gammainf} gives
+\begin{equation}
+  \gamma_c(\infty)\;=\;\frac{3(2.046653)-2}{2(1.046653)}
+  \;=\;\frac{4.139959}{2.093306}
+  \;\approx\;1.9777 .
+  \label{eq:answer}
+\end{equation}
+Thus in the thermodynamic limit a scale-free threshold network with
+$\mathrm{Unif}[-1,1]$ couplings is chaotic for $\gamma\lesssim1.98$ and frozen
+for $\gamma\gtrsim1.98$. This is to be compared with Aldana's $\gamma_c\to2.5$
+for Kauffman networks: the $K^{-1/2}$ suppression of threshold-unit sensitivity
+means a \emph{heavier} tail (smaller $\gamma$) is needed to reach criticality.
+
+\section{Numerical solution at finite $N$}
+
+Solving \eqref{eq:main1} for $\Kmin=1$ and uniform couplings gives the values
+below. The approach to the asymptote \eqref{eq:answer} is from below and is slow,
+governed by the $N^{(3/2-\gamma)/(\gamma-1)}$ term.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{rc}
+\toprule
+$N$ & $\gamma_c(N)$ \\
+\midrule
+$10^{2}$   & $1.858$ \\
+$10^{3}$   & $1.943$ \\
+$10^{4}$   & $1.967$ \\
+$10^{5}$   & $1.974$ \\
+$10^{6}$   & $1.977$ \\
+$\infty$   & $1.9777$ \\
+\bottomrule
+\end{tabular}
+\caption{Critical degree exponent for $\Kmin=1$, $w\sim\mathrm{Unif}[-1,1]$,
+$\sigma\in\{0,1\}$.}
+\label{tab:gamma}
+\end{table}
+
+\section{Caveats}
+
+\begin{enumerate}
+\item The sensitivity \eqref{eq:qK} rests on a Gaussian approximation for $R$,
+formally valid for $K\gg1$. With $\Kmin=1$ or $2$ a substantial fraction of nodes
+lies outside its regime; the exact condition \eqref{eq:window} of
+Lemma~\ref{lem:flip} remains valid and can be evaluated by direct enumeration or
+Monte Carlo for small $K$, which is the natural refinement.
+\item The annealed approximation neglects the quenched correlations induced by a
+fixed wiring, and the linearisation in Proposition~\ref{prop:lambda} describes
+only the onset of damage spreading, not the size of the frozen core.
+\item A nonzero threshold $\theta_j$ replaces $f_R(0)$ by $f_R(\theta_j)$ in
+\eqref{eq:qK}, introducing an extra factor $\exp\!\big[-\theta^2/(2Ks^2p)\big]$
+that is itself $K$-dependent and shifts the self-consistent activity
+\eqref{eq:selfconsistent} away from $\tfrac12$.
+\item The values in Table~\ref{tab:gamma} were obtained by hand iteration of
+\eqref{eq:main1} to four significant figures and should be regenerated with a
+proper root-finder before publication.
+\end{enumerate}
+
+\end{document}
