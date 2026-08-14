@@ -84,17 +84,21 @@ def log_dir(rho, stage):
   return d / stage
 
 
-def submit_rho(rho):
-  print(f'\n--- rho = {rho} ---')
-  raw     = SCRATCH / f'rho{rho}' / 'raw'
-  derived = SCRATCH / f'rho{rho}' / 'derived'
-  ga_out  = HOME_OUT / f'rho{rho}' / 'ga-results'
-  rnd_out = HOME_OUT / f'rho{rho}' / 'random-results'
+def submit_rho(rho, args):
+  batch = args.batch
+  suffix = '' if batch == 1 else f'-b{batch}'
+  seed0 = (batch - 1) * NUM_NETWORKS
+  print(f'\n--- rho = {rho} (batch {batch}) ---')
+  raw     = SCRATCH / f'rho{rho}{suffix}' / 'raw'
+  derived = SCRATCH / f'rho{rho}{suffix}' / 'derived'
+  ga_out  = HOME_OUT / f'rho{rho}{suffix}' / 'ga-results'
+  rnd_out = HOME_OUT / f'rho{rho}{suffix}' / 'random-results'
   for d in [raw, derived, ga_out, rnd_out, SENS_OUT]:
     d.mkdir(parents=True, exist_ok=True)
 
-  b_file       = SENS_OUT / f'B-rho{rho}.npz'
-  ablation_out = SENS_OUT / f'ablation-k8-rho{rho}.csv'
+  tag = f'-{args.ablation_tag}' if args.ablation_tag else ''
+  b_file       = SENS_OUT / f'B-rho{rho}{suffix}.npz'
+  ablation_out = SENS_OUT / f'ablation-k8{tag}-rho{rho}{suffix}.csv'
   states_ref   = f'$(ls {derived}/states-*.csv | head -1)'
 
   existing_states = list(derived.glob('states-*.csv'))
@@ -115,13 +119,13 @@ def submit_rho(rho):
       f'--num-steps {NUM_STEPS} '
       f'--num-final-states-to-store {NUM_FINAL_STATES} '
       f'--initial-condition-correlation {rho} '
-      f'--network-seed 0 '
-      f'--dynamics-seed 0 '
+      f'--network-seed {seed0} '
+      f'--dynamics-seed {seed0 * NUM_INITIAL_CONDITIONS} '
       f'--num-drugs {NUM_DRUGS} '
       f'--num-targets-per-drug {NUM_TARGETS_PER_DRUG} '
       f'--drug-strength {DRUG_STRENGTH} '
-      f'--drug-seed 0 '
-      f'--tag rho-sweep-{rho} '
+      f'--drug-seed {seed0 * NUM_DRUGS} '
+      f'--tag rho-sweep-{rho}{suffix} '
       f'--output-directory {raw}'
     )
     sim_id = sbatch(
@@ -220,7 +224,7 @@ def submit_rho(rho):
     print(f'  {b_file} already exists')
 
   abl_deps = ':'.join(x for x in [combine_dep, b_dep] if x)
-  chunk = 5
+  chunk = 5 if args.ablation_max_remove <= 3 else 2
   n_chunks = (NUM_NETWORKS + chunk - 1) // chunk
   part = f'{ablation_out}.part${{SLURM_ARRAY_TASK_ID}}'
   lo = f'$((SLURM_ARRAY_TASK_ID * {chunk}))'
@@ -234,10 +238,12 @@ def submit_rho(rho):
     f'--ga-file {ga_out}/combined-full.csv '
     f'--b-file {b_file} '
     f'--networks {lo}-{hi} '
+    f'--n-trials {args.ablation_trials} '
+    f'--max-remove {args.ablation_max_remove} '
     f'--out {part}'
   )
   abl_arr = sbatch(
-    wrap=abl_wrap, job_name=f'abl-rho{rho}', time='6:00:00',
+    wrap=abl_wrap, job_name=f'abl-rho{rho}{suffix}', time='10:00:00',
     mem='16G', cpus=2, output=f'{log_dir(rho, "ablation")}-%A_%a.out',
     dependency=abl_deps or None, array=','.join(map(str, range(n_chunks))),
   )
@@ -251,7 +257,7 @@ def submit_rho(rho):
 
   clean_deps = ':'.join(x for x in [abl_dep, rnd_dep] if x)
   sbatch(
-    wrap=f'rm -rf {SCRATCH / f"rho{rho}"}',
+    wrap=f'rm -rf {SCRATCH / f"rho{rho}{suffix}"}',
     job_name=f'clean-rho{rho}', time='0:15:00',
     mem='1G', cpus=1, output=f'{log_dir(rho, "cleanup")}-%j.out',
     dependency=clean_deps or None,
@@ -261,10 +267,16 @@ def submit_rho(rho):
 def main():
   p = argparse.ArgumentParser()
   p.add_argument('--rhos', type=float, nargs='+', default=RHOS)
+  p.add_argument('--batch', type=int, default=1,
+                 help='network cohort; batch b uses seeds offset by (b-1)*50 networks')
+  p.add_argument('--ablation-trials', type=int, default=10)
+  p.add_argument('--ablation-max-remove', type=int, default=3)
+  p.add_argument('--ablation-tag', type=str, default='',
+                 help='suffix for the ablation output name, e.g. deep')
   args = p.parse_args()
   print(f'K_target (gamma={GAMMA_REF}, N={N_REF}) = {K_TARGET:.6f}')
   for rho in args.rhos:
-    submit_rho(rho)
+    submit_rho(rho, args)
   print('\nAll jobs submitted. Monitor with: squeue -u $USER')
 
 

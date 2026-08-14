@@ -18,7 +18,6 @@ import subprocess
 import sys
 
 NUM_NETWORKS = 50
-CHUNK        = 5
 PARTITION    = 'shared'
 VENV         = 'david-brewster-boolean-network-env/bin/activate'
 
@@ -44,13 +43,14 @@ def sbatch(*, wrap, job_name, time, mem, cpus, output, dependency=None, array=No
 
 
 def submit(args):
+  chunk = args.chunk
   out = pathlib.Path(args.out)
   logs = pathlib.Path(f'slurm/ablation/rho{args.rho}')
   logs.mkdir(parents=True, exist_ok=True)
-  n_chunks = (NUM_NETWORKS + CHUNK - 1) // CHUNK
+  n_chunks = (NUM_NETWORKS + chunk - 1) // chunk
   part = f'{out}.part${{SLURM_ARRAY_TASK_ID}}'
-  lo = f'$((SLURM_ARRAY_TASK_ID * {CHUNK}))'
-  hi = f'$((SLURM_ARRAY_TASK_ID * {CHUNK} + {CHUNK - 1}))'
+  lo = f'$((SLURM_ARRAY_TASK_ID * {chunk}))'
+  hi = f'$((SLURM_ARRAY_TASK_ID * {chunk} + {chunk - 1}))'
 
   todo = [i for i in range(n_chunks) if not pathlib.Path(f'{out}.part{i}').exists()]
   if not todo and out.exists():
@@ -66,10 +66,12 @@ def submit(args):
     f'--ga-file {args.ga_file} '
     f'--b-file {args.b_file} '
     f'--networks {lo}-{hi} '
+    f'--n-trials {args.n_trials} '
+    f'--max-remove {args.max_remove} '
     f'--out {part}'
   )
   arr_id = sbatch(
-    wrap=wrap, job_name=f'abl-rho{args.rho}', time='6:00:00',
+    wrap=wrap, job_name=f'abl-rho{args.rho}', time=args.time,
     mem='16G', cpus=2, output=f'{logs}/chunk-%A_%a.out',
     array=','.join(map(str, todo)),
   )
@@ -90,6 +92,10 @@ def parse_args():
   p.add_argument('--ga-file', type=str, required=True)
   p.add_argument('--b-file', type=str, required=True)
   p.add_argument('--out', type=str, required=True)
+  p.add_argument('--n-trials', type=int, default=10)
+  p.add_argument('--max-remove', type=int, default=3)
+  p.add_argument('--chunk', type=int, default=5)
+  p.add_argument('--time', type=str, default='6:00:00')
   return p.parse_args()
 
 
