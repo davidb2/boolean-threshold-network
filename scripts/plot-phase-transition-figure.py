@@ -73,9 +73,22 @@ def save(fig, out_dir, name):
 
 
 def panel_a(data_dir, out_dir):
-  fig, ax = plt.subplots(figsize=(7.0, 5.0))
+  from scipy.special import zeta as rzeta
+  fig, ax = plt.subplots(figsize=(7.4, 5.0))
   ymax = 0.225
-  label_y = {50: 0.027, 250: 0.062, 500: 0.112, 5000: 0.213}
+  gc_min = gamma_c(min(NS))
+  gc_inf = optimize.brentq(lambda g: rzeta(g - 1) / rzeta(g) - K_C, 2.01, 4.0)
+
+  ax.axvspan(1.5, gc_min, color='#fbe9e3', zorder=0)
+  ax.axvspan(gc_inf, 2.8, color='#e9eff7', zorder=0)
+  ax.text((1.5 + gc_min) / 2, 0.2135, 'chaotic', color='#b2543f',
+          fontsize=14, style='italic', ha='center')
+  ax.text((gc_inf + 2.8) / 2, 0.2135, 'frozen', color='#41618c',
+          fontsize=14, style='italic', ha='center')
+  ax.text((gc_min + gc_inf) / 2, 0.2135, 'transition, $\\gamma_c(N)$',
+          color='#555555', fontsize=12, style='italic', ha='center')
+
+  label_y = {50: 0.027, 250: 0.062, 500: 0.112, 5000: 0.196}
   for n in NS:
     mean, sem = load_curve(data_dir, n)
     x = mean.index.to_numpy()
@@ -84,19 +97,21 @@ def panel_a(data_dir, out_dir):
     ax.fill_between(x, m - 1.96 * s, m + 1.96 * s, color=COLORS[n], alpha=0.25, linewidth=0)
     ax.plot(x, m, color=COLORS[n], linewidth=2.0, solid_capstyle='round')
     gc = gamma_c(n)
-    ax.axvline(gc, color=COLORS[n], linewidth=1.1, linestyle=(0, (4, 3)), alpha=0.8)
+    ax.axvline(gc, ymax=0.92, color=COLORS[n], linewidth=1.1, linestyle=(0, (4, 3)), alpha=0.85)
     ax.annotate(
-      f'$N = {n}$', xy=(1.505, label_y[n]),
+      f'$N = {n}$', xy=(1.515, label_y[n]),
       color=COLORS[n], fontsize=12, fontweight='bold', ha='left',
+      bbox=dict(boxstyle='round,pad=0.22', facecolor='white', edgecolor='none', alpha=0.9),
+      zorder=10,
     )
+  ax.axvline(gc_inf, ymax=0.92, color='#444444', linewidth=1.2, linestyle=(0, (4, 3)), alpha=0.9)
+  ax.annotate(
+    '$N \\to \\infty$', xy=(gc_inf + 0.015, 0.166),
+    color='#444444', fontsize=11, ha='left',
+    bbox=dict(boxstyle='round,pad=0.2', facecolor='white', edgecolor='none', alpha=0.9),
+  )
   ax.set_ylim(0, ymax)
   ax.set_xlim(1.5, 2.8)
-  ax.text(
-    2.115, 0.208, 'annealed theory $\\gamma_c(N)$',
-    color='#444444', fontsize=12, ha='left',
-  )
-  ax.text(1.56, 0.0035, 'chaotic', color='#888888', fontsize=12, style='italic')
-  ax.text(2.62, 0.0035, 'frozen', color='#888888', fontsize=12, style='italic')
   ax.set_xlabel('Degree exponent, $\\gamma$')
   ax.set_ylabel('Steady state Hamming distance')
   save(fig, out_dir, 'fig2a-phase-transition')
