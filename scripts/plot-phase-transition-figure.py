@@ -102,8 +102,7 @@ def draw_panel_a(ax, data_dir):
     s = sem.to_numpy()
     ax.fill_between(x, m - 1.96 * s, m + 1.96 * s, color=COLORS[n], alpha=0.25, linewidth=0)
     ax.plot(x, m, color=COLORS[n], linewidth=2.0, solid_capstyle='round')
-    gc = gamma_c(n)
-    ax.plot(gc, np.interp(gc, x, m), marker='*', markersize=17,
+    ax.plot(gamma_c(n), 0, marker='*', markersize=17,
             markerfacecolor='white', markeredgecolor=COLORS[n],
             markeredgewidth=1.5, linestyle='none', zorder=11, clip_on=False)
     ax.annotate(
@@ -122,7 +121,7 @@ def draw_panel_a(ax, data_dir):
           style='italic', va='center', ha='right')
   ax.plot(2.315, 0.047, marker='*', markersize=15, markerfacecolor='white',
           markeredgecolor='#555555', markeredgewidth=1.3, linestyle='none', clip_on=False)
-  ax.text(2.355, 0.047, 'theory $\\gamma_c(N)$', color='#555555', fontsize=10.5,
+  ax.text(2.355, 0.047, 'critical $\\gamma_c(N)$', color='#555555', fontsize=10.5,
           ha='left', va='center')
 
   axi = ax.inset_axes([0.565, 0.335, 0.415, 0.52])
