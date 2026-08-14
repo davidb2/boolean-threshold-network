@@ -102,9 +102,11 @@ def panel_a(data_dir, out_dir):
   save(fig, out_dir, 'fig2a-phase-transition')
 
 
-def panel_b(degree_file, out_dir):
+def panel_b(degree_file, out_dir, norm=1):
   df = pd.read_csv(degree_file)
-  out = df[df['kind'] == 'out']
+  out = df[df['kind'] == 'out'].copy()
+  out['count'] = out['count'] / norm
+  out = out[out['count'] > 0]
   fig, ax = plt.subplots(figsize=(3.4, 2.9))
   ax.scatter(out['degree'], out['count'], s=14, color='#1c5cab', alpha=0.85, edgecolors='none')
   ax.set_xscale('log')
@@ -114,9 +116,11 @@ def panel_b(degree_file, out_dir):
   save(fig, out_dir, 'fig2b-out-degree')
 
 
-def panel_c(degree_file, out_dir):
+def panel_c(degree_file, out_dir, norm=1):
   df = pd.read_csv(degree_file)
-  ind = df[df['kind'] == 'in']
+  ind = df[df['kind'] == 'in'].copy()
+  ind['count'] = ind['count'] / norm
+  ind = ind[ind['degree'] <= 30]
   fig, ax = plt.subplots(figsize=(3.4, 2.9))
   ax.bar(ind['degree'], ind['count'], width=0.9, color='#3987e5', edgecolor='white', linewidth=0.5)
   ax.set_xlim(-0.5, ind['degree'].max() + 0.5)
@@ -129,14 +133,15 @@ def main():
   p = argparse.ArgumentParser()
   p.add_argument('--data-dir', type=str, required=True)
   p.add_argument('--degree-file', type=str, default=None)
+  p.add_argument('--degree-norm', type=float, default=1)
   p.add_argument('--out-dir', type=str, required=True)
   args = p.parse_args()
   for n in NS:
     print(f'gamma_c({n}) = {gamma_c(n):.4f}')
   panel_a(args.data_dir, args.out_dir)
   if args.degree_file and pathlib.Path(args.degree_file).exists():
-    panel_b(args.degree_file, args.out_dir)
-    panel_c(args.degree_file, args.out_dir)
+    panel_b(args.degree_file, args.out_dir, args.degree_norm)
+    panel_c(args.degree_file, args.out_dir, args.degree_norm)
 
 
 if __name__ == '__main__':
