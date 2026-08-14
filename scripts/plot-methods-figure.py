@@ -415,8 +415,8 @@ def panel_c(out_dir):
                           mutation_scale=15, lw=1.8, color=AMBER)
   ax.add_patch(arrow)
   ax.text(1.175, 0.585, 'shock', fontsize=12.5, color=AMBER, ha='center')
-  ax.text(1.175, 0.345, "$w' = \\xi$", fontsize=11.5, color=INK, ha='center')
-  ax.text(1.175, 0.235, '$\\xi = \\pm 1$ at random', fontsize=10.5, color=MUTED, ha='center')
+  ax.text(1.175, 0.345, "$w' = \\pm 1$", fontsize=11.5, color=INK, ha='center')
+  ax.text(1.175, 0.235, 'redrawn at random', fontsize=10.5, color=MUTED, ha='center')
 
   ax.text(0.42, 0.93, 'outgoing weights of one target node', fontsize=11.5, color=INK, ha='center')
   save(fig, out_dir, 'fig1c-shock-closeup')
