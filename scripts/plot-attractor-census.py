@@ -96,14 +96,18 @@ def main():
     ic = ics[g]
     return ic.groupby('network_idx').apply(fn, include_groups=False)
 
-  med_period = {g: per_network(g, lambda d: d.loc[d.converged, 'period'].median())
+  # networks where no IC recurs within the step budget are censored (NaN)
+  def guarded(fn):
+    return lambda d: fn(d.loc[d.converged], len(d)) if d.converged.any() else np.nan
+
+  med_period = {g: per_network(g, guarded(lambda c, n: c['period'].median()))
                 for g in gammas}
-  p90_period = {g: per_network(g, lambda d: d.loc[d.converged, 'period'].quantile(0.9))
+  p90_period = {g: per_network(g, guarded(lambda c, n: c['period'].quantile(0.9)))
                 for g in gammas}
-  n_att = {g: per_network(g, lambda d: d.loc[d.converged, 'attractor_key'].nunique())
+  n_att = {g: per_network(g, guarded(lambda c, n: c['attractor_key'].nunique()))
            for g in gammas}
   max_basin = {g: per_network(
-      g, lambda d: d.loc[d.converged, 'attractor_key'].value_counts().iloc[0] / len(d))
+      g, guarded(lambda c, n: c['attractor_key'].value_counts().iloc[0] / n))
       for g in gammas}
   n_ics = max(len(ics[g]) // ics[g].network_idx.nunique() for g in gammas)
 
