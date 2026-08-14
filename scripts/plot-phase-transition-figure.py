@@ -102,8 +102,10 @@ def draw_panel_a(ax, data_dir):
     s = sem.to_numpy()
     ax.fill_between(x, m - 1.96 * s, m + 1.96 * s, color=COLORS[n], alpha=0.25, linewidth=0)
     ax.plot(x, m, color=COLORS[n], linewidth=2.0, solid_capstyle='round')
-    ax.axvline(gamma_c(n), ymax=0.92, color=COLORS[n], linewidth=1.0,
-               linestyle=(0, (4, 3)), alpha=0.8)
+    gc = gamma_c(n)
+    ax.plot(gc, np.interp(gc, x, m), marker='*', markersize=17,
+            markerfacecolor='white', markeredgecolor=COLORS[n],
+            markeredgewidth=1.5, linestyle='none', zorder=11, clip_on=False)
     ax.annotate(
       f'$N = {n}$', xy=(1.515, label_y[n]),
       color=COLORS[n], fontsize=12, fontweight='bold', ha='left',
@@ -118,8 +120,10 @@ def draw_panel_a(ax, data_dir):
               arrowprops=dict(arrowstyle='-|>', lw=1.4, color=COOL_TXT))
   ax.text(2.56, 0.2135, 'more frozen', color=COOL_TXT, fontsize=12.5,
           style='italic', va='center', ha='right')
-  ax.text(1.985, 0.1275, 'theory $\\gamma_c(N)$', color='#555555', fontsize=10.5,
-          ha='center', rotation=90)
+  ax.plot(2.315, 0.047, marker='*', markersize=15, markerfacecolor='white',
+          markeredgecolor='#555555', markeredgewidth=1.3, linestyle='none', clip_on=False)
+  ax.text(2.355, 0.047, 'theory $\\gamma_c(N)$', color='#555555', fontsize=10.5,
+          ha='left', va='center')
 
   axi = ax.inset_axes([0.565, 0.335, 0.415, 0.52])
   ns, gcs = gamma_c_curve()
