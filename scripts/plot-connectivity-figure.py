@@ -179,13 +179,13 @@ def panel_cd(ax, cov, col, ylabel):
 
 
 def panel_c_shock(ax, cov):
-  panel_cd(ax, cov, 'mean_d', 'Panel-to-drug distance\n(mean over drugs, hops)')
+  panel_cd(ax, cov, 'mean_d', 'Panel-to-shock distance\n(mean over shocks, hops)')
   ax.set_ylim(0, 1.9)
   ax.legend(frameon=False, fontsize=9, loc='upper center', ncol=1)
 
 
 def panel_d_shock(ax, cov):
-  panel_cd(ax, cov, 'worst_d', 'Worst-covered drug\ndistance (hops)')
+  panel_cd(ax, cov, 'worst_d', 'Worst-covered shock\ndistance (hops)')
   ax.set_ylim(0, 2.6)
 
 

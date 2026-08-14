@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
-'''Shock-resolved sensitivity disks for one evolved reporter panel.
+'''Shock-resolved sensitivity profiles of evolved reporter panels.
+
+Panel a shows the disks of one example panel. Because shock identities
+are network specific, the aggregate panels use rank space: members are
+ranked by mean sensitivity within their panel and each member's shock
+responses are sorted, so profiles are comparable across networks.
+Panel b shows the mean sorted response profile per member rank over all
+networks, and panel c the effective number of shocks each member rank
+responds to.
 
 Each disk is one panel member. Wedges are the ten drugs, with wedge
 radius and color equal to the member's sensitivity to that drug.
@@ -91,8 +99,10 @@ def main():
   theta = np.linspace(0, 2 * np.pi, n_drugs, endpoint=False)
   width = 2 * np.pi / n_drugs * 0.92
 
-  fig, axes = plt.subplots(2, 4, figsize=(12.4, 6.4),
-                           subplot_kw=dict(projection='polar'))
+  fig = plt.figure(figsize=(12.6, 10.2))
+  gs = fig.add_gridspec(3, 4, height_ratios=[1, 1, 1.05], hspace=0.55, wspace=0.35)
+  axes = np.array([[fig.add_subplot(gs[r, c], projection='polar') for c in range(4)]
+                   for r in range(2)])
   for ax, node in zip(axes.ravel(), nodes):
     vals = S[si][:, node]
     ax.bar(theta, vals, width=width, bottom=0,
@@ -113,12 +123,58 @@ def main():
                  fontsize=10, color=color, pad=13)
 
   sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(0, vmax))
-  cbar = fig.colorbar(sm, ax=axes, shrink=0.8, pad=0.03)
-  cbar.set_label('Sensitivity to drug, $s_{j,q}$')
-  fig.suptitle(
-    f'Evolved panel of network {net}, $\\rho = {args.rho}$, wedges are the ten drugs',
-    fontsize=12, y=0.99,
-  )
+  cbar = fig.colorbar(sm, ax=list(axes.ravel()), shrink=0.75, pad=0.02)
+  cbar.set_label('Sensitivity to shock, $s_{j,q}$')
+  axes[0, 0].text(-0.25, 1.32, 'a', transform=axes[0, 0].transAxes,
+                  fontsize=17, fontweight='bold', color='#222222')
+  fig.text(0.38, 0.985, f'example panel, network {net}, wedges are the ten shocks',
+           fontsize=12, ha='center')
+
+  # aggregate over all networks in rank space
+  ranked = []
+  eff = []
+  for net_j, nodes_j in panels.items():
+    if net_j not in snets:
+      continue
+    bj = bnets.index(net_j)
+    sj = snets.index(net_j)
+    members = sorted(nodes_j, key=lambda n_: -B[bj, n_])
+    prof = np.sort(S[sj][:, members], axis=0)[::-1]   # [shock_rank, member_rank]
+    ranked.append(prof.T)                             # [member_rank, shock_rank]
+    tot = S[sj][:, members].sum(axis=0)
+    sq = (S[sj][:, members] ** 2).sum(axis=0)
+    with np.errstate(divide='ignore', invalid='ignore'):
+      e = np.where(sq > 0, tot ** 2 / sq, 0.0)
+    eff.append(e)
+  ranked = np.array(ranked)   # [nets, 8, 10]
+  eff = np.array(eff)         # [nets, 8]
+
+  ax_h = fig.add_subplot(gs[2, 0:2])
+  im = ax_h.imshow(ranked.mean(axis=0), aspect='auto', cmap=cmap, vmin=0, vmax=vmax)
+  ax_h.set_xticks(range(10))
+  ax_h.set_xticklabels([str(i + 1) for i in range(10)], fontsize=9)
+  ax_h.set_yticks(range(8))
+  ax_h.set_yticklabels([str(i + 1) for i in range(8)], fontsize=9)
+  ax_h.set_xlabel('Shock rank within member')
+  ax_h.set_ylabel('Member rank within panel')
+  ax_h.text(-0.16, 1.13, 'b', transform=ax_h.transAxes,
+            fontsize=17, fontweight='bold', color='#222222')
+  ax_h.set_title(f'mean sorted profile, {ranked.shape[0]} networks', fontsize=11)
+
+  ax_e = fig.add_subplot(gs[2, 2:4])
+  m = eff.mean(axis=0)
+  s_ = 1.96 * eff.std(axis=0) / np.sqrt(eff.shape[0])
+  ax_e.errorbar(range(1, 9), m, yerr=s_, color='#0f3560', lw=2.0,
+                marker='o', markersize=5, capsize=3)
+  ax_e.set_xlabel('Member rank within panel')
+  ax_e.set_ylabel('Effective number of\nshocks responded to')
+  ax_e.set_ylim(0, 10)
+  ax_e.set_xticks(range(1, 9))
+  ax_e.spines['top'].set_visible(False)
+  ax_e.spines['right'].set_visible(False)
+  ax_e.text(-0.16, 1.13, 'c', transform=ax_e.transAxes,
+            fontsize=17, fontweight='bold', color='#222222')
+  ax_e.set_title('breadth of response by member rank', fontsize=11)
 
   out_dir = pathlib.Path(args.out_dir)
   out_dir.mkdir(parents=True, exist_ok=True)
