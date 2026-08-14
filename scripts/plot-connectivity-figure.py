@@ -2,13 +2,17 @@
 '''Connectivity of evolved reporter panels: four-panel figure.
 
   a  pairwise distance between panel members vs size-matched random panels
-  b  upstream coverage of the network vs random panels
-  c  degree percentiles of panel members vs the uniform background
-  d  mean graph distance from each drug's targets, members vs all nodes
+  b  degree distributions of panel members vs the background
+  c  mean panel-to-drug distance: min over members of the directed
+     distance from each drug's targets, averaged over drugs, for evolved
+     panels vs random panels vs sensitivity-matched random panels
+  d  distance of the worst-covered drug, same three groups
 
-The headline is a null result: evolved panels are topologically
-indistinguishable from random panels. Panel d shows the one small
-deviation, a slight shift toward the shock targets.
+Generic topology is a null result (a, b): evolved panels are
+indistinguishable from random. But panels are specifically aligned to
+the shocks (c, d): they sit closer downstream of every drug's targets,
+and sensitivity-matched random panels do NOT reproduce this, so the
+positioning is not explained by sensitivity composition.
 
 Usage:
   python scripts/plot-connectivity-figure.py \
@@ -102,28 +106,87 @@ def panel_c(ax, conn, ga_panels):
     ecdf(ax, deg.ravel().astype(float) + 1, color=GRAY, lw=1.5, linestyle=ls,
          label=f'all nodes, {lab}')
   ax.set_xscale('log')
-  ax.set_xlabel('Degree $+\,1$')
+  ax.set_xlabel('Degree $+ 1$')
   ax.set_ylabel('Cumulative fraction')
   ax.set_ylim(0, 1.02)
   ax.legend(frameon=False, fontsize=9.5, loc='lower right')
 
 
-def panel_d(ax, conn, ga_panels, sens_dir):
+def antimode(B, lo=0.05, hi=0.40):
+  c, e = np.histogram(B.ravel(), bins=np.linspace(0, 1, 101))
+  ce = 0.5 * (e[:-1] + e[1:])
+  s = np.convolve(c, np.ones(5) / 5, mode='same')
+  w = (ce > lo) & (ce < hi)
+  return float(ce[w][np.argmin(s[w])])
+
+
+def drug_coverage(conn, ga_panels, sens_dir, n_rand=200, seed=21):
   nets = list(conn['networks'])
   dist = conn['dist_from_targets'].astype(float)
-  dist[dist < 0] = np.nan
-  mean_dist = np.nanmean(dist, axis=1)
-  ecdf(ax, mean_dist.ravel(), color=GRAY, lw=2.0, label='all nodes')
+  dist[dist < 0] = np.inf
+  rng = np.random.default_rng(seed)
+  rows = []
   for rho, panels in ga_panels.items():
-    vals = []
+    b = np.load(f'{sens_dir}/B-rho{rho}.npz')
+    B, bnets = b['B'], [int(x) for x in b['networks']]
+    cut = antimode(B)
     for net, nodes in panels.items():
-      vals += list(mean_dist[nets.index(net), nodes])
-    ecdf(ax, np.array(vals), color=RHO_COLORS[rho], lw=1.8, label=f'members, $\\rho = {rho}$')
-  ax.set_xlabel('Mean distance from shock targets (hops)')
-  ax.set_ylabel('Cumulative fraction')
-  ax.set_xlim(1.6, 3.0)
-  ax.text(1.66, 0.9, 'members sit\n$\\approx 0.07$ hops closer', fontsize=9.5, color='#444444')
-  ax.legend(frameon=False, fontsize=9.5, loc='lower right')
+      i = nets.index(net)
+      bi = bnets.index(net)
+      per_drug = dist[i][:, nodes].min(axis=1)
+      rows.append(dict(rho=rho, network=net, group='evolved',
+                       mean_d=per_drug.mean(), worst_d=per_drug.max()))
+      brow = B[bi]
+      sens_pool = np.flatnonzero(brow > cut)
+      insens_pool = np.flatnonzero(brow <= cut)
+      n_s = int((brow[nodes] > cut).sum())
+      acc = {'random': [], 'matched': []}
+      for _ in range(n_rand):
+        rn = rng.choice(5000, 8, replace=False)
+        pd_r = dist[i][:, rn].min(axis=1)
+        acc['random'].append((pd_r.mean(), pd_r.max()))
+        mn = np.concatenate([rng.choice(sens_pool, n_s, replace=False),
+                             rng.choice(insens_pool, 8 - n_s, replace=False)])
+        pd_m = dist[i][:, mn].min(axis=1)
+        acc['matched'].append((pd_m.mean(), pd_m.max()))
+      for group, vals in acc.items():
+        v = np.array(vals)
+        rows.append(dict(rho=rho, network=net, group=group,
+                         mean_d=v[:, 0].mean(), worst_d=v[:, 1].mean()))
+  return pd.DataFrame(rows)
+
+
+GROUPS = [('evolved', '#0f3560', 'evolved'),
+          ('matched', '#eb6834', 'random, sensitivity matched'),
+          ('random', GRAY, 'random')]
+
+
+def panel_cd(ax, cov, col, ylabel):
+  rhos = ['0.5', '0.9', '0.99']
+  width = 0.24
+  for gi, (group, color, label) in enumerate(GROUPS):
+    xs, ms, ss = [], [], []
+    for xi, rho in enumerate(rhos):
+      vals = cov[(cov.group == group) & (cov.rho == rho)][col]
+      xs.append(xi + (gi - 1) * width)
+      ms.append(vals.mean())
+      ss.append(1.96 * vals.sem())
+    ax.bar(xs, ms, width=width * 0.88, color=color, label=label, zorder=3)
+    ax.errorbar(xs, ms, yerr=ss, fmt='none', ecolor='#333333', lw=1.1, capsize=2.5, zorder=4)
+  ax.set_xticks(range(len(rhos)))
+  ax.set_xticklabels([f'$\\rho = {r}$' for r in rhos])
+  ax.set_ylabel(ylabel)
+
+
+def panel_c_shock(ax, cov):
+  panel_cd(ax, cov, 'mean_d', 'Panel-to-drug distance\n(mean over drugs, hops)')
+  ax.set_ylim(0, 1.9)
+  ax.legend(frameon=False, fontsize=9, loc='upper center', ncol=1)
+
+
+def panel_d_shock(ax, cov):
+  panel_cd(ax, cov, 'worst_d', 'Worst-covered drug\ndistance (hops)')
+  ax.set_ylim(0, 2.6)
 
 
 def main():
@@ -142,12 +205,13 @@ def main():
     label, path = spec.split('=', 1)
     ga_panels[label.replace('rho', '')] = load_panels(path)
 
+  cov = drug_coverage(conn, ga_panels, args.sensitivity_dir)
   fig, axes = plt.subplots(2, 2, figsize=(10.6, 8.0))
   fig.subplots_adjust(hspace=0.38, wspace=0.32)
   panel_a(axes[0, 0], topo)
-  panel_b(axes[0, 1], topo)
-  panel_c(axes[1, 0], conn, ga_panels)
-  panel_d(axes[1, 1], conn, ga_panels, args.sensitivity_dir)
+  panel_c(axes[0, 1], conn, ga_panels)
+  panel_c_shock(axes[1, 0], cov)
+  panel_d_shock(axes[1, 1], cov)
   for ax, letter in zip(axes.ravel(), 'abcd'):
     ax.text(-0.16, 1.06, letter, transform=ax.transAxes,
             fontsize=16, fontweight='bold', color='#222222')
