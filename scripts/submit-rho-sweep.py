@@ -223,7 +223,7 @@ def submit_rho(rho, args):
   else:
     print(f'  {b_file} already exists')
 
-  abl_deps = ':'.join(x for x in [combine_dep, b_dep] if x)
+  abl_deps = ':'.join(x for x in [combine_dep, b_dep, extract_dep] if x)
   chunk = 5 if args.ablation_max_remove <= 3 else 2
   n_chunks = (NUM_NETWORKS + chunk - 1) // chunk
   part = f'{ablation_out}.part${{SLURM_ARRAY_TASK_ID}}'
