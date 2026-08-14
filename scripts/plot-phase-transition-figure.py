@@ -73,20 +73,21 @@ def save(fig, out_dir, name):
 
 
 def panel_a(data_dir, out_dir):
-  from scipy.special import zeta as rzeta
   fig, ax = plt.subplots(figsize=(7.4, 5.0))
   ymax = 0.225
-  gc_min = gamma_c(min(NS))
-  gc_inf = optimize.brentq(lambda g: rzeta(g - 1) / rzeta(g) - K_C, 2.01, 4.0)
+  gc_ref = gamma_c(max(NS))
 
-  ax.axvspan(1.5, gc_min, color='#fbe9e3', zorder=0)
-  ax.axvspan(gc_inf, 2.8, color='#e9eff7', zorder=0)
-  ax.text((1.5 + gc_min) / 2, 0.2135, 'chaotic', color='#b2543f',
+  ax.axvspan(1.5, gc_ref, color='#fbe9e3', zorder=0)
+  ax.axvspan(gc_ref, 2.8, color='#e9eff7', zorder=0)
+  ax.text((1.5 + gc_ref) / 2, 0.2135, 'chaotic', color='#b2543f',
           fontsize=14, style='italic', ha='center')
-  ax.text((gc_inf + 2.8) / 2, 0.2135, 'frozen', color='#41618c',
+  ax.text((gc_ref + 2.8) / 2, 0.2135, 'frozen', color='#41618c',
           fontsize=14, style='italic', ha='center')
-  ax.text((gc_min + gc_inf) / 2, 0.2135, 'transition, $\\gamma_c(N)$',
-          color='#555555', fontsize=12, style='italic', ha='center')
+  ax.annotate(
+    f'$\\gamma_c(N{{=}}{max(NS)})$', xy=(gc_ref + 0.015, 0.1665),
+    color=COLORS[max(NS)], fontsize=11, ha='left',
+    bbox=dict(boxstyle='round,pad=0.2', facecolor='white', edgecolor='none', alpha=0.9),
+  )
 
   label_y = {50: 0.027, 250: 0.062, 500: 0.112, 5000: 0.196}
   for n in NS:
@@ -97,19 +98,16 @@ def panel_a(data_dir, out_dir):
     ax.fill_between(x, m - 1.96 * s, m + 1.96 * s, color=COLORS[n], alpha=0.25, linewidth=0)
     ax.plot(x, m, color=COLORS[n], linewidth=2.0, solid_capstyle='round')
     gc = gamma_c(n)
-    ax.axvline(gc, ymax=0.92, color=COLORS[n], linewidth=1.1, linestyle=(0, (4, 3)), alpha=0.85)
+    ax.axvline(gc, ymax=0.92, color=COLORS[n], linewidth=1.3 if n == max(NS) else 1.0,
+               linestyle=(0, (4, 3)), alpha=0.9 if n == max(NS) else 0.75)
     ax.annotate(
       f'$N = {n}$', xy=(1.515, label_y[n]),
       color=COLORS[n], fontsize=12, fontweight='bold', ha='left',
       bbox=dict(boxstyle='round,pad=0.22', facecolor='white', edgecolor='none', alpha=0.9),
       zorder=10,
     )
-  ax.axvline(gc_inf, ymax=0.92, color='#444444', linewidth=1.2, linestyle=(0, (4, 3)), alpha=0.9)
-  ax.annotate(
-    '$N \\to \\infty$', xy=(gc_inf + 0.015, 0.166),
-    color='#444444', fontsize=11, ha='left',
-    bbox=dict(boxstyle='round,pad=0.2', facecolor='white', edgecolor='none', alpha=0.9),
-  )
+  ax.text(1.985, 0.1275, 'theory $\\gamma_c(N)$', color='#555555', fontsize=10.5,
+          ha='center', rotation=90)
   ax.set_ylim(0, ymax)
   ax.set_xlim(1.5, 2.8)
   ax.set_xlabel('Degree exponent, $\\gamma$')
