@@ -282,7 +282,7 @@ def parse_args() -> argparse.Namespace:
   parser.add_argument('--output-dir', type=str, required=True)
   parser.add_argument('--network-size', type=int, default=5000)
   parser.add_argument('--feature-sizes', type=int, nargs='+', default=None,
-                      help='feature set sizes to test (default: powers of 4 up to network-size)')
+                      help='feature set sizes to test (default: powers of 2 up to network-size)')
   parser.add_argument('--num-workers', type=int, default=None,
                       help='multiprocessing pool size (default: os.cpu_count()); reduce if OOM')
   args = parser.parse_args()

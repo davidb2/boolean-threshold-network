@@ -5,3 +5,7 @@
 david-brewster-boolean-network-env/
 slurm/
 notes/
+cmake-build-*/
+.DS_Store
+__pycache__/
+*.pyc

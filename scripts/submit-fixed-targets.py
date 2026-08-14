@@ -3,7 +3,7 @@
 Submit SLURM jobs for the fixed-targets experiment (v5):
   N=500, N=5000, N=50000 at the same <K> as gamma=1.8, N=5000,
   with num_targets_per_drug=1% of N (5 / 50 / 500). Feature sizes are powers
-  of 4 (1,4,16,64,...,N) (computed per-N by the GA script).
+  of 2 (1,2,4,8,...,N) (computed per-N by the GA script).
 
 GA results are written to ga-results-v5/ with per-generation accuracy rows.
 Completion is tracked via {i}.done marker files.
@@ -41,7 +41,7 @@ print(f'K_target (gamma={GAMMA_REF}, N={N_REF}) = {K_TARGET:.6f}')
 # ---------------------------------------------------------------------------
 # NS = [500, 5000, 50000]
 NS = [500, 50000]
-# feature sizes are computed per-N by the GA script (powers of 4: 1,4,16,64,..., up to N)
+# feature sizes are computed per-N by the GA script (powers of 2: 1,2,4,8,..., up to N)
 
 NUM_NETWORKS           = 50
 NUM_INITIAL_CONDITIONS = 10
