@@ -88,6 +88,9 @@ def main(args):
   subsets = load_ga_subsets(ga_file, K)
   # Keep only sets that are exactly K distinct nodes.
   exact = {net: nodes for net, nodes in subsets.items() if len(set(nodes)) == K}
+  if args.networks:
+    lo, hi = (int(x) for x in args.networks.split('-'))
+    exact = {net: nodes for net, nodes in exact.items() if lo <= net <= hi}
   dropped = sorted(set(subsets) - set(exact))
   print(f'rho={args.rho}: {len(exact)}/{len(subsets)} networks have exactly {K} nodes', flush=True)
   if dropped:
@@ -147,6 +150,8 @@ def parse_args():
   p.add_argument('--ga-file', type=str, default=None)
   p.add_argument('--b-file', type=str, default=None)
   p.add_argument('--out', type=str, default=None)
+  p.add_argument('--networks', type=str, default=None,
+                 help='restrict to an inclusive network index range, e.g. 0-4')
   args = p.parse_args()
   if args.out is None:
     args.out = f'data/sensitivity/ablation-k8-rho{args.rho}.csv'

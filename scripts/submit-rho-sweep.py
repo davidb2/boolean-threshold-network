@@ -220,19 +220,33 @@ def submit_rho(rho):
     print(f'  {b_file} already exists')
 
   abl_deps = ':'.join(x for x in [combine_dep, b_dep] if x)
+  chunk = 5
+  n_chunks = (NUM_NETWORKS + chunk - 1) // chunk
+  part = f'{ablation_out}.part${{SLURM_ARRAY_TASK_ID}}'
+  lo = f'$((SLURM_ARRAY_TASK_ID * {chunk}))'
+  hi = f'$((SLURM_ARRAY_TASK_ID * {chunk} + {chunk - 1}))'
   abl_wrap = (
+    f'[ -f {part} ] && exit 0; '
     f'source {VENV} && '
     f'python scripts/node-ablation-k8.py '
     f'--rho {rho} '
     f'--states-file {states_ref} '
     f'--ga-file {ga_out}/combined-full.csv '
     f'--b-file {b_file} '
-    f'--out {ablation_out}'
+    f'--networks {lo}-{hi} '
+    f'--out {part}'
   )
+  abl_arr = sbatch(
+    wrap=abl_wrap, job_name=f'abl-rho{rho}', time='6:00:00',
+    mem='16G', cpus=2, output=f'{log_dir(rho, "ablation")}-%A_%a.out',
+    dependency=abl_deps or None, array=','.join(map(str, range(n_chunks))),
+  )
+  parts = ' '.join(f'{ablation_out}.part{i}' for i in range(n_chunks))
   abl_dep = sbatch(
-    wrap=abl_wrap, job_name=f'abl-rho{rho}', time='12:00:00',
-    mem='32G', cpus=4, output=f'{log_dir(rho, "ablation")}-%j.out',
-    dependency=abl_deps or None,
+    wrap=f'source {VENV} && python scripts/concat-csvs.py {ablation_out} {parts}',
+    job_name=f'ablcat-rho{rho}', time='0:30:00',
+    mem='4G', cpus=1, output=f'{log_dir(rho, "ablation-concat")}-%j.out',
+    dependency=abl_arr,
   )
 
   clean_deps = ':'.join(x for x in [abl_dep, rnd_dep] if x)
