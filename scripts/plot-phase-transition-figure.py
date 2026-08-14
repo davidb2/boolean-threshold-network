@@ -72,22 +72,27 @@ def save(fig, out_dir, name):
   plt.close(fig)
 
 
+WARM, COOL = '#fbe9e3', '#e9eff7'
+WARM_TXT, COOL_TXT = '#b2543f', '#41618c'
+
+
+def gamma_c_inf():
+  from scipy.special import zeta as rzeta
+  return optimize.brentq(lambda g: rzeta(g - 1) / rzeta(g) - K_C, 2.01, 4.0)
+
+
+def gamma_c_curve():
+  ns = np.unique(np.logspace(1.2, 6, 40).astype(int))
+  return ns, np.array([
+    optimize.brentq(
+      lambda g, n=n: kbar(g, n) - K_C, 1.01, 5.0,
+    ) for n in ns
+  ])
+
+
 def panel_a(data_dir, out_dir):
   fig, ax = plt.subplots(figsize=(7.4, 5.0))
   ymax = 0.225
-  gc_ref = gamma_c(max(NS))
-
-  ax.axvspan(1.5, gc_ref, color='#fbe9e3', zorder=0)
-  ax.axvspan(gc_ref, 2.8, color='#e9eff7', zorder=0)
-  ax.text((1.5 + gc_ref) / 2, 0.2135, 'chaotic', color='#b2543f',
-          fontsize=14, style='italic', ha='center')
-  ax.text((gc_ref + 2.8) / 2, 0.2135, 'frozen', color='#41618c',
-          fontsize=14, style='italic', ha='center')
-  ax.annotate(
-    f'$\\gamma_c(N{{=}}{max(NS)})$', xy=(gc_ref + 0.015, 0.1665),
-    color=COLORS[max(NS)], fontsize=11, ha='left',
-    bbox=dict(boxstyle='round,pad=0.2', facecolor='white', edgecolor='none', alpha=0.9),
-  )
 
   label_y = {50: 0.027, 250: 0.062, 500: 0.112, 5000: 0.196}
   for n in NS:
@@ -97,17 +102,49 @@ def panel_a(data_dir, out_dir):
     s = sem.to_numpy()
     ax.fill_between(x, m - 1.96 * s, m + 1.96 * s, color=COLORS[n], alpha=0.25, linewidth=0)
     ax.plot(x, m, color=COLORS[n], linewidth=2.0, solid_capstyle='round')
-    gc = gamma_c(n)
-    ax.axvline(gc, ymax=0.92, color=COLORS[n], linewidth=1.3 if n == max(NS) else 1.0,
-               linestyle=(0, (4, 3)), alpha=0.9 if n == max(NS) else 0.75)
+    ax.axvline(gamma_c(n), ymax=0.92, color=COLORS[n], linewidth=1.0,
+               linestyle=(0, (4, 3)), alpha=0.8)
     ax.annotate(
       f'$N = {n}$', xy=(1.515, label_y[n]),
       color=COLORS[n], fontsize=12, fontweight='bold', ha='left',
       bbox=dict(boxstyle='round,pad=0.22', facecolor='white', edgecolor='none', alpha=0.9),
       zorder=10,
     )
+  ax.annotate('', xy=(1.53, 0.2135), xytext=(1.72, 0.2135),
+              arrowprops=dict(arrowstyle='-|>', lw=1.4, color=WARM_TXT))
+  ax.text(1.74, 0.2135, 'more chaotic', color=WARM_TXT, fontsize=12.5,
+          style='italic', va='center', ha='left')
+  ax.annotate('', xy=(2.77, 0.2135), xytext=(2.58, 0.2135),
+              arrowprops=dict(arrowstyle='-|>', lw=1.4, color=COOL_TXT))
+  ax.text(2.56, 0.2135, 'more frozen', color=COOL_TXT, fontsize=12.5,
+          style='italic', va='center', ha='right')
   ax.text(1.985, 0.1275, 'theory $\\gamma_c(N)$', color='#555555', fontsize=10.5,
           ha='center', rotation=90)
+
+  axi = ax.inset_axes([0.565, 0.335, 0.415, 0.52])
+  ns, gcs = gamma_c_curve()
+  gc_inf = gamma_c_inf()
+  axi.fill_betweenx(ns, 1.5, gcs, color=WARM, zorder=0)
+  axi.fill_betweenx(ns, gcs, 2.8, color=COOL, zorder=0)
+  axi.plot(gcs, ns, color='#333333', lw=1.8)
+  axi.axvline(gc_inf, color='#666666', lw=1.0, linestyle=(0, (2, 2)))
+  for n in NS:
+    axi.plot(gamma_c(n), n, 'o', color=COLORS[n], markersize=6.5,
+             markeredgecolor='white', markeredgewidth=1.0, zorder=5)
+  axi.set_yscale('log')
+  axi.set_xlim(1.5, 2.8)
+  axi.set_ylim(16, 1e6)
+  axi.set_xlabel('$\\gamma$', fontsize=10, labelpad=1)
+  axi.set_ylabel('$N$', fontsize=10, labelpad=-1)
+  axi.set_xticks([1.6, 2.0, 2.4, 2.8])
+  axi.tick_params(labelsize=8.5)
+  axi.text(1.62, 3e4, 'chaotic', color=WARM_TXT, fontsize=10.5, style='italic')
+  axi.text(2.42, 1.5e2, 'frozen', color=COOL_TXT, fontsize=10.5, style='italic')
+  axi.text(2.03, 1.4e5, '$\\gamma_c(N)$', color='#333333', fontsize=10, rotation=74)
+  axi.text(gc_inf + 0.035, 28, '$N \\to \\infty$', color='#666666', fontsize=9, ha='left')
+  for s in axi.spines.values():
+    s.set_color('#aaaaaa')
+
   ax.set_ylim(0, ymax)
   ax.set_xlim(1.5, 2.8)
   ax.set_xlabel('Degree exponent, $\\gamma$')
