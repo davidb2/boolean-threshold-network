@@ -143,7 +143,110 @@ def save(fig, out_dir, name):
 
 
 # ---------------------------------------------------------------------------
-# panel a: network + threshold rule inset
+# panel a (left): application vignettes that map onto the abstract model
+# ---------------------------------------------------------------------------
+def mini_net(ax, cx, cy, r=0.16, seed=2):
+  rng = np.random.default_rng(seed)
+  ang = np.linspace(0, 2 * np.pi, 5, endpoint=False) + rng.uniform(0, 2 * np.pi)
+  xs = cx + r * np.cos(ang)
+  ys = cy + r * 0.8 * np.sin(ang)
+  pairs = [(0, 2), (1, 3), (2, 4), (3, 0), (4, 1)]
+  for u, v in pairs:
+    ax.plot([xs[u], xs[v]], [ys[u], ys[v]], color=EDGE_GRAY, lw=1.0, alpha=0.8, zorder=3)
+  for i, (x, y) in enumerate(zip(xs, ys)):
+    on = i % 2 == 0
+    ax.add_patch(Circle((x, y), 0.035, facecolor=BLUE if on else 'white',
+                 edgecolor=BLUE_DARK if on else EDGE_GRAY, lw=1.0, zorder=4))
+
+
+def tile(ax, label):
+  ax.set_xlim(0, 1)
+  ax.set_ylim(0, 1)
+  ax.set_aspect('equal')
+  ax.axis('off')
+  ax.add_patch(FancyBboxPatch((0.03, 0.14), 0.94, 0.83,
+               boxstyle='round,pad=0.01,rounding_size=0.05',
+               facecolor='#f8fafc', edgecolor='#d5dbe3', lw=1.0, zorder=0))
+  ax.text(0.5, 0.045, label, fontsize=11.5, ha='center', color=INK)
+
+
+def vignette_bacterium(ax):
+  tile(ax, 'gene regulation in bacteria')
+  body = FancyBboxPatch((0.22, 0.40), 0.48, 0.30,
+                        boxstyle='round,pad=0.02,rounding_size=0.14',
+                        facecolor='#e7eef7', edgecolor=BLUE, lw=1.8, zorder=2)
+  import matplotlib.transforms as mtransforms
+  tr = mtransforms.Affine2D().rotate_deg_around(0.46, 0.55, -12) + ax.transData
+  body.set_transform(tr)
+  ax.add_patch(body)
+  for y0 in [0.50, 0.58]:
+    t = np.linspace(0, 1, 60)
+    ax.plot(0.70 + 0.20 * t, y0 + 0.045 * np.sin(9 * t) - 0.12 * t * 0.3,
+            color=BLUE, lw=1.3, zorder=1, transform=tr)
+  mini_net(ax, 0.45, 0.555, r=0.135, seed=4)
+  ax.add_patch(FancyBboxPatch((0.115, 0.76), 0.115, 0.055,
+               boxstyle='round,pad=0.01,rounding_size=0.028',
+               facecolor=SHOCK, edgecolor='none', zorder=4))
+  ax.add_patch(FancyBboxPatch((0.175, 0.76), 0.056, 0.055,
+               boxstyle='round,pad=0.01,rounding_size=0.028',
+               facecolor='#f2b0ae', edgecolor='none', zorder=5))
+  arr = FancyArrowPatch((0.235, 0.755), (0.335, 0.66), arrowstyle='-|>',
+                        mutation_scale=9, lw=1.2, color=SHOCK, zorder=5)
+  ax.add_patch(arr)
+  ax.text(0.11, 0.885, 'drug', fontsize=10, color=SHOCK, ha='left')
+
+
+def vignette_brain(ax):
+  tile(ax, 'neural activity')
+  pts = np.array([
+    (0.335, 0.24), (0.315, 0.38), (0.295, 0.50), (0.30, 0.62), (0.335, 0.72),
+    (0.40, 0.79), (0.48, 0.815), (0.56, 0.80), (0.615, 0.75), (0.645, 0.68),
+    (0.655, 0.60), (0.645, 0.555), (0.685, 0.50), (0.695, 0.475), (0.655, 0.465),
+    (0.665, 0.43), (0.645, 0.415), (0.655, 0.385), (0.625, 0.36), (0.60, 0.345),
+    (0.565, 0.30), (0.545, 0.24),
+  ])
+  from scipy import interpolate
+  tck, _ = interpolate.splprep([pts[:, 0], pts[:, 1]], s=0.0004, k=3)
+  xs, ys = interpolate.splev(np.linspace(0, 1, 220), tck)
+  ax.plot(xs, ys, color=BLUE, lw=1.8, zorder=2, solid_capstyle='round')
+  mini_net(ax, 0.455, 0.60, r=0.115, seed=7)
+  bolt(ax, 0.815, 0.755, scale=0.9)
+  ax.text(0.815, 0.86, 'stimulus', fontsize=10, color=SHOCK, ha='center')
+  arr = FancyArrowPatch((0.77, 0.71), (0.63, 0.645), arrowstyle='-|>',
+                        mutation_scale=9, lw=1.2, color=SHOCK, zorder=5)
+  ax.add_patch(arr)
+
+
+def vignette_people(ax):
+  tile(ax, 'human behaviour')
+  pos = [(0.28, 0.62), (0.52, 0.72), (0.74, 0.58), (0.40, 0.38), (0.64, 0.34)]
+  pairs = [(0, 1), (1, 2), (0, 3), (1, 4), (2, 4), (3, 4)]
+  for u, v in pairs:
+    ax.plot([pos[u][0], pos[v][0]], [pos[u][1] - 0.02, pos[v][1] - 0.02],
+            color=EDGE_GRAY, lw=1.0, alpha=0.7, zorder=1)
+  for i, (x, y) in enumerate(pos):
+    on = i in (0, 2, 4)
+    face = BLUE if on else 'white'
+    edge = BLUE_DARK if on else EDGE_GRAY
+    ax.add_patch(Circle((x, y + 0.045), 0.038, facecolor=face, edgecolor=edge, lw=1.2, zorder=3))
+    body = FancyBboxPatch((x - 0.05, y - 0.075), 0.10, 0.085,
+                          boxstyle='round,pad=0.01,rounding_size=0.045',
+                          facecolor=face, edgecolor=edge, lw=1.2, zorder=3)
+    ax.add_patch(body)
+  bolt(ax, 0.14, 0.82, scale=0.9)
+  ax.text(0.225, 0.875, 'disruption', fontsize=10, color=SHOCK, ha='left')
+
+
+def panel_a_apps(out_dir):
+  fig, axes = plt.subplots(3, 1, figsize=(3.1, 8.6))
+  vignette_bacterium(axes[0])
+  vignette_brain(axes[1])
+  vignette_people(axes[2])
+  save(fig, out_dir, 'fig1a-applications')
+
+
+# ---------------------------------------------------------------------------
+# panel a (right): network + threshold rule inset
 # ---------------------------------------------------------------------------
 def panel_a(out_dir):
   fig, (axn, axr) = plt.subplots(
@@ -241,13 +344,12 @@ def sensitivity_mini(trajs, t0=4):
   )
 
 
-def pick_rows_and_reporters(trajs, n_rows=28, m=6):
-  b = sensitivity_mini(trajs)
-  by_b = np.argsort(-b)
-  k = m // 2
-  middle = by_b[np.round(np.linspace(k, len(b) - 1 - k, n_rows - m)).astype(int)]
-  order = np.concatenate([by_b[:k], middle, by_b[-k:]])
-  reporters = list(by_b[:k]) + list(by_b[-k:])
+def pick_rows_and_reporters(trajs, n_rows=28, m=6, seed=5):
+  rng = np.random.default_rng(seed)
+  control = trajs[0]
+  chosen = rng.choice(control.shape[0], size=n_rows, replace=False)
+  order = chosen[np.argsort(-control[chosen].mean(axis=1), kind='stable')]
+  reporters = list(rng.choice(order, size=m, replace=False))
   return order, reporters
 
 
@@ -264,7 +366,7 @@ def panel_c(out_dir, trajs, order, reporters, t0=4):
     for s in ax.spines.values():
       s.set_color('#cccccc')
     if i == 0:
-      ax.set_ylabel('nodes, by sensitivity', fontsize=12, color=INK)
+      ax.set_ylabel('nodes', fontsize=12, color=INK)
       rset = set(reporters)
       for row, node in enumerate(order):
         if node in rset:
@@ -304,8 +406,6 @@ def panel_d(out_dir, trajs, reporters, t0=25, true_shock=2):
   ax.add_patch(Rectangle((0.04, 0.30), 0.36, 0.48, fill=False, edgecolor='#cccccc', lw=1.0, zorder=4))
   ax.text(0.22, 0.86, f'$m={m}$ reporters observed', fontsize=12, ha='center', color=INK)
   ax.text(0.22, 0.20, 'one noisy trial, late times', fontsize=11, ha='center', color=MUTED)
-  ax.text(0.025, 0.70, 'sensitive', fontsize=8.5, color=MUTED, rotation=90, ha='center', va='center')
-  ax.text(0.025, 0.375, 'insensitive', fontsize=8.5, color=MUTED, rotation=90, ha='center', va='center')
 
   arrow = FancyArrowPatch((0.43, 0.54), (0.52, 0.54), arrowstyle='-|>', mutation_scale=13, lw=1.6, color=INK)
   ax.add_patch(arrow)
@@ -344,6 +444,7 @@ def main():
   args = p.parse_args()
   trajs, shock_targets = simulate()
   print('shock targets:', shock_targets)
+  panel_a_apps(args.out_dir)
   panel_a(args.out_dir)
   panel_b(args.out_dir)
   order, reporters = pick_rows_and_reporters(trajs)
