@@ -30,6 +30,7 @@ K_C = 4 * np.pi / 3
 
 plt.rcParams.update({
   'font.size': 13,
+  'mathtext.fontset': 'cm',
   'axes.spines.top': False,
   'axes.spines.right': False,
   'axes.linewidth': 0.8,
@@ -90,8 +91,7 @@ def gamma_c_curve():
   ])
 
 
-def panel_a(data_dir, out_dir):
-  fig, ax = plt.subplots(figsize=(7.4, 5.0))
+def draw_panel_a(ax, data_dir):
   ymax = 0.225
 
   label_y = {50: 0.027, 250: 0.062, 500: 0.112, 5000: 0.196}
@@ -149,34 +149,62 @@ def panel_a(data_dir, out_dir):
   ax.set_xlim(1.5, 2.8)
   ax.set_xlabel('Degree exponent, $\\gamma$')
   ax.set_ylabel('Steady state Hamming distance')
+
+
+def panel_a(data_dir, out_dir):
+  fig, ax = plt.subplots(figsize=(7.4, 5.0))
+  draw_panel_a(ax, data_dir)
   save(fig, out_dir, 'fig2a-phase-transition')
 
 
-def panel_b(degree_file, out_dir, norm=1):
+def draw_panel_b(ax, degree_file, norm=1):
   df = pd.read_csv(degree_file)
   out = df[df['kind'] == 'out'].copy()
   out['count'] = out['count'] / norm
   out = out[out['count'] > 0]
-  fig, ax = plt.subplots(figsize=(3.4, 2.9))
   ax.scatter(out['degree'], out['count'], s=14, color='#1c5cab', alpha=0.85, edgecolors='none')
   ax.set_xscale('log')
   ax.set_yscale('log')
   ax.set_xlabel('Out-degree, $k$')
-  ax.set_ylabel('Count')
+  ax.set_ylabel('Count per network')
+
+
+def panel_b(degree_file, out_dir, norm=1):
+  fig, ax = plt.subplots(figsize=(3.4, 2.9))
+  draw_panel_b(ax, degree_file, norm)
   save(fig, out_dir, 'fig2b-out-degree')
 
 
-def panel_c(degree_file, out_dir, norm=1):
+def draw_panel_c(ax, degree_file, norm=1):
   df = pd.read_csv(degree_file)
   ind = df[df['kind'] == 'in'].copy()
   ind['count'] = ind['count'] / norm
   ind = ind[ind['degree'] <= 30]
-  fig, ax = plt.subplots(figsize=(3.4, 2.9))
   ax.bar(ind['degree'], ind['count'], width=0.9, color='#3987e5', edgecolor='white', linewidth=0.5)
   ax.set_xlim(-0.5, ind['degree'].max() + 0.5)
   ax.set_xlabel('In-degree, $k$')
-  ax.set_ylabel('Count')
+  ax.set_ylabel('Count per network')
+
+
+def panel_c(degree_file, out_dir, norm=1):
+  fig, ax = plt.subplots(figsize=(3.4, 2.9))
+  draw_panel_c(ax, degree_file, norm)
   save(fig, out_dir, 'fig2c-in-degree')
+
+
+def combined(data_dir, degree_file, norm, out_dir):
+  fig = plt.figure(figsize=(12.2, 5.4))
+  gs = fig.add_gridspec(2, 2, width_ratios=[2.05, 1.0], hspace=0.52, wspace=0.24)
+  ax_a = fig.add_subplot(gs[:, 0])
+  ax_b = fig.add_subplot(gs[0, 1])
+  ax_c = fig.add_subplot(gs[1, 1])
+  draw_panel_a(ax_a, data_dir)
+  draw_panel_b(ax_b, degree_file, norm)
+  draw_panel_c(ax_c, degree_file, norm)
+  for ax, letter, dx in [(ax_a, 'a', -0.085), (ax_b, 'b', -0.28), (ax_c, 'c', -0.28)]:
+    ax.text(dx, 1.04, letter, transform=ax.transAxes,
+            fontsize=17, fontweight='bold', color='#222222')
+  save(fig, out_dir, 'fig2-combined')
 
 
 def main():
@@ -192,6 +220,7 @@ def main():
   if args.degree_file and pathlib.Path(args.degree_file).exists():
     panel_b(args.degree_file, args.out_dir, args.degree_norm)
     panel_c(args.degree_file, args.out_dir, args.degree_norm)
+    combined(args.data_dir, args.degree_file, args.degree_norm, args.out_dir)
 
 
 if __name__ == '__main__':

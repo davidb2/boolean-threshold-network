@@ -37,6 +37,7 @@ TILE_EDGE = '#d5dbe3'
 
 plt.rcParams.update({
   'font.size': 12,
+  'mathtext.fontset': 'cm',
   'svg.fonttype': 'none',
 })
 
