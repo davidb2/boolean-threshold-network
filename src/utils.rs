@@ -26,5 +26,12 @@ pub fn sample_nodes<R: Rng>(
   while seen.len() < k {
     seen.insert(rng.sample(die));
   }
-  seen.into_iter().collect()
+  // Sort before returning: HashSet iteration order is randomized per process,
+  // and callers consume further rng draws (edge weights, shock signs) in this
+  // order. Without a fixed order, identical seeds give permuted weight and
+  // sign assignments across runs, so results are not reproducible between
+  // processes. Data generated before this fix predates deterministic ordering.
+  let mut nodes: Vec<usize> = seen.into_iter().collect();
+  nodes.sort_unstable();
+  nodes
 }
