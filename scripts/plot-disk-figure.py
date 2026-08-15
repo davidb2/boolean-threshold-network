@@ -58,21 +58,21 @@ def load_panels(path):
           for _, r in fin.iterrows() if len(set(eval(r['features']))) == 8}
 
 
-def draw_disk(ax, vals, vmax, cmap, class_color):
+def draw_disk(ax, vals, vmax, cmap, _class_color=None):
+  '''Wedges only, no background fill; the colormap itself carries the class.'''
   n = len(vals)
   theta = np.linspace(0, 2 * np.pi, n, endpoint=False)
   width = 2 * np.pi / n * 0.9
-  # the disk is filled with the class color; sensitivity wedges overlay it
-  ax.set_facecolor(class_color)
+  ax.set_facecolor('none')
   ax.bar(theta, vals, width=width, bottom=0,
          color=[cmap(v / vmax) for v in vals],
-         edgecolor=class_color, linewidth=0.4)
+         edgecolor='none', linewidth=0)
   ax.set_ylim(0, vmax)
   ax.set_xticks([])
   ax.set_yticks([])
   ax.grid(False)
-  ax.spines['polar'].set_color(class_color)
-  ax.spines['polar'].set_linewidth(1.2)
+  ax.spines['polar'].set_color('#cccccc')
+  ax.spines['polar'].set_linewidth(0.9)
 
 
 def panel_groups(nodes, B_row, cut):
@@ -81,7 +81,7 @@ def panel_groups(nodes, B_row, cut):
   return sens, insens
 
 
-def draw_panel_row(fig, gs_row, S_net, nodes, B_row, cut, vmax, cmap, label=None):
+def draw_panel_row(fig, gs_row, S_net, nodes, B_row, cut, vmax, cmaps, label=None):
   '''One example panel as a row of grouped, axis free disks.'''
   sens, insens = panel_groups(nodes, B_row, cut)
   order = sens + insens
@@ -90,7 +90,7 @@ def draw_panel_row(fig, gs_row, S_net, nodes, B_row, cut, vmax, cmap, label=None
     # small horizontal gap between the two groups
     slot = k if k < n_s else k + 1
     ax = fig.add_subplot(gs_row[0, slot], projection='polar')
-    draw_disk(ax, S_net[:, node], vmax, cmap, SENS if k < n_s else INSENS)
+    draw_disk(ax, S_net[:, node], vmax, cmaps[0] if k < n_s else cmaps[1])
   if label is not None:
     ax0 = fig.add_subplot(gs_row[0, :], frameon=False)
     ax0.set_xticks([]); ax0.set_yticks([])
@@ -126,7 +126,9 @@ def main():
 
   vmax = 0.6
   from matplotlib.colors import LinearSegmentedColormap
-  cmap = LinearSegmentedColormap.from_list('blackwhite', ['#000000', '#ffffff'])
+  cmap_s = LinearSegmentedColormap.from_list('whiteorange', ['#ffffff', '#ff7f0e', '#8c4a03'])
+  cmap_i = LinearSegmentedColormap.from_list('whiteblack', ['#ffffff', '#000000'])
+  cmap = cmap_s
   out_dir = pathlib.Path(args.out_dir)
   out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -159,7 +161,7 @@ def main():
         x, y = r[k] * np.cos(th), r[k] * np.sin(th)
         ax = fig.add_axes([cx + x * sx - d[k] * sx / 2, cy + y * sy - d[k] * sy / 2,
                            d[k] * sx, d[k] * sy], projection='polar')
-        draw_disk(ax, S[si][:, node], vmax, cmap, SENS if k < n_s else INSENS)
+        draw_disk(ax, S[si][:, node], vmax, cmap_s if k < n_s else cmap_i)
         ax.spines['polar'].set_linewidth(0.8 + 0.3 * k / 7)
 
     from matplotlib.patches import Wedge
@@ -187,11 +189,14 @@ def main():
       color = intensity * rgb_s + (1 - intensity) * np.ones(3)
       ax_bg.add_patch(Wedge((0, 0), ring_out, th_lo, th_hi,
                             width=ring_w, facecolor=color, edgecolor='none'))
-    sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(0, vmax))
-    cax = fig.add_axes([0.28, 0.028, 0.44, 0.028])
-    cbar = fig.colorbar(sm, cax=cax, orientation='horizontal')
-    cbar.set_label('Sensitivity to shock', fontsize=18)
-    cbar.ax.tick_params(labelsize=17)
+    for cm, x0, lab in [(cmap_s, 0.14, 'Sensitivity, sensitive members'),
+                        (cmap_i, 0.56, 'Sensitivity, insensitive members')]:
+      sm = plt.cm.ScalarMappable(cmap=cm, norm=plt.Normalize(0, vmax))
+      cax = fig.add_axes([x0, 0.028, 0.30, 0.024])
+      cbar = fig.colorbar(sm, cax=cax, orientation='horizontal')
+      cbar.set_label(lab, fontsize=15)
+      cbar.ax.tick_params(labelsize=14)
+      cbar.outline.set_edgecolor('#999999')
     fig.savefig(out_dir / 'fig-disks-radial.png', bbox_inches='tight', dpi=200)
     fig.savefig(out_dir / 'fig-disks-radial.svg', bbox_inches='tight')
     print(f'wrote {out_dir}/fig-disks-radial.png ({n_nets} networks)')
@@ -218,11 +223,11 @@ def main():
         sens, insens = panel_groups(panels[net], B[bi], cut)
         for k, node in enumerate(sens):
           ax = fig.add_subplot(grid[i, k], projection='polar')
-          draw_disk(ax, S[si][:, node], vmax, cmap, SENS)
+          draw_disk(ax, S[si][:, node], vmax, cmap_s)
           ax.spines['polar'].set_linewidth(1.0)
         for k, node in enumerate(insens):
           ax = fig.add_subplot(grid[i, 9 - len(insens) + k], projection='polar')
-          draw_disk(ax, S[si][:, node], vmax, cmap, INSENS)
+          draw_disk(ax, S[si][:, node], vmax, cmap_i)
           ax.spines['polar'].set_linewidth(1.0)
         if n_s != prev_ns:
           # the empty slot between the two groups carries the count
@@ -232,11 +237,13 @@ def main():
                       fontsize=24, color=SENS, ha='center', va='center',
                       fontweight='bold')
           prev_ns = n_s
-    sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(0, vmax))
-    cax = fig.add_axes([0.92, 0.35, 0.008, 0.30])
-    cbar = fig.colorbar(sm, cax=cax)
-    cbar.set_label('Sensitivity to shock', fontsize=17)
-    cbar.ax.tick_params(labelsize=15)
+    for cm, y0, lab in [(cmap_s, 0.52, 'sensitive'), (cmap_i, 0.18, 'insensitive')]:
+      sm = plt.cm.ScalarMappable(cmap=cm, norm=plt.Normalize(0, vmax))
+      cax = fig.add_axes([0.92, y0, 0.008, 0.26])
+      cbar = fig.colorbar(sm, cax=cax)
+      cbar.set_label(f'Sensitivity, {lab}', fontsize=14)
+      cbar.ax.tick_params(labelsize=13)
+      cbar.outline.set_edgecolor('#999999')
     fig.savefig(out_dir / 'fig-disks-gallery.png', bbox_inches='tight', dpi=200)
     fig.savefig(out_dir / 'fig-disks-gallery.svg', bbox_inches='tight')
     print(f'wrote {out_dir}/fig-disks-gallery.png ({len(order)} networks, {nb} blocks)')
@@ -262,7 +269,7 @@ def main():
     for i, r in enumerate(picks.itertuples()):
       gs_row = outer[i].subgridspec(1, 9, wspace=0.12)
       si, bi = snets.index(r.net), bnets.index(r.net)
-      draw_panel_row(fig, gs_row, S[si], panels[r.net], B[bi], cut, vmax, cmap,
+      draw_panel_row(fig, gs_row, S[si], panels[r.net], B[bi], cut, vmax, (cmap_s, cmap_i),
                      label=f'network {r.net}\n{r.n_sens} sens, acc {r.baseline:.2f}')
     fig.savefig(out_dir / 'fig-disks-candidates.png', bbox_inches='tight', dpi=200)
     print(f'wrote {out_dir}/fig-disks-candidates.png ({len(picks)} candidates)')
@@ -278,7 +285,7 @@ def main():
   fig = plt.figure(figsize=(12.8, 5.6))
   outer = fig.add_gridspec(2, 1, height_ratios=[1.0, 1.05], hspace=0.55)
   gs_row = outer[0].subgridspec(1, 9, wspace=0.12)
-  n_s, n_i = draw_panel_row(fig, gs_row, S[si], nodes, B[bi], cut, vmax, cmap)
+  n_s, n_i = draw_panel_row(fig, gs_row, S[si], nodes, B[bi], cut, vmax, (cmap_s, cmap_i))
   fig.text(0.06, 0.965, 'a', fontsize=31, fontweight='bold', color='#222222')
   # group labels centered under each group, computed from the actual axes
   fig.canvas.draw()
@@ -319,11 +326,13 @@ def main():
             fontsize=31, fontweight='bold', color='#222222')
 
   # shared colorbar
-  sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(0, vmax))
-  cax = fig.add_axes([0.925, 0.60, 0.013, 0.30])
-  cbar = fig.colorbar(sm, cax=cax)
-  cbar.set_label('Sensitivity to shock', fontsize=18)
-  cbar.ax.tick_params(labelsize=16)
+  for cm, y0, lab in [(cmap_s, 0.60, 'sensitive'), (cmap_i, 0.16, 'insensitive')]:
+    sm = plt.cm.ScalarMappable(cmap=cm, norm=plt.Normalize(0, vmax))
+    cax = fig.add_axes([0.925, y0, 0.011, 0.28])
+    cbar = fig.colorbar(sm, cax=cax)
+    cbar.set_label(f'Sensitivity, {lab}', fontsize=15)
+    cbar.ax.tick_params(labelsize=13)
+    cbar.outline.set_edgecolor('#999999')
 
   name = f'fig-disks-eps{args.eps_label}'
   fig.savefig(out_dir / f'{name}.svg', bbox_inches='tight')
