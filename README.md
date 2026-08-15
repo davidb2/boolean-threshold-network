@@ -1,6 +1,6 @@
 # Boolean Threshold Networks
 
-Research code for the paper **"Sensitivity alone cannot classify shocks in complex networks"** (David A. Brewster and Philippe Cluzel, Harvard). The code simulates directed Boolean threshold networks with power-law out-degree distributions, applies *shocks* (perturbations to the outgoing edge weights of randomly chosen target nodes), and studies which small panels of *reporter nodes* allow a classifier to identify which shock occurred from noisy, partial observations of the network state.
+Research code for the paper **"Insensitive reporters anchor the classification of shocks in noisy network dynamics"** (David A. Brewster and Philippe Cluzel, Harvard). The code simulates directed Boolean threshold networks with power-law out-degree distributions, applies *shocks* (perturbations to the outgoing edge weights of randomly chosen target nodes), and studies which small panels of *reporter nodes* allow a classifier to identify which shock occurred from noisy, partial observations of the network state.
 
 A fast Rust core generates network ensembles and dynamics (written as protobuf), and a Python layer selects reporter panels (genetic algorithm, random, and heuristic baselines), scores them with random-forest classifiers, and produces the figures.
 
@@ -21,8 +21,30 @@ A fast Rust core generates network ensembles and dynamics (written as protobuf),
 
 - **Dynamics.** Each node holds a Boolean state. At each synchronous step, node `j` computes the weighted sum of its active inputs, `s_j = Σ_i w_ij x_i`; then `x_j ← 1` if `s_j > 0`, `x_j ← 0` if `s_j < 0`, and `x_j` keeps its previous state on a tie (`s_j = 0`).
 - **Networks.** Edge weights are drawn i.i.d. from `U[-1, 1]`. Out-degrees are drawn from a power law `P(k) ∝ k^(-γ)` for `k = 1..N` (or a Poisson "homogeneous" alternative). Networks can be parameterized either by `γ` directly or by expected connectivity `K` (the matching `γ` is solved numerically from the zeta-function ratio).
-- **Initial conditions.** The first initial condition is uniformly random; each subsequent one is a ρ-correlated copy in which every bit is flipped independently with probability `1 − ρ`.
-- **Shocks ("drugs").** A shock picks `g` random target nodes and rerandomizes every *outgoing* edge weight of those nodes as `w′ = (1 − c)·w + c·ξ` with `ξ` uniform on `{−1, +1}` and shock strength `c ∈ [0, 1]`. Perturbation index 0 is always the unperturbed control.
+- **Initial conditions.** Each network gets one uniformly random *base* initial condition, the paper's "ideal preparation". Every replicate reproduces each bit of the base faithfully with probability `1 − ε` and re-randomizes it otherwise, where `ε ∈ [0, 1]` is the paper's noise parameter. The code implements the equivalent flip form: each bit is copied with probability `ρ` and flipped with probability `1 − ρ = ε/2`, so **`ε = 2(1 − ρ)`**. The CLI takes `ρ`, the paper reports `ε`.
+- **Shocks ("drugs").** A shock picks `g` random target nodes and rerandomizes every *outgoing* edge weight of those nodes as `w′ = (1 − c)·w + c·ξ` with `ξ` uniform on `{−1, +1}` and shock strength `c ∈ [0, 1]`. All experiments in the paper use `c = 1`, so every affected weight is simply redrawn to `−1` or `+1` with equal probability. Perturbation index 0 is always the unperturbed control.
+
+## Notation: paper ↔ code
+
+The code predates the paper's final notation. This table is the dictionary; the flag names below never change, and the paper column tracks the manuscript.
+
+| Paper | CLI flag | Meaning |
+| --- | --- | --- |
+| `N` | `--network-size` | number of nodes |
+| `γ` | `--gamma` | out-degree exponent, `P(k) ∝ k^(−γ)`, `k = 1..N` |
+| `K` | `--expected-connectivity` | mean degree; the matching `γ` at this `N` is solved numerically (give exactly one of the two) |
+| `ε` | *(derived)* | initial condition noise, the fraction of the ideal state that escapes control; `ε = 2(1 − ρ)` |
+| `ρ` | `--initial-condition-correlation` | bit copy probability, `ρ = 1 − ε/2 ∈ [1/2, 1]`; each replicate bit flips with probability `ε/2` |
+| replicates | `--num-initial-conditions` | trials per network and perturbation, all imperfect copies of the same base state |
+| `T` | `--num-steps` | synchronous updates per trajectory |
+| `L` | `--num-final-states-to-store` | how many final states of each trajectory are written out |
+| shocks | `--num-drugs` | number of shocks; the code calls shocks "drugs" for historical reasons |
+| `g` | `--num-targets-per-drug` | target nodes per shock |
+| `c` | `--drug-strength` | shock strength in `w′ = (1 − c)w + c·ξ`; the paper uses `c = 1` throughout |
+| `m` | `--feature-sizes` (scripts) / `max_num_features` (CSVs) | reporter panel size |
+| `B_j` | output of `scripts/compute-b-array.py` | node sensitivity, mean \|shocked − control\| over shocks, replicates, and retained states |
+
+Noise levels used in the paper, in both conventions: `ε ∈ {0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1}` corresponds to `ρ ∈ {0.995, 0.99, 0.975, 0.95, 0.925, 0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6, 0.55, 0.5}`. Data directories, tags, and file names use the `ρ` values (`B-rho0.99.npz`, `rho0.5`, ...).
 
 ## Rust pipeline
 
@@ -32,7 +54,7 @@ Requires a Rust toolchain and `protoc` (the build compiles `protos/message.proto
 cargo build --release
 ```
 
-Three binaries (all take `--help`); output directories must already exist:
+Four binaries (all take `--help`); output directories must already exist:
 
 **`perform_experiment`** — generate a network ensemble, apply shocks, run the dynamics, and write one protobuf `.pb` file:
 
@@ -74,6 +96,25 @@ cargo run --release --bin analyze_data -- \
   --output-directory data/no-drug-power-law-phase-transition/derived
 ```
 
+**`attractor_census`** — cycle detection over many uniformly random initial conditions, per network and optionally per shock (reusing the exact seed conventions of `perform_experiment`). For each initial condition it records the transient length, cycle length, and a canonical attractor key; for each distinct attractor it writes a per-node on-fraction fingerprint. Used for the attractor landscape figures in the SI:
+
+```sh
+cargo run --release --bin attractor_census -- \
+  --num-networks 20 \
+  --network-size 5000 \
+  --gamma 1.8 \
+  --out-degree-distribution power-law \
+  --network-seed 0 \
+  --num-ics 1000 \
+  --dynamics-seed 0 \
+  --max-steps 20000 \
+  --num-drugs 0 \
+  --tag census-g1.8 \
+  --output-directory data/attractors
+```
+
+(`--num-drugs 0` censuses the control only; a positive value adds each shock as its own perturbation. `--max-steps` right-censors initial conditions whose recurrence is not found, reported via the `converged` column.)
+
 `.cargo/config.toml` also defines cargo aliases with canonical arguments: `cargo run-dev` (tiny smoke test), `cargo run-release` (full simulation), `cargo run-extraction`, and `cargo run-analysis`.
 
 ## Python pipeline
@@ -92,7 +133,12 @@ Key scripts (run from the repo root; all classifier-based scripts share the rand
 - `scripts/random-node-selection.py` — same interface; evaluates uniformly random panels (`--num-trials` per feature size) as the null baseline.
 - `scripts/heuristic-node-selection.py` — five ranking baselines scored with the same evaluator: `sensitivity` (per-node Hamming distance from control; needs `--b-file`), `in-degree`, `out-degree` (need `--networks-file`), `mmse` (greedy covariance column selection), and `jaccard` (greedy coverage of downstream influence sets; needs `--networks-file`).
 - `scripts/compute-b-array.py` — computes the per-node sensitivity array `B[network, node]` (mean |state − control| over drugs, initial conditions, and stored steps) from a states CSV into an `.npz`.
-- `scripts/node-ablation-k8.py` — knockout analysis of the GA-evolved k=8 panels: retrains the same random forest after removing 1–3 nodes and relates the accuracy drop to how many removed nodes were sensitive. Run per `--rho`.
+- `scripts/node-ablation-k8.py` — knockout analysis of the GA-evolved k=8 panels: retrains the same random forest after removing every subset of `1..--max-remove` members (the paper uses up to 7) and records the accuracy drop together with how many removed members were sensitive. `--networks lo-hi` restricts to a network range so SLURM arrays can chunk the work; `--n-trials` sets the classifier trials per subset.
+- `scripts/compute-per-drug-sensitivity.py` — per-shock per-node sensitivity `S[network, shock, node]` (the disk figure input).
+- `scripts/compute-connectivity-arrays.py` — per-node degrees, shock target masks parsed from the raw protobuf, and directed BFS distances from each shock's targets.
+- `scripts/compute-panel-topology.py` — pairwise graph distances and downstream/upstream coverage of evolved panels against random baselines.
+- `scripts/compute-info-redundancy.py` — marginal entropy and pairwise mutual information of panel members on control states, for evolved, random, and matched panels.
+- `scripts/plot-*.py` — one committed generator per paper figure (methods schematic, phase transition, panel size, disks, grand finding, selection strategies, connectivity, SI figures, attractor census); every figure in the manuscript is reproducible from these.
 - `scripts/combine-ga-results.py` — concatenates the per-network `{i}-full.csv` GA outputs in a directory into `combined-full.csv`.
 
 ## SLURM orchestration
@@ -105,6 +151,7 @@ The `scripts/submit-*.py` files submit the pipelines above as SLURM job chains (
 - `scripts/submit-rho-sweep.py` — full per-ρ pipeline over a noise grid (sim, extract, GA k=8, random k=8, combine, B array, ablation, scratch cleanup).
 - `scripts/submit-phase-transition-sweep.py` — no-shock power-law sweep over γ for the steady-state Hamming distance phase-transition figure.
 - `scripts/submit-heuristics.py` — heuristic-baseline array jobs on the existing v5/v7 datasets.
+- `scripts/submit-ablation-chunked.py` — deep ablation arrays chunked over networks (`--n-trials`, `--max-remove`, `--chunk`).
 
 (Older submitters — `submit-ga-v6.py`, `submit-n-scaling.py`, `resubmit-ga-n-scaling.py`, `submit-node-ablation-k8.py`, and the `*-phase-transition.py` selection scripts — are earlier iterations kept for provenance.)
 
@@ -142,7 +189,9 @@ Seeds are deterministic and offset per network and perturbation:
 - its dynamics use base seed `dynamics_seed + num_initial_conditions·i` (initial condition 0 exactly; initial condition `j > 0` flips bits with seed `base + j`);
 - shock `d` on network `i` uses seed `drug_seed + num_drugs·i + d`, with perturbation 0 always the control.
 
-Canonical parameters for the shock-classification experiments: N = 5000, 50 networks, 10 shocks + control, g = 50 targets per shock (1% of N), shock strength c = 1.0, T = 1000 steps with the last 10 states stored, 10 initial conditions per condition, and ρ = the initial-condition correlation (0.99 in v5, 0.5 in v7, plus the ρ-sweep grid). Connectivity is matched across N to γ = 1.8 at N = 5000 (`<K>` ≈ 12.24).
+Canonical parameters for the shock-classification experiments: N = 5000, 50 networks, 10 shocks + control, g = 50 targets per shock (1% of N), shock strength c = 1.0, T = 1000 steps with the last L = 10 states stored, 10 initial conditions per condition, and noise ε = 0.02 (ρ = 0.99, tag v5), ε = 1 (ρ = 0.5, tag v7), plus the sweep grid listed in the notation table. Connectivity is matched across N to γ = 1.8 at N = 5000 (`<K>` ≈ 12.24).
+
+**Cross-process determinism.** Runs made before commit `74714df` are *not* bit-reproducible from their seeds: `HashSet` iteration order made the assignment of edge weights and shock signs process-dependent, so identical seeds reproduced the same topology and target sets but permuted weights and ξ patterns. `sample_nodes` now sorts its output, and runs after that commit are exactly reproducible from seeds. Every published dataset remains internally consistent, because each analysis chain reads states written by a single simulation process; old datasets simply cannot be regenerated from seeds and live only in their extracted CSVs.
 
 ## License
 
