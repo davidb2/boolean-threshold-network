@@ -39,7 +39,7 @@ plt.rcParams.update({
 })
 
 SENS = '#ff7f0e'
-INSENS = '#17becf'
+INSENS = '#000000'
 
 
 def antimode(B, lo=0.05, hi=0.40):
@@ -58,22 +58,21 @@ def load_panels(path):
           for _, r in fin.iterrows() if len(set(eval(r['features']))) == 8}
 
 
-def draw_disk(ax, vals, vmax, cmap, ring_color):
+def draw_disk(ax, vals, vmax, cmap, class_color):
   n = len(vals)
   theta = np.linspace(0, 2 * np.pi, n, endpoint=False)
   width = 2 * np.pi / n * 0.9
+  # the disk is filled with the class color; sensitivity wedges overlay it
+  ax.set_facecolor(class_color)
   ax.bar(theta, vals, width=width, bottom=0,
          color=[cmap(v / vmax) for v in vals],
-         edgecolor='white', linewidth=0.5)
-  # faint full circle so empty disks are still visible
-  ax.bar(theta, [vmax] * n, width=width, bottom=0, fill=False,
-         edgecolor='none', linewidth=0)
+         edgecolor=class_color, linewidth=0.4)
   ax.set_ylim(0, vmax)
   ax.set_xticks([])
   ax.set_yticks([])
   ax.grid(False)
-  ax.spines['polar'].set_color(ring_color)
-  ax.spines['polar'].set_linewidth(1.6)
+  ax.spines['polar'].set_color(class_color)
+  ax.spines['polar'].set_linewidth(1.2)
 
 
 def panel_groups(nodes, B_row, cut):
@@ -127,7 +126,7 @@ def main():
 
   vmax = 0.6
   from matplotlib.colors import LinearSegmentedColormap
-  cmap = LinearSegmentedColormap.from_list('whiteorange', ['#ffffff', '#ff7f0e', '#8c4a03'])
+  cmap = LinearSegmentedColormap.from_list('blackwhite', ['#000000', '#ffffff'])
   out_dir = pathlib.Path(args.out_dir)
   out_dir.mkdir(parents=True, exist_ok=True)
 
