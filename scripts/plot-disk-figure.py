@@ -182,9 +182,9 @@ def main():
     for n_s, i0, i1 in groups:
       th_hi = 90 - 360.0 * i0 / n_nets + half - gap_deg / 2
       th_lo = 90 - 360.0 * i1 / n_nets - half + gap_deg / 2
-      mix = n_s / 8.0
-      color = mix * rgb_s + (1 - mix) * rgb_i
-      color = 0.45 * color + 0.55 * np.ones(3)
+      # intensity of red scales with the sensitive count, no blue mixing
+      intensity = (n_s / 8.0) * 0.38
+      color = intensity * rgb_s + (1 - intensity) * np.ones(3)
       ax_bg.add_patch(Wedge((0, 0), ring_out, th_lo, th_hi,
                             width=ring_w, facecolor=color, edgecolor='none'))
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(0, vmax))
