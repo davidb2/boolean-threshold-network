@@ -130,7 +130,7 @@ def collect(args):
     for net, nodes in panels.items():
       bi = bnets.index(net)
       rows.append(dict(
-        rho=float(rho), noise=1 - float(rho), network=net,
+        rho=float(rho), noise=2 * (1 - float(rho)), network=net,
         n_sens=int((B[bi, nodes] > cut).sum()),
         expect=8 * float((B[bi] > cut).mean()),
         ga_acc=base.get(net, np.nan),
@@ -146,7 +146,7 @@ def collect(args):
     drop_i = m1[m1.n_sensitive_removed == 0].groupby('unit')['acc_drop'].mean()
     for unit in sorted(set(drop_s.index) | set(drop_i.index)):
       ds, di = drop_s.get(unit, np.nan), drop_i.get(unit, np.nan)
-      deep_rows.append(dict(rho=float(rho), noise=1 - float(rho), unit=unit,
+      deep_rows.append(dict(rho=float(rho), noise=2 * (1 - float(rho)), unit=unit,
                             drop_s=ds, drop_i=di))
     if rho in DEPTH_COLORS:
       for (unit, m), g in deep.groupby(['unit', 'm_removed']):
@@ -190,7 +190,7 @@ def main():
   line(ax_a, df, 'ga_acc', GA, 'evolved panel')
   line(ax_a, df, 'rnd_acc', GRAY, 'random panel')
   ax_a.axhline(CHANCE, color='#bbbbbb', lw=1.0, linestyle=(0, (3, 3)))
-  ax_a.text(0.0055, CHANCE + 0.03, 'chance', fontsize=9.5, color='#999999')
+  ax_a.text(0.011, CHANCE + 0.03, 'chance', fontsize=9.5, color='#999999')
   ax_a.set_ylabel('Classification accuracy ($m = 8$)')
   ax_a.set_ylim(0, 1.02)
   ax_a.legend(frameon=False, fontsize=10, loc='center left')
@@ -225,7 +225,7 @@ def main():
   ax_d.fill_between(xs, los, his, color=INSENS, alpha=0.20, lw=0)
   ax_d.plot(xs, shares, color=INSENS, lw=2.0, marker='o', markersize=4.5)
   ax_d.axhline(0.5, color='#bbbbbb', lw=1.0, linestyle=(0, (3, 3)))
-  ax_d.text(0.0055, 0.512, 'equal importance', fontsize=9.5, color='#999999')
+  ax_d.text(0.011, 0.512, 'equal importance', fontsize=9.5, color='#999999')
   ax_d.set_ylabel('Insensitive share of\nremoval penalty')
   ax_d.set_ylim(0.2, 0.56)
 
@@ -236,7 +236,7 @@ def main():
     ax_e.fill_between(m.index, m - 1.96 * sem, m + 1.96 * sem,
                       color=color, alpha=0.18, lw=0)
     ax_e.plot(m.index, m.to_numpy(), color=color, lw=2.0, marker='o',
-              markersize=4.5, label=f'$1-\\rho = {1 - float(rho_s):g}$')
+              markersize=4.5, label=f'$\\varepsilon = {2 * (1 - float(rho_s)):g}$')
   ax_e.axhline(0, color='#bbbbbb', lw=1.0, linestyle=(0, (3, 3)))
   ax_e.set_xlabel('Panel members removed')
   ax_e.set_ylabel('Extra penalty per\nsensitive node removed')
@@ -245,8 +245,8 @@ def main():
 
   for ax in noise_axes:
     ax.set_xscale('log')
-    ax.set_xlabel('Initial condition noise, $1 - \\rho$')
-    ax.set_xlim(0.004, 0.6)
+    ax.set_xlabel('Initial condition noise, $\\varepsilon$')
+    ax.set_xlim(0.008, 1.2)
   for ax, letter in zip([ax_a, ax_b, ax_c, ax_d, ax_e], 'abcde'):
     ax.text(-0.19, 1.06, letter, transform=ax.transAxes,
             fontsize=16, fontweight='bold', color='#222222')

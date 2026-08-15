@@ -94,7 +94,7 @@ def draw_panel(ax, rho, strategies_dir, ga_csv, random_dir, show_legend):
   ax.set_xlim(0.9, 5600)
   ax.set_ylim(0, 1.02)
   ax.set_xlabel('Number of reporters, $m$')
-  ax.set_title(f'$\\rho = {rho}$', fontsize=13)
+  ax.set_title(f'$\\varepsilon = {2 * (1 - float(rho)):g}$', fontsize=13)
   if show_legend:
     ax.legend(frameon=False, fontsize=10.5, loc='lower right', handlelength=1.6)
 

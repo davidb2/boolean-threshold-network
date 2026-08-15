@@ -63,7 +63,7 @@ def si_activity(sens_dir, out_dir):
     r = np.corrcoef(A.ravel(), B.ravel())[0, 1]
     ax.set_xlabel('Control state variance')
     ax.set_ylabel('Sensitivity, $B$')
-    ax.set_title(f'$\\rho = {rho}$, $r = {r:.2f}$', fontsize=12)
+    ax.set_title(f'$\\varepsilon = {2 * (1 - float(rho)):g}$, $r = {r:.2f}$', fontsize=12)
   fig.colorbar(hb, ax=axes, label='nodes (log scale)', shrink=0.85)
   save(fig, out_dir, 'si-activity')
 
@@ -89,7 +89,7 @@ def si_redundancy(sens_dir, out_dir):
       ax.bar(xs, ms, width=0.21, color=color, label=label, zorder=3)
       ax.errorbar(xs, ms, yerr=ss, fmt='none', ecolor='#333333', lw=1.0, capsize=2.5, zorder=4)
     ax.set_xticks([0, 1])
-    ax.set_xticklabels(['$\\rho = 0.99$', '$\\rho = 0.5$'])
+    ax.set_xticklabels(['$\\varepsilon = 0.02$', '$\\varepsilon = 1$'])
     ax.set_ylabel(ylab)
   axes[0].legend(frameon=False, fontsize=9, loc='upper left', bbox_to_anchor=(0.0, 1.18))
   for ax, letter in zip(axes, 'abc'):
@@ -137,7 +137,7 @@ def si_bdist(sens_dir, out_dir):
     cut = antimode(b['B'])
     ax.hist(B, bins=60, range=(0, 0.8), color='#3987e5', alpha=0.85)
     ax.axvline(cut, color='#e8a000', lw=1.4, linestyle=(0, (4, 2)))
-    ax.set_title(f'$\\rho = {rho}$', fontsize=10.5)
+    ax.set_title(f'$\\varepsilon = {2 * (1 - float(rho)):g}$', fontsize=10.5)
     ax.set_yscale('log')
   for ax in axes[1]:
     ax.set_xlabel('$B$', fontsize=10)
@@ -162,7 +162,7 @@ def si_convergence(sweep_dir, ga_csv_99, ga_csv_50, out_dir):
     ax.plot(m.index.to_numpy(), m.to_numpy(),
             color=cmap(0.35 + 0.6 * i / (len(RHOS) - 1)), lw=1.5)
   sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(0.5, 0.995))
-  fig.colorbar(sm, ax=ax, label='$\\rho$', shrink=0.85)
+  fig.colorbar(sm, ax=ax, label='$\\varepsilon$', shrink=0.85)
   ax.set_xlabel('Generation')
   ax.set_ylabel('Best panel accuracy ($m = 8$)')
   ax.set_ylim(0.5, 1.02)

@@ -72,7 +72,7 @@ def panel_a(ax, topo):
     ax.plot(x, vals, 'o', color=color, markersize=3.6, alpha=0.55, markeredgewidth=0)
     ax.hlines(np.mean(vals), i - 0.24, i + 0.24, color=color, lw=2.4, zorder=5)
   ax.set_xticks(range(4))
-  ax.set_xticklabels(['random', '$\\rho{=}0.5$', '$\\rho{=}0.9$', '$\\rho{=}0.99$'])
+  ax.set_xticklabels(['random', '$\\varepsilon{=}1$', '$\\varepsilon{=}0.2$', '$\\varepsilon{=}0.02$'])
   ax.set_ylabel('Mean distance\nbetween panel members')
   ax.set_ylim(1.85, 2.62)
 
@@ -86,7 +86,7 @@ def panel_b(ax, topo):
                   label='random panels (95%)')
   for r in ['0.5', '0.9', '0.99']:
     m = topo[topo.rho == f'rho{r}'][cols].mean(axis=0)
-    ax.plot(rs, m, color=RHO_COLORS[r], lw=1.8, label=f'$\\rho = {r}$')
+    ax.plot(rs, m, color=RHO_COLORS[r], lw=1.8, label=f'$\\varepsilon = {2 * (1 - float(r)):g}$')
   ax.set_xlabel('Hops upstream to nearest member, $r$')
   ax.set_ylabel('Fraction of network\nwithin $r$ of the panel')
   ax.set_xlim(1, R_MAX)
@@ -174,7 +174,7 @@ def panel_cd(ax, cov, col, ylabel):
     ax.bar(xs, ms, width=width * 0.88, color=color, label=label, zorder=3)
     ax.errorbar(xs, ms, yerr=ss, fmt='none', ecolor='#333333', lw=1.1, capsize=2.5, zorder=4)
   ax.set_xticks(range(len(rhos)))
-  ax.set_xticklabels([f'$\\rho = {r}$' for r in rhos])
+  ax.set_xticklabels([f'$\\varepsilon = {2 * (1 - float(r)):g}$' for r in rhos])
   ax.set_ylabel(ylabel)
 
 

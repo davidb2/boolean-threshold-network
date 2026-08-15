@@ -28,6 +28,7 @@ import numpy as np
 import pandas as pd
 
 KS = [1, 2, 4, 8, 16, 32, 64, 128]
+EPS = {'0.99': '0.02', '0.5': '1'}
 GA_C = {'0.99': '#0f3560', '0.5': '#3987e5'}
 RND_C = {'0.99': '#6f7885', '0.5': '#a8b0bb'}
 CHANCE = 1 / 11
@@ -103,8 +104,8 @@ def main():
   for rho in ['0.99', '0.5']:
     d = data[rho]
     ga = d['ga'].rename(columns={'best_accuracy': 'accuracy'})
-    acc_line(ax_a, ga, 'accuracy', GA_C[rho], f'evolved, $\\rho = {rho}$')
-    acc_line(ax_a, d['rnd'], 'accuracy', RND_C[rho], f'random, $\\rho = {rho}$', ls=(0, (4, 2)))
+    acc_line(ax_a, ga, 'accuracy', GA_C[rho], f'evolved, $\\varepsilon = {EPS[rho]}$')
+    acc_line(ax_a, d['rnd'], 'accuracy', RND_C[rho], f'random, $\\varepsilon = {EPS[rho]}$', ls=(0, (4, 2)))
   ax_a.axhline(CHANCE, color='#cccccc', lw=1.0, linestyle=(0, (3, 3)))
   ax_a.text(1.3, CHANCE + 0.02, 'chance', fontsize=9, color='#999999')
   ax_a.axvline(8, color='#e8a000', lw=1.4, alpha=0.7, linestyle=(0, (4, 2)))
@@ -133,10 +134,10 @@ def main():
         other_B=float(np.delete(d['B'][bi], nodes).mean()),
       ))
     comp = pd.DataFrame(rows)
-    acc_line(ax_b, comp, 'frac_sens', GA_C[rho], f'evolved, $\\rho = {rho}$')
-    acc_line(ax_b, comp, 'expect', RND_C[rho], f'random, $\\rho = {rho}$', ls=(0, (4, 2)))
-    acc_line(ax_c, comp, 'sel_B', GA_C[rho], f'selected, $\\rho = {rho}$')
-    acc_line(ax_c, comp, 'other_B', RND_C[rho], f'not selected, $\\rho = {rho}$', ls=(0, (4, 2)))
+    acc_line(ax_b, comp, 'frac_sens', GA_C[rho], f'evolved, $\\varepsilon = {EPS[rho]}$')
+    acc_line(ax_b, comp, 'expect', RND_C[rho], f'random, $\\varepsilon = {EPS[rho]}$', ls=(0, (4, 2)))
+    acc_line(ax_c, comp, 'sel_B', GA_C[rho], f'selected, $\\varepsilon = {EPS[rho]}$')
+    acc_line(ax_c, comp, 'other_B', RND_C[rho], f'not selected, $\\varepsilon = {EPS[rho]}$', ls=(0, (4, 2)))
 
   for ax, ylab in [(ax_b, 'Sensitive fraction of panel'), (ax_c, 'Mean node sensitivity')]:
     ax.set_xscale('log', base=2)
