@@ -111,6 +111,8 @@ def main():
   p.add_argument('--gallery', action='store_true',
                  help='all networks, one disk row each, sorted by composition')
   p.add_argument('--gallery-blocks', type=int, default=2)
+  p.add_argument('--gallery-radial', action='store_true',
+                 help='master circle: angle = network, radius = member rank')
   p.add_argument('--out-dir', type=str, required=True)
   args = p.parse_args()
 
@@ -127,6 +129,54 @@ def main():
   cmap = plt.get_cmap('viridis')
   out_dir = pathlib.Path(args.out_dir)
   out_dir.mkdir(parents=True, exist_ok=True)
+
+  if args.gallery_radial:
+    rows = []
+    for net, nodes in panels.items():
+      if net not in snets:
+        continue
+      n_s = int((B[bnets.index(net), nodes] > cut).sum())
+      rows.append((net, n_s, float(base.get(net, np.nan))))
+    order = sorted(rows, key=lambda r: (-r[1], -(r[2] if r[2] == r[2] else 0)))
+    n_nets = len(order)
+    d = 0.92                      # mini disk diameter in master units
+    r0 = d / (2 * np.sin(np.pi / n_nets)) * 1.03   # innermost radius that avoids overlap
+    r_out = r0 + 7.0
+    E = r_out + 1.6               # half extent incl. label margin
+    fig = plt.figure(figsize=(13.6, 12.6))
+    cx, cy = 0.46, 0.5
+    sx = 0.435 / E * (12.6 / 13.6)  # keep master circle round in figure coords
+    sy = 0.435 / E
+    prev_ns = None
+    for i, (net, n_s, acc) in enumerate(order):
+      th = np.pi / 2 - 2 * np.pi * i / n_nets
+      si, bi = snets.index(net), bnets.index(net)
+      sens, insens = panel_groups(panels[net], B[bi], cut)
+      for k, node in enumerate(sens + insens):
+        r = r0 + k
+        x, y = r * np.cos(th), r * np.sin(th)
+        ax = fig.add_axes([cx + x * sx - d * sx / 2, cy + y * sy - d * sy / 2,
+                           d * sx, d * sy], projection='polar')
+        draw_disk(ax, S[si][:, node], vmax, cmap, SENS if k < n_s else INSENS)
+        ax.spines['polar'].set_linewidth(0.9)
+      if n_s != prev_ns:
+        lx, ly = (r_out + 1.0) * np.cos(th), (r_out + 1.0) * np.sin(th)
+        fig.text(cx + lx * sx, cy + ly * sy, str(n_s), fontsize=13, color=SENS,
+                 ha='center', va='center', fontweight='bold')
+        prev_ns = n_s
+    fig.text(cx, cy + 0.035, f'$\\varepsilon = {args.eps_label}$', fontsize=30,
+             ha='center', va='center', color='#333333')
+    fig.text(cx, cy - 0.030, f'{n_nets} networks\neight reporters each',
+             fontsize=13, ha='center', va='center', color='#888888')
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(0, vmax))
+    cax = fig.add_axes([0.93, 0.38, 0.012, 0.26])
+    cbar = fig.colorbar(sm, cax=cax)
+    cbar.set_label('Sensitivity to shock', fontsize=10)
+    cbar.ax.tick_params(labelsize=9)
+    fig.savefig(out_dir / 'fig-disks-radial.png', bbox_inches='tight', dpi=200)
+    fig.savefig(out_dir / 'fig-disks-radial.svg', bbox_inches='tight')
+    print(f'wrote {out_dir}/fig-disks-radial.png ({n_nets} networks)')
+    return
 
   if args.gallery:
     rows = []
