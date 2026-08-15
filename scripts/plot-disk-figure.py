@@ -161,12 +161,22 @@ def main():
                            d[k] * sx, d[k] * sy], projection='polar')
         draw_disk(ax, S[si][:, node], vmax, cmap, SENS if k < n_s else INSENS)
         ax.spines['polar'].set_linewidth(0.8 + 0.3 * k / 7)
-      if n_s != prev_ns:
-        rl = r[-1] + 0.75 * d[-1]
-        lx, ly = rl * np.cos(th), rl * np.sin(th)
-        fig.text(cx + lx * sx, cy + ly * sy, str(n_s), fontsize=24, color=SENS,
-                 ha='center', va='center', fontweight='bold')
-        prev_ns = n_s
+
+    from matplotlib.patches import Wedge
+    from matplotlib.colors import to_rgb
+    ax_bg = fig.add_axes([cx - E * sx, cy - E * sy, 2 * E * sx, 2 * E * sy])
+    ax_bg.set_xlim(-E, E); ax_bg.set_ylim(-E, E)
+    ax_bg.set_aspect('equal'); ax_bg.axis('off')
+    rgb_s, rgb_i = np.array(to_rgb(SENS)), np.array(to_rgb(INSENS))
+    ring_out = 1 - 0.55 * d[0]
+    ring_w = 0.16
+    half = 180.0 / n_nets
+    for i, (net, n_s, acc) in enumerate(order):
+      th_deg = 90 - 360.0 * i / n_nets
+      mix = n_s / 8.0
+      color = mix * rgb_s + (1 - mix) * rgb_i
+      ax_bg.add_patch(Wedge((0, 0), ring_out, th_deg - half, th_deg + half,
+                            width=ring_w, facecolor=color, edgecolor='none'))
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(0, vmax))
     cax = fig.add_axes([0.28, 0.028, 0.44, 0.028])
     cbar = fig.colorbar(sm, cax=cax, orientation='horizontal')
