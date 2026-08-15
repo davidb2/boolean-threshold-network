@@ -32,10 +32,10 @@ CHANCE = 1 / 11
 
 STYLE = {
   'genetic':     {'color': '#2ca02c', 'label': 'genetic algorithm', 'lw': 2.6, 'zorder': 10},
-  'sensitivity': {'color': '#d62728', 'label': 'most sensitive', 'lw': 2.0, 'zorder': 8},
-  'in-degree':   {'color': '#ff7f0e', 'label': 'max in-degree', 'lw': 1.8, 'zorder': 6},
+  'sensitivity': {'color': '#ff7f0e', 'label': 'most sensitive', 'lw': 2.0, 'zorder': 8},
+  'in-degree':   {'color': '#9467bd', 'label': 'max in-degree', 'lw': 1.8, 'zorder': 6},
   'out-degree':  {'color': '#8c564b', 'label': 'max out-degree', 'lw': 1.8, 'zorder': 5},
-  'mmse':        {'color': '#9467bd', 'label': 'greedy MMSE', 'lw': 1.8, 'zorder': 7},
+  'mmse':        {'color': '#bcbd22', 'label': 'greedy MMSE', 'lw': 1.8, 'zorder': 7},
   'jaccard':     {'color': '#e377c2', 'label': 'Jaccard coverage', 'lw': 1.8, 'zorder': 4},
   'random':      {'color': '#7f7f7f', 'label': 'random', 'lw': 2.0, 'zorder': 3},
 }

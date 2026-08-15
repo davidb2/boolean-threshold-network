@@ -38,8 +38,8 @@ plt.rcParams.update({
   'svg.fonttype': 'none',
 })
 
-SENS = '#d62728'
-INSENS = '#1f77b4'
+SENS = '#ff7f0e'
+INSENS = '#17becf'
 
 
 def antimode(B, lo=0.05, hi=0.40):
@@ -127,7 +127,7 @@ def main():
 
   vmax = 0.6
   from matplotlib.colors import LinearSegmentedColormap
-  cmap = LinearSegmentedColormap.from_list('whitered', ['#ffffff', '#d62728', '#7a1416'])
+  cmap = LinearSegmentedColormap.from_list('whiteorange', ['#ffffff', '#ff7f0e', '#8c4a03'])
   out_dir = pathlib.Path(args.out_dir)
   out_dir.mkdir(parents=True, exist_ok=True)
 

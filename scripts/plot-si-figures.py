@@ -137,7 +137,7 @@ def si_bdist(sens_dir, out_dir):
     b = np.load(f'{sens_dir}/B-rho{rho}.npz')
     B = b['B'].ravel()
     cut = antimode(b['B'])
-    ax.hist(B, bins=60, range=(0, 0.8), color='#1f77b4', alpha=0.85)
+    ax.hist(B, bins=60, range=(0, 0.8), color='#7f7f7f', alpha=0.85)
     ax.axvline(cut, color='#e8a000', lw=1.4, linestyle=(0, (4, 2)))
     ax.set_title(f'$\\varepsilon = {2 * (1 - float(rho)):g}$', fontsize=17)
     ax.set_yscale('log')
