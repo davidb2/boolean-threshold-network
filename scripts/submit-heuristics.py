@@ -19,24 +19,43 @@ FULL_GRID    = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 5000]
 JACCARD_GRID = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
 MMSE_GRID    = [1, 2, 4, 8, 16, 32, 64]
 
+ENTROPY_GRID = [1, 2, 4, 8, 16]
+
 STRATEGIES = {
-  'sensitivity': {'grid': FULL_GRID,    'trials': 1, 'time': '12:00:00'},
-  'in-degree':   {'grid': FULL_GRID,    'trials': 5, 'time': '1-00:00:00'},
-  'out-degree':  {'grid': FULL_GRID,    'trials': 5, 'time': '1-00:00:00'},
-  'mmse':        {'grid': MMSE_GRID,    'trials': 1, 'time': '12:00:00'},
-  'jaccard':     {'grid': JACCARD_GRID, 'trials': 3, 'time': '1-00:00:00'},
+  'sensitivity':       {'grid': FULL_GRID,    'trials': 1, 'time': '12:00:00'},
+  'in-degree':         {'grid': FULL_GRID,    'trials': 5, 'time': '1-00:00:00'},
+  'out-degree':        {'grid': FULL_GRID,    'trials': 5, 'time': '1-00:00:00'},
+  'mmse':              {'grid': MMSE_GRID,    'trials': 1, 'time': '12:00:00'},
+  'jaccard':           {'grid': JACCARD_GRID, 'trials': 3, 'time': '1-00:00:00'},
+  'influence':         {'grid': JACCARD_GRID, 'trials': 3, 'time': '1-00:00:00'},
+  'upstream':          {'grid': JACCARD_GRID, 'trials': 3, 'time': '1-00:00:00'},
+  'entropy-diversity': {'grid': MMSE_GRID,    'trials': 1, 'time': '12:00:00'},
+  'infomax':           {'grid': ENTROPY_GRID, 'trials': 1, 'time': '12:00:00'},
+  'anchor-reporter':   {'grid': ENTROPY_GRID, 'trials': 1, 'time': '12:00:00'},
 }
 
+SCRATCH = '/n/netscratch/nowak/Lab/dbrewster/boolean/drug-rho-sweep'
+
 DATASETS = {
-  0.99: {
+  '0.99': {
     'states': 'data/drug-fixed-targets-v5/N5000/derived/states-1771990942417.csv',
     'networks': 'data/drug-fixed-targets-v5/N5000/derived/networks-1771990942417.csv',
     'b': 'data/sensitivity/B-rho0.99.npz',
   },
-  0.5: {
+  '0.5': {
     'states': 'data/drug-fixed-targets-v7/N5000/derived/states-1772488362007.csv',
     'networks': 'data/drug-fixed-targets-v7/N5000/derived/networks-1772488362007.csv',
     'b': 'data/sensitivity/B-rho0.5.npz',
+  },
+  '1.0': {
+    'states': f'$(ls {SCRATCH}/rho1.0/derived/states-*.csv | head -1)',
+    'networks': f'$(ls {SCRATCH}/rho1.0/derived/networks-*.csv | head -1)',
+    'b': 'data/sensitivity/B-rho1.0.npz',
+  },
+  '0.75-b4': {
+    'states': f'$(ls {SCRATCH}/rho0.75-b4/derived/states-*.csv | head -1)',
+    'networks': f'$(ls {SCRATCH}/rho0.75-b4/derived/networks-*.csv | head -1)',
+    'b': 'data/sensitivity/B-rho0.75-b4.npz',
   },
 }
 
@@ -84,9 +103,9 @@ def submit(rho, strategy, args):
     return
 
   extra = ''
-  if strategy in ('in-degree', 'out-degree', 'jaccard'):
+  if strategy in ('in-degree', 'out-degree', 'jaccard', 'influence', 'upstream'):
     extra = f'--networks-file {paths["networks"]} '
-  if strategy == 'sensitivity':
+  if strategy in ('sensitivity', 'anchor-reporter'):
     extra = f'--b-file {paths["b"]} '
 
   wrap = (
@@ -122,7 +141,7 @@ def submit_v5_random(args):
     f'source {VENV} && '
     f'python scripts/random-node-selection.py '
     f'--original-network-idx ${{SLURM_ARRAY_TASK_ID}} '
-    f'--states-file {DATASETS[0.99]["states"]} '
+    f'--states-file {DATASETS["0.99"]["states"]} '
     f'--network-size {N} '
     f'--num-workers 8 '
     f'--output-dir {out_dir}'
@@ -136,7 +155,7 @@ def submit_v5_random(args):
 
 def main():
   p = argparse.ArgumentParser()
-  p.add_argument('--rhos', type=float, nargs='+', default=[0.99, 0.5])
+  p.add_argument('--rhos', type=str, nargs='+', default=list(DATASETS))
   p.add_argument('--strategies', type=str, nargs='+', default=list(STRATEGIES))
   p.add_argument('--skip-v5-random', action='store_true')
   args = p.parse_args()
