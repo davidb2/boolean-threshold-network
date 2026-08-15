@@ -264,9 +264,13 @@ def drug_matrix(states_df, node_cols):
   return X, y, len(drugs)
 
 
-def rank_by_infomax(states_df, node_cols, k_max, rng):
+def rank_by_infomax(states_df, node_cols, k_max, b):
+  # candidates are scanned in descending sensitivity so entropy ties resolve
+  # toward sensitive nodes, matching the notebook's reporter_candidates order
   X, y, n_classes = drug_matrix(states_df, node_cols)
-  return np.array(greedy_infomax(X, y, n_classes, k_max), dtype=np.int64)
+  candidates = np.argsort(-b)
+  return np.array(greedy_infomax(X, y, n_classes, k_max, candidates=candidates),
+                  dtype=np.int64)
 
 
 def anchor_reporter_panel(states_df, node_cols, b, k, anchor_fraction, beta, rng):
@@ -274,24 +278,32 @@ def anchor_reporter_panel(states_df, node_cols, b, k, anchor_fraction, beta, rng
 
   Phase 1: l anchors scored by -sensitivity - beta * mean MI with the set.
   Phase 2: k - l reporters greedily minimize H(Drug | panel).
+
+  Two deliberate deviations from the notebook: the MI matrix is computed per
+  network rather than pooled across networks (pooled MI mostly measures cross
+  network heterogeneity, not the within network redundancy the penalty
+  targets), and initial condition 0 is kept, consistent with the classifier
+  and B array used everywhere else in the pipeline.
   """
   X_ctrl = states_df[states_df['Drug'] == 'control'][node_cols].to_numpy(dtype=np.int8)
   MI, _ = pairwise_mi_matrix(X_ctrl)
   n = len(node_cols)
   l = int(round(anchor_fraction * k))
+  jitter = 1e-9 * rng.random(n)
   taken = np.zeros(n, dtype=bool)
   anchors = []
   mi_sum = np.zeros(n)
   for step in range(l):
     red = mi_sum / step if step else 0.0
-    scores = -b - beta * red
+    scores = -b - beta * red + jitter
     scores[taken] = -np.inf
     best = int(np.argmax(scores))
     anchors.append(best)
     taken[best] = True
     mi_sum += MI[:, best]
   X, y, n_classes = drug_matrix(states_df, node_cols)
-  return greedy_infomax(X, y, n_classes, k, start_panel=anchors)
+  return greedy_infomax(X, y, n_classes, k, start_panel=anchors,
+                        candidates=np.argsort(-b))
 
 
 
@@ -322,7 +334,8 @@ def get_ranking(args, states_df, node_cols, k_max, rng):
   if args.strategy == 'entropy-diversity':
     return rank_by_entropy_diversity(states_df, node_cols, k_max, args.beta, rng)
   if args.strategy == 'infomax':
-    return rank_by_infomax(states_df, node_cols, k_max, rng)
+    b = load_b_row(args.b_file, args.original_network_idx, args.network_size)
+    return rank_by_infomax(states_df, node_cols, k_max, b)
   raise ValueError(f'unknown strategy {args.strategy}')
 
 

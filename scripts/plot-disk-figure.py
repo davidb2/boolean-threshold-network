@@ -71,8 +71,7 @@ def draw_disk(ax, vals, vmax, cmap, _class_color=None):
   ax.set_xticks([])
   ax.set_yticks([])
   ax.grid(False)
-  ax.spines['polar'].set_color('#cccccc')
-  ax.spines['polar'].set_linewidth(0.9)
+  ax.spines['polar'].set_visible(False)
 
 
 def panel_groups(nodes, B_row, cut):

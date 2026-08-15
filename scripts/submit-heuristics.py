@@ -105,7 +105,7 @@ def submit(rho, strategy, args):
   extra = ''
   if strategy in ('in-degree', 'out-degree', 'jaccard', 'influence', 'upstream'):
     extra = f'--networks-file {paths["networks"]} '
-  if strategy in ('sensitivity', 'anchor-reporter'):
+  if strategy in ('sensitivity', 'anchor-reporter', 'infomax'):
     extra = f'--b-file {paths["b"]} '
 
   wrap = (
