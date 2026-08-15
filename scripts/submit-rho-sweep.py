@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 '''Submit the rho sweep for the sensitive/insensitive composition figure.
 
-For each new IC correlation rho (0.5 and 0.99 already exist as v7/v5), runs
-the full pipeline with the SAME networks, drugs, and base initial conditions
-as v5/v7 (all seeds 0):
+For each IC correlation rho, runs the full pipeline as one self-consistent
+chain (nominal seeds match v5/v7 for batch 1, but runs from before the
+sample_nodes determinism fix are not reproducible across processes, so each
+chain is its own network cohort):
 
   1. sim      -> netscratch raw/            (perform_experiment)
   2. extract  -> netscratch derived/, then deletes raw .pb  (extract_states)
