@@ -229,8 +229,13 @@ def submit_rho(rho, args):
   part = f'{ablation_out}.part${{SLURM_ARRAY_TASK_ID}}'
   lo = f'$((SLURM_ARRAY_TASK_ID * {chunk}))'
   hi = f'$((SLURM_ARRAY_TASK_ID * {chunk} + {chunk - 1}))'
+  # 55000 = networks x perturbations x ICs x stored steps; refuse to run on a
+  # partially written states file (the failure that poisoned the first deep batch)
+  expected_rows = NUM_NETWORKS * (NUM_DRUGS + 1) * NUM_INITIAL_CONDITIONS * NUM_FINAL_STATES
   abl_wrap = (
     f'[ -f {part} ] && exit 0; '
+    f'[ "$(wc -l < {states_ref})" -gt {expected_rows} ] || '
+    f'{{ echo "states file incomplete, refusing"; exit 1; }}; '
     f'source {VENV} && '
     f'python scripts/node-ablation-k8.py '
     f'--rho {rho} '
