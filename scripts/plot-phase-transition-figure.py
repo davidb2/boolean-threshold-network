@@ -132,8 +132,8 @@ def draw_panel_a(ax, data_dir):
   axi.plot(gcs, ns, color='#333333', lw=1.8)
   axi.axvline(gc_inf, color='#666666', lw=1.0, linestyle=(0, (2, 2)))
   for n in NS:
-    axi.plot(gamma_c(n), n, 'o', color=COLORS[n], markersize=6.5,
-             markeredgecolor='white', markeredgewidth=1.0, zorder=5)
+    axi.plot(gamma_c(n), n, marker='*', color=COLORS[n], markersize=10,
+             markeredgecolor='white', markeredgewidth=0.8, linestyle='none', zorder=5)
   axi.set_yscale('log')
   axi.set_xlim(1.5, 2.8)
   axi.set_ylim(16, 1e6)
