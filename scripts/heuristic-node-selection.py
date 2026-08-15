@@ -127,6 +127,181 @@ def _score_one(task):
   return float(perf['correct'].mean())
 
 
+
+def rank_by_influence(edges, n, k_max, rng):
+  """Greedy influence maximization: cover the largest 2 hop downstream set."""
+  out_nbrs = [[] for _ in range(n)]
+  for s, t in edges:
+    out_nbrs[int(s)].append(int(t))
+  reach = []
+  for v in range(n):
+    r = np.zeros(n, dtype=bool)
+    one = out_nbrs[v]
+    r[one] = True
+    for u in one:
+      r[out_nbrs[u]] = True
+    reach.append(r)
+  covered = np.zeros(n, dtype=bool)
+  jitter = rng.random(n)
+  order, taken = [], np.zeros(n, dtype=bool)
+  for _ in range(min(k_max, n)):
+    gains = np.array([(-1.0 if taken[v] else float((reach[v] & ~covered).sum())) for v in range(n)])
+    best = int(np.lexsort((jitter, -gains))[0])
+    order.append(best)
+    taken[best] = True
+    covered |= reach[best]
+  return np.array(order, dtype=np.int64)
+
+
+def rank_by_upstream(edges, n, k_max, rng):
+  """Greedy coverage of distinct upstream regulators (the colab smart variant)."""
+  in_nbrs = [set() for _ in range(n)]
+  for s, t in edges:
+    in_nbrs[int(t)].add(int(s))
+  seen = set()
+  jitter = rng.random(n)
+  taken = np.zeros(n, dtype=bool)
+  order = []
+  for step in range(min(k_max, n)):
+    if step == 0:
+      gains = np.array([(-1.0 if taken[v] else float(len(in_nbrs[v]))) for v in range(n)])
+    else:
+      gains = np.array([(-1.0 if taken[v] else float(len(in_nbrs[v] - seen))) for v in range(n)])
+    best = int(np.lexsort((jitter, -gains))[0])
+    order.append(best)
+    taken[best] = True
+    seen |= in_nbrs[best]
+  return np.array(order, dtype=np.int64)
+
+
+def pairwise_mi_matrix(X):
+  """Pairwise MI in bits for binary columns of X, as in the anchor notebook."""
+  n, N = X.shape
+  X = X.astype(np.float64)
+  p1 = X.mean(axis=0)
+  p0 = 1 - p1
+  p11 = (X.T @ X) / n
+  p10 = p1[:, None] - p11
+  p01 = p1[None, :] - p11
+  p00 = 1 - p1[:, None] - p1[None, :] + p11
+
+  def h(p):
+    return np.where(p > 1e-12, -p * np.log2(np.where(p > 1e-12, p, 1.0)), 0.0)
+
+  H_joint = h(p11) + h(p10) + h(p01) + h(p00)
+  H_marg = h(p1) + h(p0)
+  MI = H_marg[:, None] + H_marg[None, :] - H_joint
+  np.fill_diagonal(MI, 0.0)
+  return np.clip(MI, 0, None), H_marg
+
+
+def rank_by_entropy_diversity(states_df, node_cols, k_max, beta, rng):
+  """Greedy: high control state entropy, penalized by MI with the selected set."""
+  X = states_df[states_df['Drug'] == 'control'][node_cols].to_numpy(dtype=np.int8)
+  MI, H = pairwise_mi_matrix(X)
+  n = len(node_cols)
+  jitter = 1e-9 * rng.random(n)
+  taken = np.zeros(n, dtype=bool)
+  order = []
+  mi_sum = np.zeros(n)
+  for step in range(min(k_max, n)):
+    red = mi_sum / step if step else 0.0
+    scores = H + jitter - beta * red
+    scores[taken] = -np.inf
+    best = int(np.argmax(scores))
+    order.append(best)
+    taken[best] = True
+    mi_sum += MI[:, best]
+  return np.array(order, dtype=np.int64)
+
+
+def plugin_conditional_entropy(y, panel_states, n_classes):
+  n = len(y)
+  _, state_idx = np.unique(panel_states, return_inverse=True)
+  h = 0.0
+  for si in range(state_idx.max() + 1):
+    mask = state_idx == si
+    p_s = mask.sum() / n
+    counts = np.bincount(y[mask], minlength=n_classes)
+    counts = counts[counts > 0]
+    p = counts / counts.sum()
+    h += p_s * float(-(p * np.log2(p)).sum())
+  return h
+
+
+def greedy_infomax(X, y, n_classes, k_max, start_panel=(), candidates=None):
+  """Greedy minimization of the plug in H(class | panel), notebook style."""
+  n_nodes = X.shape[1]
+  in_panel = np.zeros(n_nodes, dtype=bool)
+  panel_states = np.zeros(len(y), dtype=np.int64)
+  for a in start_panel:
+    in_panel[a] = True
+    panel_states = (panel_states << 1) | X[:, a].astype(np.int64)
+  if candidates is None:
+    candidates = range(n_nodes)
+  order = list(start_panel)
+  for _ in range(k_max - len(order)):
+    best_h, best_node = np.inf, -1
+    for j in candidates:
+      if in_panel[j]:
+        continue
+      new_states = (panel_states << 1) | X[:, j].astype(np.int64)
+      h = plugin_conditional_entropy(y, new_states, n_classes)
+      if h < best_h:
+        best_h, best_node = h, j
+    panel_states = (panel_states << 1) | X[:, best_node].astype(np.int64)
+    in_panel[best_node] = True
+    order.append(best_node)
+  return order
+
+
+def drug_matrix(states_df, node_cols):
+  drug_rows = states_df[states_df['Drug'] != 'control']
+  drugs = sorted(drug_rows['Drug'].unique())
+  d2i = {d: i for i, d in enumerate(drugs)}
+  X = drug_rows[node_cols].to_numpy(dtype=np.int8)
+  y = np.array([d2i[d] for d in drug_rows['Drug']])
+  return X, y, len(drugs)
+
+
+def rank_by_infomax(states_df, node_cols, k_max, rng):
+  X, y, n_classes = drug_matrix(states_df, node_cols)
+  return np.array(greedy_infomax(X, y, n_classes, k_max), dtype=np.int64)
+
+
+def anchor_reporter_panel(states_df, node_cols, b, k, anchor_fraction, beta, rng):
+  """Two phase anchor+reporter selection from the polished notebook.
+
+  Phase 1: l anchors scored by -sensitivity - beta * mean MI with the set.
+  Phase 2: k - l reporters greedily minimize H(Drug | panel).
+  """
+  X_ctrl = states_df[states_df['Drug'] == 'control'][node_cols].to_numpy(dtype=np.int8)
+  MI, _ = pairwise_mi_matrix(X_ctrl)
+  n = len(node_cols)
+  l = int(round(anchor_fraction * k))
+  taken = np.zeros(n, dtype=bool)
+  anchors = []
+  mi_sum = np.zeros(n)
+  for step in range(l):
+    red = mi_sum / step if step else 0.0
+    scores = -b - beta * red
+    scores[taken] = -np.inf
+    best = int(np.argmax(scores))
+    anchors.append(best)
+    taken[best] = True
+    mi_sum += MI[:, best]
+  X, y, n_classes = drug_matrix(states_df, node_cols)
+  return greedy_infomax(X, y, n_classes, k, start_panel=anchors)
+
+
+
+def load_b_row(b_file, network_idx, n):
+  data = np.load(b_file)
+  nets = [int(x) for x in data['networks']]
+  b = data['B'][nets.index(network_idx)]
+  assert len(b) == n
+  return b
+
 def get_ranking(args, states_df, node_cols, k_max, rng):
   if args.strategy == 'sensitivity':
     return rank_by_sensitivity(args.b_file, args.original_network_idx, args.network_size, rng)
@@ -138,6 +313,16 @@ def get_ranking(args, states_df, node_cols, k_max, rng):
   if args.strategy == 'jaccard':
     edges = load_edges(args.networks_file, args.original_network_idx)
     return rank_by_jaccard(edges, args.network_size, k_max, rng)
+  if args.strategy == 'influence':
+    edges = load_edges(args.networks_file, args.original_network_idx)
+    return rank_by_influence(edges, args.network_size, k_max, rng)
+  if args.strategy == 'upstream':
+    edges = load_edges(args.networks_file, args.original_network_idx)
+    return rank_by_upstream(edges, args.network_size, k_max, rng)
+  if args.strategy == 'entropy-diversity':
+    return rank_by_entropy_diversity(states_df, node_cols, k_max, args.beta, rng)
+  if args.strategy == 'infomax':
+    return rank_by_infomax(states_df, node_cols, k_max, rng)
   raise ValueError(f'unknown strategy {args.strategy}')
 
 
@@ -155,18 +340,33 @@ def main(args):
   states_df = states_df.drop(columns=['original_network_idx', 'initial_condition_idx'])
   node_cols = [f'node-{i}' for i in range(args.network_size)]
 
-  k_max = max(args.feature_sizes)
+  # entropy based strategies rely on the plug in estimator, which is only
+  # reliable while 2^k is small next to the number of snapshots
+  ENTROPY_MAX_K = 16
+  entropy_family = args.strategy in ('infomax', 'anchor-reporter')
+  sizes = [k for k in args.feature_sizes if not (entropy_family and k > ENTROPY_MAX_K)]
+  for k in set(args.feature_sizes) - set(sizes):
+    print(f'skipping k={k}: beyond the plug in entropy validity cap', flush=True)
+
+  k_max = max(sizes)
   rows = []
   tasks = []
   for trial in range(args.num_trials):
     rng = np.random.default_rng(args.seed + trial)
-    ranking = get_ranking(args, states_df, node_cols, k_max, rng)
-    for k in args.feature_sizes:
-      if k > len(ranking):
-        print(f'skipping k={k}: ranking only has {len(ranking)} nodes', flush=True)
-        continue
-      features = [f'node-{i}' for i in ranking[:k]]
-      tasks.append((trial, k, features))
+    if args.strategy == 'anchor-reporter':
+      b = load_b_row(args.b_file, args.original_network_idx, args.network_size)
+      for k in sizes:
+        panel = anchor_reporter_panel(states_df, node_cols, b, k,
+                                      args.anchor_fraction, args.beta, rng)
+        tasks.append((trial, k, [f'node-{i}' for i in panel]))
+    else:
+      ranking = get_ranking(args, states_df, node_cols, k_max, rng)
+      for k in sizes:
+        if k > len(ranking):
+          print(f'skipping k={k}: ranking only has {len(ranking)} nodes', flush=True)
+          continue
+        features = [f'node-{i}' for i in ranking[:k]]
+        tasks.append((trial, k, features))
 
   with multiprocessing.Pool(processes=args.num_workers) as pool:
     accs = pool.map(
@@ -193,7 +393,9 @@ def main(args):
 def parse_args():
   p = argparse.ArgumentParser()
   p.add_argument('--strategy', type=str, required=True,
-                 choices=['sensitivity', 'in-degree', 'out-degree', 'mmse', 'jaccard'])
+                 choices=['sensitivity', 'in-degree', 'out-degree', 'mmse', 'jaccard',
+                          'influence', 'upstream', 'entropy-diversity',
+                          'infomax', 'anchor-reporter'])
   p.add_argument('--original-network-idx', type=int, required=True)
   p.add_argument('--states-file', type=str, required=True)
   p.add_argument('--networks-file', type=str, default=None)
@@ -204,6 +406,10 @@ def parse_args():
   p.add_argument('--num-trials', type=int, default=1)
   p.add_argument('--num-workers', type=int, default=4)
   p.add_argument('--seed', type=int, default=2025)
+  p.add_argument('--beta', type=float, default=1.0,
+                 help='MI redundancy penalty for entropy based strategies')
+  p.add_argument('--anchor-fraction', type=float, default=0.25,
+                 help='fraction of the panel picked as anchors in anchor-reporter')
   return p.parse_args()
 
 
