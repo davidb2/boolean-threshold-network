@@ -108,6 +108,9 @@ def main():
   p.add_argument('--eps-label', type=str, required=True)
   p.add_argument('--network', type=int, default=None)
   p.add_argument('--candidates', type=int, default=0)
+  p.add_argument('--gallery', action='store_true',
+                 help='all networks, one disk row each, sorted by composition')
+  p.add_argument('--gallery-blocks', type=int, default=2)
   p.add_argument('--out-dir', type=str, required=True)
   args = p.parse_args()
 
@@ -124,6 +127,51 @@ def main():
   cmap = plt.get_cmap('viridis')
   out_dir = pathlib.Path(args.out_dir)
   out_dir.mkdir(parents=True, exist_ok=True)
+
+  if args.gallery:
+    rows = []
+    for net, nodes in panels.items():
+      if net not in snets:
+        continue
+      n_s = int((B[bnets.index(net), nodes] > cut).sum())
+      rows.append((net, n_s, float(base.get(net, np.nan))))
+    order = sorted(rows, key=lambda r: (-r[1], -(r[2] if r[2] == r[2] else 0)))
+    nb = args.gallery_blocks
+    per = int(np.ceil(len(order) / nb))
+    blocks = [order[i * per:(i + 1) * per] for i in range(nb)]
+    fig = plt.figure(figsize=(2.1 + 9.4 * nb * 0.62, 0.62 * per + 0.6))
+    outer = fig.add_gridspec(1, nb, wspace=0.10)
+    for b, blk in enumerate(blocks):
+      grid = outer[b].subgridspec(per, 9, wspace=0.06, hspace=0.12)
+      prev_ns = None
+      for i, (net, n_s, acc) in enumerate(blk):
+        si, bi = snets.index(net), bnets.index(net)
+        sens, insens = panel_groups(panels[net], B[bi], cut)
+        for k, node in enumerate(sens):
+          ax = fig.add_subplot(grid[i, k], projection='polar')
+          draw_disk(ax, S[si][:, node], vmax, cmap, SENS)
+          ax.spines['polar'].set_linewidth(1.0)
+        for k, node in enumerate(insens):
+          ax = fig.add_subplot(grid[i, 9 - len(insens) + k], projection='polar')
+          draw_disk(ax, S[si][:, node], vmax, cmap, INSENS)
+          ax.spines['polar'].set_linewidth(1.0)
+        if n_s != prev_ns:
+          # the empty slot between the two groups carries the count
+          ax_lab = fig.add_subplot(grid[i, n_s], frameon=False)
+          ax_lab.set_xticks([]); ax_lab.set_yticks([])
+          ax_lab.text(0.5, 0.5, str(n_s), transform=ax_lab.transAxes,
+                      fontsize=13, color=SENS, ha='center', va='center',
+                      fontweight='bold')
+          prev_ns = n_s
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(0, vmax))
+    cax = fig.add_axes([0.92, 0.35, 0.008, 0.30])
+    cbar = fig.colorbar(sm, cax=cax)
+    cbar.set_label('Sensitivity to shock', fontsize=9)
+    cbar.ax.tick_params(labelsize=8)
+    fig.savefig(out_dir / 'fig-disks-gallery.png', bbox_inches='tight', dpi=200)
+    fig.savefig(out_dir / 'fig-disks-gallery.svg', bbox_inches='tight')
+    print(f'wrote {out_dir}/fig-disks-gallery.png ({len(order)} networks, {nb} blocks)')
+    return
 
   if args.candidates:
     # top candidates by baseline accuracy within each composition group
