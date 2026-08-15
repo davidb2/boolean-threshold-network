@@ -168,17 +168,24 @@ def main():
     ax_bg.set_xlim(-E, E); ax_bg.set_ylim(-E, E)
     ax_bg.set_aspect('equal'); ax_bg.axis('off')
     rgb_s, rgb_i = np.array(to_rgb(SENS)), np.array(to_rgb(INSENS))
-    ring_out = 1 - 0.55 * d[0]
-    ring_w = 0.16
+    ring_out = 1 - 1.05 * d[0]
+    ring_w = 0.15
     half = 180.0 / n_nets
+    gap_deg = 2.2
+    # one solid arc per composition group, with white gaps at each transition
+    groups = []
     for i, (net, n_s, acc) in enumerate(order):
-      th_deg = 90 - 360.0 * i / n_nets
+      if groups and groups[-1][0] == n_s:
+        groups[-1][2] = i
+      else:
+        groups.append([n_s, i, i])
+    for n_s, i0, i1 in groups:
+      th_hi = 90 - 360.0 * i0 / n_nets + half - gap_deg / 2
+      th_lo = 90 - 360.0 * i1 / n_nets - half + gap_deg / 2
       mix = n_s / 8.0
       color = mix * rgb_s + (1 - mix) * rgb_i
-      # soften by blending toward white (opaque, so overlaps show no seams)
-      color = 0.62 * color + 0.38 * np.ones(3)
-      # overlap adjacent segments slightly so the ring is seamless
-      ax_bg.add_patch(Wedge((0, 0), ring_out, th_deg - half - 0.5, th_deg + half + 0.5,
+      color = 0.45 * color + 0.55 * np.ones(3)
+      ax_bg.add_patch(Wedge((0, 0), ring_out, th_lo, th_hi,
                             width=ring_w, facecolor=color, edgecolor='none'))
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(0, vmax))
     cax = fig.add_axes([0.28, 0.028, 0.44, 0.028])
