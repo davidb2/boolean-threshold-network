@@ -175,7 +175,10 @@ def main():
       th_deg = 90 - 360.0 * i / n_nets
       mix = n_s / 8.0
       color = mix * rgb_s + (1 - mix) * rgb_i
-      ax_bg.add_patch(Wedge((0, 0), ring_out, th_deg - half, th_deg + half,
+      # soften by blending toward white (opaque, so overlaps show no seams)
+      color = 0.62 * color + 0.38 * np.ones(3)
+      # overlap adjacent segments slightly so the ring is seamless
+      ax_bg.add_patch(Wedge((0, 0), ring_out, th_deg - half - 0.5, th_deg + half + 0.5,
                             width=ring_w, facecolor=color, edgecolor='none'))
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(0, vmax))
     cax = fig.add_axes([0.28, 0.028, 0.44, 0.028])
