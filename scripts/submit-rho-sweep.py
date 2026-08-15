@@ -147,6 +147,8 @@ def submit_rho(rho, args):
     )
 
   todo = [i for i in range(NUM_NETWORKS) if not (ga_out / f'{i}-full.done').exists()]
+  sizes = ' '.join(str(k) for k in args.feature_sizes)
+  ga_time = '6:00:00' if args.feature_sizes == [8] else '2-00:00:00'
   ga_dep = None
   if todo:
     ga_wrap = (
@@ -157,12 +159,12 @@ def submit_rho(rho, args):
       f'--original-network-idx ${{SLURM_ARRAY_TASK_ID}} '
       f'--states-file {states_ref} '
       f'--network-size {N} '
-      f'--feature-sizes {FEATURE_SIZE} '
+      f'--feature-sizes {sizes} '
       f'--num-workers 16 '
       f'--output-dir {ga_out}'
     )
     ga_dep = sbatch(
-      wrap=ga_wrap, job_name=f'ga-rho{rho}', time='6:00:00',
+      wrap=ga_wrap, job_name=f'ga-rho{rho}', time=ga_time,
       mem='32G', cpus=16, output=f'{log_dir(rho, "ga")}-%A_%a.out',
       dependency=extract_dep, array=','.join(map(str, todo)),
     )
@@ -180,7 +182,7 @@ def submit_rho(rho, args):
       f'--original-network-idx $i '
       f'--states-file {states_ref} '
       f'--network-size {N} '
-      f'--feature-sizes {FEATURE_SIZE} '
+      f'--feature-sizes {sizes} '
       f'--num-workers 8 '
       f'--output-dir {rnd_out}'
     )
@@ -276,6 +278,8 @@ def main():
                  help='network cohort; batch b uses seeds offset by (b-1)*50 networks')
   p.add_argument('--ablation-trials', type=int, default=10)
   p.add_argument('--ablation-max-remove', type=int, default=3)
+  p.add_argument('--feature-sizes', type=int, nargs='+', default=[8],
+                 help='panel sizes for the GA and random stages')
   p.add_argument('--ablation-tag', type=str, default='',
                  help='suffix for the ablation output name, e.g. deep')
   args = p.parse_args()
