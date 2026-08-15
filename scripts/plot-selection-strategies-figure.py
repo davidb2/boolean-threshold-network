@@ -38,7 +38,7 @@ FOREGROUND = {
   'random':          {'color': '#7f7f7f', 'label': 'random', 'lw': 2.4, 'zorder': 4},
   'sensitivity':     {'color': '#ff7f0e', 'label': 'most sensitive', 'lw': 2.4, 'zorder': 9},
   'infomax':         {'color': '#17becf', 'label': 'greedy information gain', 'lw': 2.4, 'zorder': 10},
-  'anchor-reporter': {'color': '#9467bd', 'label': 'anchors plus reporters', 'lw': 2.4, 'zorder': 8},
+  'anchor-reporter': {'color': '#9467bd', 'label': 'anchors plus detectors', 'lw': 2.4, 'zorder': 8},
   'influence':       {'color': '#8c564b', 'label': 'influence maximization', 'lw': 2.4, 'zorder': 6},
 }
 BACKGROUND = ['in-degree', 'out-degree', 'mmse', 'jaccard', 'upstream', 'entropy-diversity']

@@ -32,6 +32,7 @@ STRATEGIES = {
   'entropy-diversity': {'grid': MMSE_GRID,    'trials': 1, 'time': '12:00:00'},
   'infomax':           {'grid': ENTROPY_GRID, 'trials': 1, 'time': '12:00:00'},
   'anchor-reporter':   {'grid': ENTROPY_GRID, 'trials': 1, 'time': '12:00:00'},
+  'anchor-sensitivity': {'grid': FULL_GRID,   'trials': 1, 'time': '12:00:00'},
 }
 
 SCRATCH = '/n/netscratch/nowak/Lab/dbrewster/boolean/drug-rho-sweep'
@@ -105,7 +106,7 @@ def submit(rho, strategy, args):
   extra = ''
   if strategy in ('in-degree', 'out-degree', 'jaccard', 'influence', 'upstream'):
     extra = f'--networks-file {paths["networks"]} '
-  if strategy in ('sensitivity', 'anchor-reporter', 'infomax'):
+  if strategy in ('sensitivity', 'anchor-reporter', 'anchor-sensitivity', 'infomax'):
     extra = f'--b-file {paths["b"]} '
 
   wrap = (

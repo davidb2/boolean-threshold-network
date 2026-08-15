@@ -307,6 +307,36 @@ def anchor_reporter_panel(states_df, node_cols, b, k, anchor_fraction, beta, rng
 
 
 
+
+def anchor_sensitivity_panel(states_df, node_cols, b, k, anchor_fraction, beta, rng):
+  """The simple two phase rule: MI diverse anchors, then the most sensitive
+  nodes. No entropy machinery, only per node statistics, so it runs at any
+  panel size."""
+  X_ctrl = states_df[states_df['Drug'] == 'control'][node_cols].to_numpy(dtype=np.int8)
+  MI, _ = pairwise_mi_matrix(X_ctrl)
+  n = len(node_cols)
+  l = int(round(anchor_fraction * k))
+  jitter = 1e-9 * rng.random(n)
+  taken = np.zeros(n, dtype=bool)
+  panel = []
+  mi_sum = np.zeros(n)
+  for step in range(l):
+    red = mi_sum / step if step else 0.0
+    scores = -b - beta * red + jitter
+    scores[taken] = -np.inf
+    best = int(np.argmax(scores))
+    panel.append(best)
+    taken[best] = True
+    mi_sum += MI[:, best]
+  order = np.lexsort((rng.random(n), -b))
+  for j in order:
+    if len(panel) >= k:
+      break
+    if not taken[j]:
+      panel.append(int(j))
+      taken[j] = True
+  return panel
+
 def load_b_row(b_file, network_idx, n):
   data = np.load(b_file)
   nets = [int(x) for x in data['networks']]
@@ -356,7 +386,7 @@ def main(args):
   # entropy based strategies rely on the plug in estimator, which is only
   # reliable while 2^k is small next to the number of snapshots
   ENTROPY_MAX_K = 16
-  entropy_family = args.strategy in ('infomax', 'anchor-reporter')
+  entropy_family = args.strategy in ('infomax', 'anchor-reporter')  # anchor-sensitivity has no entropy step
   sizes = [k for k in args.feature_sizes if not (entropy_family and k > ENTROPY_MAX_K)]
   for k in set(args.feature_sizes) - set(sizes):
     print(f'skipping k={k}: beyond the plug in entropy validity cap', flush=True)
@@ -366,11 +396,13 @@ def main(args):
   tasks = []
   for trial in range(args.num_trials):
     rng = np.random.default_rng(args.seed + trial)
-    if args.strategy == 'anchor-reporter':
+    if args.strategy in ('anchor-reporter', 'anchor-sensitivity'):
       b = load_b_row(args.b_file, args.original_network_idx, args.network_size)
+      builder = (anchor_reporter_panel if args.strategy == 'anchor-reporter'
+                 else anchor_sensitivity_panel)
       for k in sizes:
-        panel = anchor_reporter_panel(states_df, node_cols, b, k,
-                                      args.anchor_fraction, args.beta, rng)
+        panel = builder(states_df, node_cols, b, k,
+                        args.anchor_fraction, args.beta, rng)
         tasks.append((trial, k, [f'node-{i}' for i in panel]))
     else:
       ranking = get_ranking(args, states_df, node_cols, k_max, rng)
@@ -408,7 +440,7 @@ def parse_args():
   p.add_argument('--strategy', type=str, required=True,
                  choices=['sensitivity', 'in-degree', 'out-degree', 'mmse', 'jaccard',
                           'influence', 'upstream', 'entropy-diversity',
-                          'infomax', 'anchor-reporter'])
+                          'infomax', 'anchor-reporter', 'anchor-sensitivity'])
   p.add_argument('--original-network-idx', type=int, required=True)
   p.add_argument('--states-file', type=str, required=True)
   p.add_argument('--networks-file', type=str, default=None)
