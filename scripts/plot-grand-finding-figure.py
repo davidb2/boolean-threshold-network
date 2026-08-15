@@ -40,11 +40,11 @@ import pandas as pd
 RHOS = ['0.5', '0.55', '0.6', '0.65', '0.7', '0.75', '0.8', '0.85',
         '0.9', '0.925', '0.95', '0.975', '0.99', '0.995']
 CHANCE = 1 / 11
-SENS = '#eb6834'
-INSENS = '#2a78d6'
-GA = '#0f3560'
-GRAY = '#8b93a1'
-DEPTH_COLORS = {'0.995': '#9dbbdd', '0.9': '#4f7ab0', '0.5': '#0f3560'}
+SENS = '#d62728'
+INSENS = '#1f77b4'
+GA = '#2ca02c'
+GRAY = '#7f7f7f'
+DEPTH_COLORS = {'0.995': '#98df8a', '0.9': '#2ca02c', '0.5': '#14571a'}
 
 plt.rcParams.update({
   'font.size': 26,

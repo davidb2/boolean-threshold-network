@@ -38,8 +38,8 @@ plt.rcParams.update({
   'svg.fonttype': 'none',
 })
 
-SENS = '#b2543f'
-INSENS = '#41618c'
+SENS = '#d62728'
+INSENS = '#1f77b4'
 
 
 def antimode(B, lo=0.05, hi=0.40):
@@ -126,7 +126,8 @@ def main():
   base = abl.groupby('original_network_idx')['baseline_acc'].first()
 
   vmax = 0.6
-  cmap = plt.get_cmap('viridis')
+  from matplotlib.colors import LinearSegmentedColormap
+  cmap = LinearSegmentedColormap.from_list('whitered', ['#ffffff', '#d62728', '#7a1416'])
   out_dir = pathlib.Path(args.out_dir)
   out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -307,7 +308,7 @@ def main():
   ax_e = fig.add_subplot(gs_b[0, 3:8])
   m = eff.mean(axis=0)
   se = 1.96 * eff.std(axis=0) / np.sqrt(eff.shape[0])
-  ax_e.errorbar(range(1, 9), m, yerr=se, color='#0f3560', lw=2.0,
+  ax_e.errorbar(range(1, 9), m, yerr=se, color='#2ca02c', lw=2.0,
                 marker='o', markersize=5, capsize=3)
   ax_e.set_xlabel('Member rank by mean sensitivity')
   ax_e.set_ylabel('Effective number\nof shocks', labelpad=8)

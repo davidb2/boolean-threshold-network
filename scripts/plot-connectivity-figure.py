@@ -32,8 +32,8 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-RHO_COLORS = {'0.5': '#86b6ef', '0.9': '#3987e5', '0.99': '#0f3560'}
-GRAY = '#8b93a1'
+RHO_COLORS = {'0.5': '#14571a', '0.9': '#2ca02c', '0.99': '#98df8a'}
+GRAY = '#7f7f7f'
 R_MAX = 10
 
 plt.rcParams.update({
@@ -101,7 +101,7 @@ def panel_c(ax, conn, ga_panels):
     for rho, panels in ga_panels.items():
       for net, nodes in panels.items():
         members += list(deg[nets.index(net), nodes])
-    ecdf(ax, np.array(members, dtype=float) + 1, color='#1c5cab', lw=1.9,
+    ecdf(ax, np.array(members, dtype=float) + 1, color='#2ca02c', lw=1.9,
          linestyle=ls, label=f'members, {lab}')
     ecdf(ax, deg.ravel().astype(float) + 1, color=GRAY, lw=1.5, linestyle=ls,
          label=f'all nodes, {lab}')
@@ -156,8 +156,8 @@ def drug_coverage(conn, ga_panels, sens_dir, n_rand=200, seed=21):
   return pd.DataFrame(rows)
 
 
-GROUPS = [('evolved', '#0f3560', 'evolved'),
-          ('matched', '#eb6834', 'random, sensitivity matched'),
+GROUPS = [('evolved', '#2ca02c', 'evolved'),
+          ('matched', '#ff7f0e', 'random, sensitivity matched'),
           ('random', GRAY, 'random')]
 
 

@@ -37,8 +37,8 @@ plt.rcParams.update({
   'svg.fonttype': 'none',
 })
 
-CHAOS_COLOR = '#b2543f'
-FROZEN_COLOR = '#41618c'
+CHAOS_COLOR = '#d62728'
+FROZEN_COLOR = '#1f77b4'
 
 
 def gamma_color(g, gammas, gamma_c):

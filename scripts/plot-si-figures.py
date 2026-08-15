@@ -69,9 +69,9 @@ def si_activity(sens_dir, out_dir):
 
 
 def si_redundancy(sens_dir, out_dir):
-  groups = [('evolved', '#0f3560', 'evolved'),
-            ('matched', '#eb6834', 'random, sensitivity matched'),
-            ('random', '#8b93a1', 'random')]
+  groups = [('evolved', '#2ca02c', 'evolved'),
+            ('matched', '#ff7f0e', 'random, sensitivity matched'),
+            ('random', '#7f7f7f', 'random')]
   cols = [('mean_marg_H', 'Marginal entropy\nper member (bits)'),
           ('mean_mi', 'Mean pairwise\nMI (bits)'),
           ('max_mi', 'Largest pairwise\nMI (bits)')]
@@ -120,9 +120,9 @@ def si_qk(out_dir):
     qs.append((base != out(s2)).mean())
   fig, ax = plt.subplots(figsize=(5.4, 4.0))
   kk = np.linspace(1, 220, 300)
-  ax.plot(kk, c / np.sqrt(kk), color='#8b93a1', lw=1.6,
+  ax.plot(kk, c / np.sqrt(kk), color='#7f7f7f', lw=1.6,
           label='$q(K) = \\sqrt{3/(4\\pi K)}$')
-  ax.plot(ks, qs, 'o', color='#0f3560', markersize=6, label='Monte Carlo')
+  ax.plot(ks, qs, 'o', color='#1f77b4', markersize=6, label='Monte Carlo')
   ax.set_xscale('log')
   ax.set_yscale('log')
   ax.set_xlabel('In-degree, $K$')
@@ -137,7 +137,7 @@ def si_bdist(sens_dir, out_dir):
     b = np.load(f'{sens_dir}/B-rho{rho}.npz')
     B = b['B'].ravel()
     cut = antimode(b['B'])
-    ax.hist(B, bins=60, range=(0, 0.8), color='#3987e5', alpha=0.85)
+    ax.hist(B, bins=60, range=(0, 0.8), color='#1f77b4', alpha=0.85)
     ax.axvline(cut, color='#e8a000', lw=1.4, linestyle=(0, (4, 2)))
     ax.set_title(f'$\\varepsilon = {2 * (1 - float(rho)):g}$', fontsize=17)
     ax.set_yscale('log')
