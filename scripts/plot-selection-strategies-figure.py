@@ -1,22 +1,25 @@
 #!/usr/bin/env python3
 '''Selection strategy comparison: accuracy vs number of reporters.
 
-Two panels (rho = 0.99 and rho = 0.5). Curves: genetic algorithm,
-random selection, and the heuristic baselines (top sensitivity,
-max in-degree, max out-degree, greedy MMSE, Jaccard coverage),
-all scored with the same random forest evaluator.
+Three panels (noise eps = 0, 0.5, 1). Foreground curves: genetic
+algorithm, random selection, most sensitive, greedy information gain
+(infomax), the two phase anchors plus reporters rule, and greedy
+influence maximization. The remaining structural and information
+heuristics (in degree, out degree, greedy MMSE, Jaccard coverage,
+upstream coverage, entropy with diversity) are drawn as a thin gray
+background family; their full curves are in the SI.
 
-Inputs are the per-network result CSVs produced by
-genetic-algorithm-selection.py, random-node-selection.py, and
-heuristic-node-selection.py.
+The entropy based strategies stop at m = 16, where the plug in
+estimator they optimize is reliable.
 
 Usage:
   python scripts/plot-selection-strategies-figure.py \
-    --strategies-dir data/selection-strategies \
-    --ga-csv-99 data/drug-fixed-targets-v5/N5000/ga-results-v5/combined-full.csv \
-    --ga-csv-50 data/drug-fixed-targets-v7/N5000/ga-results-v7/combined-full.csv \
-    --random-dir-99 data/drug-fixed-targets-v5/N5000/random-results-v5 \
-    --random-dir-50 data/drug-fixed-targets-v7/N5000/random-results-v7 \
+    --strategies-dirs data/selection-strategies/rho1.0 \
+                      data/selection-strategies/rho0.75-b4 \
+                      data/selection-strategies/rho0.5 \
+    --ga-csvs ... ... ... \
+    --random-dirs ... ... ... \
+    --eps-labels 0 0.5 1 \
     --out-dir plots/fig-strategies
 '''
 import argparse
@@ -30,18 +33,19 @@ import pandas as pd
 
 CHANCE = 1 / 11
 
-STYLE = {
-  'genetic':     {'color': '#2ca02c', 'label': 'genetic algorithm', 'lw': 2.6, 'zorder': 10},
-  'sensitivity': {'color': '#ff7f0e', 'label': 'most sensitive', 'lw': 2.0, 'zorder': 8},
-  'in-degree':   {'color': '#9467bd', 'label': 'max in-degree', 'lw': 1.8, 'zorder': 6},
-  'out-degree':  {'color': '#8c564b', 'label': 'max out-degree', 'lw': 1.8, 'zorder': 5},
-  'mmse':        {'color': '#bcbd22', 'label': 'greedy MMSE', 'lw': 1.8, 'zorder': 7},
-  'jaccard':     {'color': '#e377c2', 'label': 'Jaccard coverage', 'lw': 1.8, 'zorder': 4},
-  'random':      {'color': '#7f7f7f', 'label': 'random', 'lw': 2.0, 'zorder': 3},
+FOREGROUND = {
+  'genetic':         {'color': '#2ca02c', 'label': 'genetic algorithm', 'lw': 3.2, 'zorder': 12},
+  'random':          {'color': '#7f7f7f', 'label': 'random', 'lw': 2.4, 'zorder': 4},
+  'sensitivity':     {'color': '#ff7f0e', 'label': 'most sensitive', 'lw': 2.4, 'zorder': 9},
+  'infomax':         {'color': '#17becf', 'label': 'greedy information gain', 'lw': 2.4, 'zorder': 10},
+  'anchor-reporter': {'color': '#9467bd', 'label': 'anchors plus reporters', 'lw': 2.4, 'zorder': 8},
+  'influence':       {'color': '#8c564b', 'label': 'influence maximization', 'lw': 2.4, 'zorder': 6},
 }
+BACKGROUND = ['in-degree', 'out-degree', 'mmse', 'jaccard', 'upstream', 'entropy-diversity']
+BG_COLOR = '#c7c7c7'
 
 plt.rcParams.update({
-  'font.size': 19,
+  'font.size': 20,
   'mathtext.fontset': 'cm',
   'axes.spines.top': False,
   'axes.spines.right': False,
@@ -72,50 +76,68 @@ def load_ga(ga_csv):
   return full.stack().rename('accuracy').reset_index()
 
 
-def draw_panel(ax, rho, strategies_dir, ga_csv, random_dir, show_legend):
-  curves = {'genetic': load_ga(ga_csv), 'random': load_dir(random_dir)}
-  for s in ['sensitivity', 'in-degree', 'out-degree', 'mmse', 'jaccard']:
-    curves[s] = load_dir(pathlib.Path(strategies_dir) / f'rho{rho}' / f'{s}-results')
+def draw_panel(ax, strategies_dir, ga_csv, random_dir):
+  for st in BACKGROUND:
+    d = pathlib.Path(strategies_dir) / f'{st}-results'
+    if not d.exists():
+      continue
+    mean, sem = agg(load_dir(d))
+    ax.plot(mean.index.to_numpy(), mean.to_numpy(), color=BG_COLOR, lw=1.3,
+            zorder=2, solid_capstyle='round')
 
-  for name, df in curves.items():
+  handles = []
+  for name, st in FOREGROUND.items():
+    if name == 'genetic':
+      df = load_ga(ga_csv)
+    elif name == 'random':
+      df = load_dir(random_dir)
+    else:
+      d = pathlib.Path(strategies_dir) / f'{name}-results'
+      if not d.exists():
+        continue
+      df = load_dir(d)
     mean, sem = agg(df)
-    st = STYLE[name]
     x = mean.index.to_numpy()
     ax.fill_between(x, mean - 1.96 * sem, mean + 1.96 * sem,
-                    color=st['color'], alpha=0.18, lw=0, zorder=st['zorder'] - 1)
-    ax.plot(x, mean.to_numpy(), color=st['color'], lw=st['lw'],
-            label=st['label'], zorder=st['zorder'], solid_capstyle='round')
-
-  ax.axhline(CHANCE, color='#bbbbbb', lw=1.0, linestyle=(0, (3, 3)), zorder=1)
-  ax.text(2.1, CHANCE + 0.017, 'chance', fontsize=15, color='#999999')
-  ax.set_xscale('log', base=2)
-  ax.set_xticks([1, 4, 16, 64, 256, 1024, 4096])
-  ax.set_xticklabels(['1', '4', '16', '64', '256', '1024', '4096'])
-  ax.set_xlim(0.9, 5600)
-  ax.set_ylim(0, 1.02)
-  ax.set_xlabel('Number of reporters, $m$')
-  ax.set_title(f'$\\varepsilon = {2 * (1 - float(rho)):g}$', fontsize=20)
-  if show_legend:
-    ax.legend(frameon=False, fontsize=16, loc='lower right', handlelength=1.6)
+                    color=st['color'], alpha=0.16, lw=0, zorder=st['zorder'] - 1)
+    line, = ax.plot(x, mean.to_numpy(), color=st['color'], lw=st['lw'],
+                    label=st['label'], zorder=st['zorder'], solid_capstyle='round')
+    handles.append(line)
+  return handles
 
 
 def main():
   p = argparse.ArgumentParser()
-  p.add_argument('--strategies-dir', type=str, required=True)
-  p.add_argument('--ga-csv-99', type=str, required=True)
-  p.add_argument('--ga-csv-50', type=str, required=True)
-  p.add_argument('--random-dir-99', type=str, required=True)
-  p.add_argument('--random-dir-50', type=str, required=True)
+  p.add_argument('--strategies-dirs', type=str, nargs=3, required=True)
+  p.add_argument('--ga-csvs', type=str, nargs=3, required=True)
+  p.add_argument('--random-dirs', type=str, nargs=3, required=True)
+  p.add_argument('--eps-labels', type=str, nargs=3, required=True)
   p.add_argument('--out-dir', type=str, required=True)
   args = p.parse_args()
 
-  fig, axes = plt.subplots(1, 2, figsize=(11.2, 4.6), sharey=True)
-  draw_panel(axes[0], 0.99, args.strategies_dir, args.ga_csv_99, args.random_dir_99, True)
-  draw_panel(axes[1], 0.5, args.strategies_dir, args.ga_csv_50, args.random_dir_50, False)
+  fig, axes = plt.subplots(1, 3, figsize=(15.2, 5.9), sharey=True)
+  fig.subplots_adjust(wspace=0.14, bottom=0.32)
+  handles = []
+  for ax, sdir, gcsv, rdir, eps in zip(axes, args.strategies_dirs, args.ga_csvs,
+                                       args.random_dirs, args.eps_labels):
+    handles = draw_panel(ax, sdir, gcsv, rdir) or handles
+    ax.axhline(CHANCE, color='#bbbbbb', lw=1.0, linestyle=(0, (3, 3)), zorder=1)
+    ax.set_xscale('log', base=2)
+    ax.set_xticks([1, 4, 16, 64])
+    ax.set_xticklabels(['1', '4', '16', '64'])
+    ax.set_xlim(0.9, 150)
+    ax.set_ylim(0, 1.02)
+    ax.set_xlabel('Number of reporters, $m$')
+    ax.set_title(f'$\\varepsilon = {eps}$', fontsize=21)
   axes[0].set_ylabel('Classification accuracy')
-  for ax, letter in zip(axes, 'ab'):
-    ax.text(-0.10 if letter == 'a' else -0.045, 1.05, letter, transform=ax.transAxes,
-            fontsize=24, fontweight='bold', color='#222222')
+  axes[0].text(1.1, CHANCE + 0.02, 'chance', fontsize=14, color='#999999')
+
+  bg_proxy = plt.Line2D([], [], color=BG_COLOR, lw=1.3, label='other heuristics')
+  fig.legend(handles=handles + [bg_proxy], loc='lower center', frameon=False,
+             fontsize=17, ncol=4, bbox_to_anchor=(0.5, 0.015), columnspacing=1.4)
+  for ax, letter in zip(axes, 'abc'):
+    ax.text(-0.06, 1.05, letter, transform=ax.transAxes,
+            fontsize=27, fontweight='bold', color='#222222')
 
   out_dir = pathlib.Path(args.out_dir)
   out_dir.mkdir(parents=True, exist_ok=True)
