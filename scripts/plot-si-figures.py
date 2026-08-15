@@ -24,7 +24,7 @@ RHOS = ['0.5', '0.55', '0.6', '0.65', '0.7', '0.75', '0.8', '0.85',
         '0.9', '0.925', '0.95', '0.975', '0.99', '0.995']
 
 plt.rcParams.update({
-  'font.size': 11.5,
+  'font.size': 18,
   'mathtext.fontset': 'cm',
   'axes.spines.top': False,
   'axes.spines.right': False,
@@ -63,7 +63,7 @@ def si_activity(sens_dir, out_dir):
     r = np.corrcoef(A.ravel(), B.ravel())[0, 1]
     ax.set_xlabel('Control state variance')
     ax.set_ylabel('Sensitivity, $B$')
-    ax.set_title(f'$\\varepsilon = {2 * (1 - float(rho)):g}$, $r = {r:.2f}$', fontsize=12)
+    ax.set_title(f'$\\varepsilon = {2 * (1 - float(rho)):g}$, $r = {r:.2f}$', fontsize=19)
   fig.colorbar(hb, ax=axes, label='nodes (log scale)', shrink=0.85)
   save(fig, out_dir, 'si-activity')
 
@@ -73,9 +73,10 @@ def si_redundancy(sens_dir, out_dir):
             ('matched', '#eb6834', 'random, sensitivity matched'),
             ('random', '#8b93a1', 'random')]
   cols = [('mean_marg_H', 'Marginal entropy\nper member (bits)'),
-          ('mean_mi', 'Mean pairwise\nmutual information (bits)'),
-          ('max_mi', 'Largest pairwise\nmutual information (bits)')]
-  fig, axes = plt.subplots(1, 3, figsize=(12.6, 3.8))
+          ('mean_mi', 'Mean pairwise\nMI (bits)'),
+          ('max_mi', 'Largest pairwise\nMI (bits)')]
+  fig, axes = plt.subplots(1, 3, figsize=(13.6, 4.4))
+  fig.subplots_adjust(wspace=0.42, top=0.78)
   for ax, (col, ylab) in zip(axes, cols):
     for gi, (group, color, label) in enumerate(groups):
       xs, ms, ss = [], [], []
@@ -91,9 +92,10 @@ def si_redundancy(sens_dir, out_dir):
     ax.set_xticks([0, 1])
     ax.set_xticklabels(['$\\varepsilon = 0.02$', '$\\varepsilon = 1$'])
     ax.set_ylabel(ylab)
-  axes[0].legend(frameon=False, fontsize=9, loc='upper left', bbox_to_anchor=(0.0, 1.18))
+  axes[1].legend(frameon=False, fontsize=16, loc='lower center',
+                 bbox_to_anchor=(0.5, 1.02), ncol=3, columnspacing=1.2)
   for ax, letter in zip(axes, 'abc'):
-    ax.text(-0.24, 1.05, letter, transform=ax.transAxes, fontsize=15,
+    ax.text(-0.24, 1.05, letter, transform=ax.transAxes, fontsize=24,
             fontweight='bold', color='#222222')
   save(fig, out_dir, 'si-redundancy')
 
@@ -125,7 +127,7 @@ def si_qk(out_dir):
   ax.set_yscale('log')
   ax.set_xlabel('In-degree, $K$')
   ax.set_ylabel('Single input sensitivity, $q(K)$')
-  ax.legend(frameon=False, fontsize=10)
+  ax.legend(frameon=False, fontsize=16)
   save(fig, out_dir, 'si-qk')
 
 
@@ -137,10 +139,10 @@ def si_bdist(sens_dir, out_dir):
     cut = antimode(b['B'])
     ax.hist(B, bins=60, range=(0, 0.8), color='#3987e5', alpha=0.85)
     ax.axvline(cut, color='#e8a000', lw=1.4, linestyle=(0, (4, 2)))
-    ax.set_title(f'$\\varepsilon = {2 * (1 - float(rho)):g}$', fontsize=10.5)
+    ax.set_title(f'$\\varepsilon = {2 * (1 - float(rho)):g}$', fontsize=17)
     ax.set_yscale('log')
   for ax in axes[1]:
-    ax.set_xlabel('$B$', fontsize=10)
+    ax.set_xlabel('$B$', fontsize=16)
   for ax in axes[:, 0]:
     ax.set_ylabel('Nodes')
   save(fig, out_dir, 'si-bdist')

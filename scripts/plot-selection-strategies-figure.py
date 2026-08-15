@@ -41,7 +41,7 @@ STYLE = {
 }
 
 plt.rcParams.update({
-  'font.size': 12.5,
+  'font.size': 19,
   'mathtext.fontset': 'cm',
   'axes.spines.top': False,
   'axes.spines.right': False,
@@ -87,16 +87,16 @@ def draw_panel(ax, rho, strategies_dir, ga_csv, random_dir, show_legend):
             label=st['label'], zorder=st['zorder'], solid_capstyle='round')
 
   ax.axhline(CHANCE, color='#bbbbbb', lw=1.0, linestyle=(0, (3, 3)), zorder=1)
-  ax.text(2.1, CHANCE + 0.017, 'chance', fontsize=10, color='#999999')
+  ax.text(2.1, CHANCE + 0.017, 'chance', fontsize=15, color='#999999')
   ax.set_xscale('log', base=2)
   ax.set_xticks([1, 4, 16, 64, 256, 1024, 4096])
   ax.set_xticklabels(['1', '4', '16', '64', '256', '1024', '4096'])
   ax.set_xlim(0.9, 5600)
   ax.set_ylim(0, 1.02)
   ax.set_xlabel('Number of reporters, $m$')
-  ax.set_title(f'$\\varepsilon = {2 * (1 - float(rho)):g}$', fontsize=13)
+  ax.set_title(f'$\\varepsilon = {2 * (1 - float(rho)):g}$', fontsize=20)
   if show_legend:
-    ax.legend(frameon=False, fontsize=10.5, loc='lower right', handlelength=1.6)
+    ax.legend(frameon=False, fontsize=16, loc='lower right', handlelength=1.6)
 
 
 def main():
@@ -110,12 +110,12 @@ def main():
   args = p.parse_args()
 
   fig, axes = plt.subplots(1, 2, figsize=(11.2, 4.6), sharey=True)
-  draw_panel(axes[0], 0.99, args.strategies_dir, args.ga_csv_99, args.random_dir_99, False)
-  draw_panel(axes[1], 0.5, args.strategies_dir, args.ga_csv_50, args.random_dir_50, True)
+  draw_panel(axes[0], 0.99, args.strategies_dir, args.ga_csv_99, args.random_dir_99, True)
+  draw_panel(axes[1], 0.5, args.strategies_dir, args.ga_csv_50, args.random_dir_50, False)
   axes[0].set_ylabel('Classification accuracy')
   for ax, letter in zip(axes, 'ab'):
     ax.text(-0.10 if letter == 'a' else -0.045, 1.05, letter, transform=ax.transAxes,
-            fontsize=16, fontweight='bold', color='#222222')
+            fontsize=24, fontweight='bold', color='#222222')
 
   out_dir = pathlib.Path(args.out_dir)
   out_dir.mkdir(parents=True, exist_ok=True)

@@ -37,7 +37,7 @@ GRAY = '#8b93a1'
 R_MAX = 10
 
 plt.rcParams.update({
-  'font.size': 12,
+  'font.size': 17,
   'mathtext.fontset': 'cm',
   'axes.spines.top': False,
   'axes.spines.right': False,
@@ -91,7 +91,7 @@ def panel_b(ax, topo):
   ax.set_ylabel('Fraction of network\nwithin $r$ of the panel')
   ax.set_xlim(1, R_MAX)
   ax.set_ylim(0, 1.02)
-  ax.legend(frameon=False, fontsize=9.5, loc='lower right')
+  ax.legend(frameon=False, fontsize=14, loc='lower right')
 
 
 def panel_c(ax, conn, ga_panels):
@@ -109,7 +109,7 @@ def panel_c(ax, conn, ga_panels):
   ax.set_xlabel('Degree $+ 1$')
   ax.set_ylabel('Cumulative fraction')
   ax.set_ylim(0, 1.02)
-  ax.legend(frameon=False, fontsize=9.5, loc='lower right')
+  ax.legend(frameon=False, fontsize=14, loc='lower right')
 
 
 def antimode(B, lo=0.05, hi=0.40):
@@ -181,7 +181,7 @@ def panel_cd(ax, cov, col, ylabel):
 def panel_c_shock(ax, cov):
   panel_cd(ax, cov, 'mean_d', 'Panel-to-shock distance\n(mean over shocks, hops)')
   ax.set_ylim(0, 1.9)
-  ax.legend(frameon=False, fontsize=9, loc='upper center', ncol=1)
+  ax.legend(frameon=False, fontsize=13, loc='upper center', ncol=1)
 
 
 def panel_d_shock(ax, cov):
@@ -214,7 +214,7 @@ def main():
   panel_d_shock(axes[1, 1], cov)
   for ax, letter in zip(axes.ravel(), 'abcd'):
     ax.text(-0.16, 1.06, letter, transform=ax.transAxes,
-            fontsize=16, fontweight='bold', color='#222222')
+            fontsize=23, fontweight='bold', color='#222222')
 
   out_dir = pathlib.Path(args.out_dir)
   out_dir.mkdir(parents=True, exist_ok=True)

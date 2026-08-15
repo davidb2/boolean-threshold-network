@@ -34,7 +34,7 @@ RND_C = {'0.99': '#6f7885', '0.5': '#a8b0bb'}
 CHANCE = 1 / 11
 
 plt.rcParams.update({
-  'font.size': 12,
+  'font.size': 21,
   'mathtext.fontset': 'cm',
   'axes.spines.top': False,
   'axes.spines.right': False,
@@ -97,9 +97,12 @@ def main():
     )
     data[rho]['cut'] = antimode(data[rho]['B'])
 
-  fig, axes = plt.subplots(1, 3, figsize=(13.2, 4.1))
-  fig.subplots_adjust(wspace=0.34)
-  ax_a, ax_b, ax_c = axes
+  fig = plt.figure(figsize=(13.2, 9.4))
+  gs = fig.add_gridspec(2, 2, hspace=0.34, wspace=0.32)
+  ax_a = fig.add_subplot(gs[0, :])
+  ax_b = fig.add_subplot(gs[1, 0])
+  ax_c = fig.add_subplot(gs[1, 1])
+  axes = np.array([ax_a, ax_b, ax_c])
 
   for rho in ['0.99', '0.5']:
     d = data[rho]
@@ -107,16 +110,16 @@ def main():
     acc_line(ax_a, ga, 'accuracy', GA_C[rho], f'evolved, $\\varepsilon = {EPS[rho]}$')
     acc_line(ax_a, d['rnd'], 'accuracy', RND_C[rho], f'random, $\\varepsilon = {EPS[rho]}$', ls=(0, (4, 2)))
   ax_a.axhline(CHANCE, color='#cccccc', lw=1.0, linestyle=(0, (3, 3)))
-  ax_a.text(1.3, CHANCE + 0.02, 'chance', fontsize=9, color='#999999')
+  ax_a.text(1.3, CHANCE + 0.02, 'chance', fontsize=16, color='#999999')
   ax_a.axvline(8, color='#e8a000', lw=1.4, alpha=0.7, linestyle=(0, (4, 2)))
-  ax_a.text(8 * 1.12, 1.005, '$m = 8$', fontsize=10.5, color='#e8a000')
+  ax_a.text(8 * 1.12, 1.005, '$m = 8$', fontsize=18, color='#e8a000')
   ax_a.set_xscale('log', base=2)
   ax_a.set_xticks(KS)
-  ax_a.set_xticklabels([str(k) for k in KS])
+  ax_a.set_xticklabels(['1', '2', '4', '8', '16', '32', '64', '128'])
   ax_a.set_xlabel('Panel size, $m$')
   ax_a.set_ylabel('Classification accuracy')
   ax_a.set_ylim(0, 1.02)
-  ax_a.legend(frameon=False, fontsize=9, loc='lower right')
+  ax_a.legend(frameon=False, fontsize=18, loc='center right')
 
   for rho in ['0.99', '0.5']:
     d = data[rho]
@@ -142,18 +145,18 @@ def main():
   for ax, ylab in [(ax_b, 'Sensitive fraction of panel'), (ax_c, 'Mean node sensitivity')]:
     ax.set_xscale('log', base=2)
     ax.set_xticks(KS)
-    ax.set_xticklabels([str(k) for k in KS])
+    ax.set_xticklabels(['1', '2', '4', '8', '16', '', '64', ''])
     ax.set_xlabel('Panel size, $m$')
     ax.set_ylabel(ylab)
     ax.axvline(8, color='#e8a000', lw=1.4, alpha=0.7, linestyle=(0, (4, 2)))
   ax_b.set_ylim(0, 1.0)
-  ax_b.legend(frameon=False, fontsize=9, loc='upper right')
+  ax_b.legend(frameon=False, fontsize=15, loc='upper right', handlelength=1.0)
   ax_c.set_ylim(0, 0.55)
-  ax_c.legend(frameon=False, fontsize=9, loc='upper right')
+  ax_c.legend(frameon=False, fontsize=15, loc='upper right', handlelength=1.0)
 
   for ax, letter in zip(axes, 'abc'):
-    ax.text(-0.20, 1.06, letter, transform=ax.transAxes,
-            fontsize=16, fontweight='bold', color='#222222')
+    ax.text(-0.14, 1.04, letter, transform=ax.transAxes,
+            fontsize=28, fontweight='bold', color='#222222')
 
   out_dir = pathlib.Path(args.out_dir)
   out_dir.mkdir(parents=True, exist_ok=True)

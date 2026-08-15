@@ -33,7 +33,7 @@ import numpy as np
 import pandas as pd
 
 plt.rcParams.update({
-  'font.size': 11,
+  'font.size': 20,
   'mathtext.fontset': 'cm',
   'svg.fonttype': 'none',
 })
@@ -95,7 +95,7 @@ def draw_panel_row(fig, gs_row, S_net, nodes, B_row, cut, vmax, cmap, label=None
   if label is not None:
     ax0 = fig.add_subplot(gs_row[0, :], frameon=False)
     ax0.set_xticks([]); ax0.set_yticks([])
-    ax0.set_ylabel(label, fontsize=10, rotation=0, ha='right', va='center', labelpad=34)
+    ax0.set_ylabel(label, fontsize=18, rotation=0, ha='right', va='center', labelpad=34)
   return n_s, len(insens)
 
 
@@ -164,14 +164,14 @@ def main():
       if n_s != prev_ns:
         rl = r[-1] + 0.75 * d[-1]
         lx, ly = rl * np.cos(th), rl * np.sin(th)
-        fig.text(cx + lx * sx, cy + ly * sy, str(n_s), fontsize=13, color=SENS,
+        fig.text(cx + lx * sx, cy + ly * sy, str(n_s), fontsize=24, color=SENS,
                  ha='center', va='center', fontweight='bold')
         prev_ns = n_s
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(0, vmax))
-    cax = fig.add_axes([0.36, 0.035, 0.28, 0.013])
+    cax = fig.add_axes([0.28, 0.028, 0.44, 0.028])
     cbar = fig.colorbar(sm, cax=cax, orientation='horizontal')
-    cbar.set_label('Sensitivity to shock', fontsize=10)
-    cbar.ax.tick_params(labelsize=9)
+    cbar.set_label('Sensitivity to shock', fontsize=18)
+    cbar.ax.tick_params(labelsize=17)
     fig.savefig(out_dir / 'fig-disks-radial.png', bbox_inches='tight', dpi=200)
     fig.savefig(out_dir / 'fig-disks-radial.svg', bbox_inches='tight')
     print(f'wrote {out_dir}/fig-disks-radial.png ({n_nets} networks)')
@@ -209,14 +209,14 @@ def main():
           ax_lab = fig.add_subplot(grid[i, n_s], frameon=False)
           ax_lab.set_xticks([]); ax_lab.set_yticks([])
           ax_lab.text(0.5, 0.5, str(n_s), transform=ax_lab.transAxes,
-                      fontsize=13, color=SENS, ha='center', va='center',
+                      fontsize=24, color=SENS, ha='center', va='center',
                       fontweight='bold')
           prev_ns = n_s
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(0, vmax))
     cax = fig.add_axes([0.92, 0.35, 0.008, 0.30])
     cbar = fig.colorbar(sm, cax=cax)
-    cbar.set_label('Sensitivity to shock', fontsize=9)
-    cbar.ax.tick_params(labelsize=8)
+    cbar.set_label('Sensitivity to shock', fontsize=17)
+    cbar.ax.tick_params(labelsize=15)
     fig.savefig(out_dir / 'fig-disks-gallery.png', bbox_inches='tight', dpi=200)
     fig.savefig(out_dir / 'fig-disks-gallery.svg', bbox_inches='tight')
     print(f'wrote {out_dir}/fig-disks-gallery.png ({len(order)} networks, {nb} blocks)')
@@ -255,21 +255,21 @@ def main():
   nodes = panels[net]
   si, bi = snets.index(net), bnets.index(net)
 
-  fig = plt.figure(figsize=(12.8, 4.4))
-  outer = fig.add_gridspec(2, 1, height_ratios=[1.15, 1.0], hspace=0.45)
+  fig = plt.figure(figsize=(12.8, 5.6))
+  outer = fig.add_gridspec(2, 1, height_ratios=[1.0, 1.05], hspace=0.55)
   gs_row = outer[0].subgridspec(1, 9, wspace=0.12)
   n_s, n_i = draw_panel_row(fig, gs_row, S[si], nodes, B[bi], cut, vmax, cmap)
-  fig.text(0.06, 0.965, 'a', fontsize=17, fontweight='bold', color='#222222')
+  fig.text(0.06, 0.965, 'a', fontsize=31, fontweight='bold', color='#222222')
   # group labels centered under each group, computed from the actual axes
   fig.canvas.draw()
   pos = [ax.get_position() for ax in fig.axes if ax.name == 'polar']
   sens_axes, insens_axes = pos[:n_s], pos[n_s:n_s + n_i]
   if sens_axes:
     xc = 0.5 * (sens_axes[0].x0 + sens_axes[-1].x1)
-    fig.text(xc, 0.53, 'sensitive members', fontsize=10.5, color=SENS, ha='center')
+    fig.text(xc, 0.53, 'sensitive members', fontsize=19, color=SENS, ha='center')
   if insens_axes:
     xc = 0.5 * (insens_axes[0].x0 + insens_axes[-1].x1)
-    fig.text(xc, 0.53, 'insensitive members', fontsize=10.5, color=INSENS, ha='center')
+    fig.text(xc, 0.53, 'insensitive members', fontsize=19, color=INSENS, ha='center')
 
   # panel b: effective number of shocks by member rank, all networks
   eff = []
@@ -283,27 +283,27 @@ def main():
     with np.errstate(divide='ignore', invalid='ignore'):
       eff.append(np.where(sq > 0, tot ** 2 / sq, 0.0))
   eff = np.array(eff)
-  gs_b = outer[1].subgridspec(1, 3)
-  ax_e = fig.add_subplot(gs_b[0, 1])
+  gs_b = outer[1].subgridspec(1, 10)
+  ax_e = fig.add_subplot(gs_b[0, 3:8])
   m = eff.mean(axis=0)
   se = 1.96 * eff.std(axis=0) / np.sqrt(eff.shape[0])
   ax_e.errorbar(range(1, 9), m, yerr=se, color='#0f3560', lw=2.0,
                 marker='o', markersize=5, capsize=3)
   ax_e.set_xlabel('Member rank by mean sensitivity')
-  ax_e.set_ylabel('Effective number\nof shocks')
+  ax_e.set_ylabel('Effective number\nof shocks', labelpad=8)
   ax_e.set_ylim(0, 10)
   ax_e.set_xticks(range(1, 9))
   ax_e.spines['top'].set_visible(False)
   ax_e.spines['right'].set_visible(False)
-  ax_e.text(-0.28, 1.10, 'b', transform=ax_e.transAxes,
-            fontsize=17, fontweight='bold', color='#222222')
+  ax_e.text(-0.42, 1.02, 'b', transform=ax_e.transAxes,
+            fontsize=31, fontweight='bold', color='#222222')
 
   # shared colorbar
   sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(0, vmax))
   cax = fig.add_axes([0.925, 0.60, 0.013, 0.30])
   cbar = fig.colorbar(sm, cax=cax)
-  cbar.set_label('Sensitivity to shock', fontsize=9.5)
-  cbar.ax.tick_params(labelsize=8.5)
+  cbar.set_label('Sensitivity to shock', fontsize=18)
+  cbar.ax.tick_params(labelsize=16)
 
   name = f'fig-disks-eps{args.eps_label}'
   fig.savefig(out_dir / f'{name}.svg', bbox_inches='tight')

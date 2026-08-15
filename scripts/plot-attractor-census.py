@@ -32,7 +32,7 @@ import numpy as np
 import pandas as pd
 
 plt.rcParams.update({
-  'font.size': 11,
+  'font.size': 16,
   'mathtext.fontset': 'cm',
   'svg.fonttype': 'none',
 })
@@ -70,7 +70,9 @@ def main():
                   if (m := re.search(r'ics-census-g([\d.]+)\.csv', f.name)))
   ics = {g: pd.read_csv(data_dir / f'ics-census-g{g}.csv') for g in gammas}
 
-  fig, axes = plt.subplots(1, 4, figsize=(15.5, 3.6))
+  fig, axes2 = plt.subplots(2, 2, figsize=(10.6, 8.6))
+  fig.subplots_adjust(hspace=0.36, wspace=0.30)
+  axes = axes2.ravel()
   ax_a, ax_b, ax_c, ax_d = axes
 
   # a: fraction of ICs on their attractor by time t
@@ -83,12 +85,12 @@ def main():
               lw=1.8, label=f'{g:.1f}')
   ax_a.axvline(args.t_experiment, color='#666666', lw=1.0, ls='--')
   ax_a.text(args.t_experiment * 0.7, 0.30, f'$T = {args.t_experiment}$',
-            fontsize=9, color='#666666', ha='right')
+            fontsize=14, color='#666666', ha='right')
   ax_a.set_xscale('log')
   ax_a.set_xlabel('Time $t$')
   ax_a.set_ylabel('Fraction of ICs on attractor')
   ax_a.set_ylim(0, 1.02)
-  ax_a.legend(title='$\\gamma$', fontsize=7.5, title_fontsize=8.5,
+  ax_a.legend(title='$\\gamma$', fontsize=13, title_fontsize=14,
               loc='lower right', ncol=2, frameon=False)
 
   # b to d: summaries vs gamma with 95 percent CIs over networks
@@ -128,13 +130,13 @@ def main():
       m90, e90 = quartile_series(p90_period)
       ax.errorbar(gammas, m90, yerr=e90, color='#7a9cc4', lw=1.4,
                   marker='s', markersize=3.5, capsize=2.5)
-      ax.text(0.96, 0.86, 'p90', fontsize=9, color='#7a9cc4',
+      ax.text(0.96, 0.86, 'p90', fontsize=15, color='#7a9cc4',
               ha='right', transform=ax.transAxes)
-      ax.text(0.96, 0.72, 'median', fontsize=9, color='#0f3560',
+      ax.text(0.96, 0.74, 'median', fontsize=15, color='#0f3560',
               ha='right', transform=ax.transAxes)
     if ax is ax_c:
       ax.axhline(n_ics, color='#999999', lw=1.0, ls='--')
-      ax.text(max(gammas), n_ics * 0.72, 'IC budget', fontsize=8.5,
+      ax.text(max(gammas), n_ics * 0.60, 'IC budget', fontsize=14,
               color='#777777', ha='right')
     if log:
       ax.set_yscale('log')
@@ -144,11 +146,11 @@ def main():
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
 
-  ax_d.text(args.gamma_c, 1.02, '$\\gamma_c$', fontsize=10,
+  ax_d.text(args.gamma_c, 1.02, '$\\gamma_c$', fontsize=16,
             color='#666666', ha='center', transform=ax_d.get_xaxis_transform())
   for ax, letter in zip(axes, 'abcd'):
-    ax.text(-0.22, 1.08, letter, transform=ax.transAxes,
-            fontsize=16, fontweight='bold', color='#222222')
+    ax.text(-0.20, 1.04, letter, transform=ax.transAxes,
+            fontsize=22, fontweight='bold', color='#222222')
 
   fig.tight_layout()
   out_dir = pathlib.Path(args.out_dir)

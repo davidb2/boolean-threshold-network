@@ -47,7 +47,7 @@ GRAY = '#8b93a1'
 DEPTH_COLORS = {'0.995': '#9dbbdd', '0.9': '#4f7ab0', '0.5': '#0f3560'}
 
 plt.rcParams.update({
-  'font.size': 12,
+  'font.size': 26,
   'mathtext.fontset': 'cm',
   'axes.spines.top': False,
   'axes.spines.right': False,
@@ -178,8 +178,8 @@ def main():
 
   df, deep, slopes = collect(args)
 
-  fig = plt.figure(figsize=(15.4, 7.8))
-  gs = fig.add_gridspec(2, 6, hspace=0.44, wspace=0.9)
+  fig = plt.figure(figsize=(15.6, 11.0))
+  gs = fig.add_gridspec(2, 6, hspace=0.38, wspace=2.4)
   ax_a = fig.add_subplot(gs[0, 0:3])
   ax_b = fig.add_subplot(gs[0, 3:6])
   ax_c = fig.add_subplot(gs[1, 0:2])
@@ -190,22 +190,22 @@ def main():
   line(ax_a, df, 'ga_acc', GA, 'evolved panel')
   line(ax_a, df, 'rnd_acc', GRAY, 'random panel')
   ax_a.axhline(CHANCE, color='#bbbbbb', lw=1.0, linestyle=(0, (3, 3)))
-  ax_a.text(0.011, CHANCE + 0.03, 'chance', fontsize=9.5, color='#999999')
-  ax_a.set_ylabel('Classification accuracy ($m = 8$)')
+  ax_a.text(0.011, CHANCE + 0.03, 'chance', fontsize=19, color='#999999')
+  ax_a.set_ylabel('Classification accuracy')
   ax_a.set_ylim(0, 1.02)
-  ax_a.legend(frameon=False, fontsize=10, loc='center left')
+  ax_a.legend(frameon=False, fontsize=22, loc='center left')
 
   line(ax_b, df, 'n_sens', GA, 'evolved panel')
   line(ax_b, df, 'expect', GRAY, 'random expectation')
-  ax_b.set_ylabel('Sensitive nodes per panel (of 8)')
+  ax_b.set_ylabel('Sensitive nodes per panel')
   ax_b.set_ylim(0, 8)
-  ax_b.legend(frameon=False, fontsize=10, loc='center left')
+  ax_b.legend(frameon=False, fontsize=22, loc='center left')
 
   line(ax_c, deep, 'drop_s', SENS, 'remove one sensitive')
   line(ax_c, deep, 'drop_i', INSENS, 'remove one insensitive')
   ax_c.set_ylabel('Accuracy drop')
   ax_c.set_ylim(0, 0.19)
-  ax_c.legend(frameon=False, fontsize=9.5, loc='upper right')
+  ax_c.legend(frameon=False, fontsize=18, loc='upper right', handlelength=1.0, borderaxespad=0.1)
 
   rng = np.random.default_rng(7)
   xs, shares, los, his = [], [], [], []
@@ -225,8 +225,8 @@ def main():
   ax_d.fill_between(xs, los, his, color=INSENS, alpha=0.20, lw=0)
   ax_d.plot(xs, shares, color=INSENS, lw=2.0, marker='o', markersize=4.5)
   ax_d.axhline(0.5, color='#bbbbbb', lw=1.0, linestyle=(0, (3, 3)))
-  ax_d.text(0.011, 0.512, 'equal importance', fontsize=9.5, color='#999999')
-  ax_d.set_ylabel('Insensitive share of\nremoval penalty')
+  ax_d.text(0.011, 0.512, 'equal\nimportance', fontsize=17, color='#999999', va='bottom')
+  ax_d.set_ylabel('Insensitive share\nof penalty')
   ax_d.set_ylim(0.2, 0.56)
 
   for rho_s, color in DEPTH_COLORS.items():
@@ -238,18 +238,19 @@ def main():
     ax_e.plot(m.index, m.to_numpy(), color=color, lw=2.0, marker='o',
               markersize=4.5, label=f'$\\varepsilon = {2 * (1 - float(rho_s)):g}$')
   ax_e.axhline(0, color='#bbbbbb', lw=1.0, linestyle=(0, (3, 3)))
-  ax_e.set_xlabel('Panel members removed')
-  ax_e.set_ylabel('Extra penalty per\nsensitive node removed')
+  ax_e.set_xlabel('Members removed')
+  ax_e.set_ylabel('Extra penalty per\nsensitive removed')
   ax_e.set_xticks(range(1, 8))
-  ax_e.legend(frameon=False, fontsize=9.5, loc='upper right')
+  ax_e.legend(frameon=False, fontsize=18, loc='upper right', handlelength=1.0, borderaxespad=0.1)
 
   for ax in noise_axes:
     ax.set_xscale('log')
-    ax.set_xlabel('Initial condition noise, $\\varepsilon$')
+    ax.set_xlabel('Initial condition noise, $\\varepsilon$'
+                  if ax in (ax_a, ax_b) else 'Noise, $\\varepsilon$')
     ax.set_xlim(0.008, 1.2)
   for ax, letter in zip([ax_a, ax_b, ax_c, ax_d, ax_e], 'abcde'):
-    ax.text(-0.19, 1.06, letter, transform=ax.transAxes,
-            fontsize=16, fontweight='bold', color='#222222')
+    ax.text(-0.30, 1.05, letter, transform=ax.transAxes,
+            fontsize=34, fontweight='bold', color='#222222')
 
   out_dir = pathlib.Path(args.out_dir)
   out_dir.mkdir(parents=True, exist_ok=True)
