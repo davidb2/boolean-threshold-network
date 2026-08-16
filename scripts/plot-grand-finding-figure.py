@@ -11,10 +11,14 @@ and the balance shifts with noise.
      panel members are removed, at three noise levels
 
 Panels c to e use the deep ablation campaign (30 RF trials, every removal
-subset up to m = 7, two independent network cohorts per rho). A batch file
-whose mean baseline accuracy is below --min-baseline is skipped with a
-warning: that guards against ablation runs that evaluated panels on
+subset up to m = 7, up to three independent network cohorts per rho). A
+batch file whose mean baseline accuracy is below --min-baseline is skipped
+with a warning: that guards against ablation runs that evaluated panels on
 mismatched states. Cohorts are kept as separate statistical units.
+
+Panel e shows the canonical noise levels eps = 0, 0.5, 1. The eps = 0
+cohort (rho 1.0) has deep ablation data only, so it appears in panel e
+but not on the log noise axes of panels a to d.
 
 x axis is the bit flip probability 1 - rho on a log scale, so noise
 increases to the right.
@@ -44,7 +48,8 @@ SENS = '#ff7f0e'
 INSENS = '#000000'
 GA = '#2ca02c'
 GRAY = '#7f7f7f'
-DEPTH_COLORS = {'0.995': '#98df8a', '0.9': '#2ca02c', '0.5': '#14571a'}
+# darker green = lower noise, matching the panel size figure
+DEPTH_COLORS = {'1.0': '#14571a', '0.75': '#2ca02c', '0.5': '#98df8a'}
 
 plt.rcParams.update({
   'font.size': 26,
@@ -83,7 +88,9 @@ def load_deep(deep_dir, rho, min_baseline):
   '''Valid deep ablation rows for one rho, cohorts labeled and unit-keyed.'''
   frames = []
   for batch, name in [('b1', f'ablation-k8-deep-rho{rho}.csv'),
-                      ('b2', f'ablation-k8-deep-rho{rho}-b2.csv')]:
+                      ('b2', f'ablation-k8-deep-rho{rho}-b2.csv'),
+                      ('b3', f'ablation-k8-deep-rho{rho}-b3.csv'),
+                      ('b4', f'ablation-k8-deep-rho{rho}-b4.csv')]:
     path = pathlib.Path(deep_dir) / name
     if not path.exists():
       continue
@@ -151,6 +158,16 @@ def collect(args):
     if rho in DEPTH_COLORS:
       for (unit, m), g in deep.groupby(['unit', 'm_removed']):
         slope_rows.append(dict(rho=rho, m=m, unit=unit, beta=unit_slope(g)))
+  # depth-only cohorts (deep ablation exists but no sweep data), e.g. eps = 0
+  for rho in DEPTH_COLORS:
+    if rho in RHOS:
+      continue
+    deep = load_deep(args.deep_dir, rho, args.min_baseline)
+    if deep is None:
+      print(f'  rho={rho}: no valid deep ablation data (depth only cohort)')
+      continue
+    for (unit, m), g in deep.groupby(['unit', 'm_removed']):
+      slope_rows.append(dict(rho=rho, m=m, unit=unit, beta=unit_slope(g)))
   return pd.DataFrame(rows), pd.DataFrame(deep_rows), pd.DataFrame(slope_rows)
 
 
