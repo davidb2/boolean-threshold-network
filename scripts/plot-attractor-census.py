@@ -84,8 +84,8 @@ def main():
     ax_a.plot(tgrid, frac, color=gamma_color(g, gammas, args.gamma_c),
               lw=1.8, label=f'{g:.1f}')
   ax_a.axvline(args.t_experiment, color='#666666', lw=1.0, ls='--')
-  ax_a.text(args.t_experiment * 0.7, 0.30, f'$T = {args.t_experiment}$',
-            fontsize=14, color='#666666', ha='right')
+  ax_a.text(args.t_experiment * 1.3, 0.12, f'$T = {args.t_experiment}$',
+            fontsize=14, color='#666666', ha='left')
   ax_a.set_xscale('log')
   ax_a.set_xlabel('Time $t$')
   ax_a.set_ylabel('Fraction of ICs on attractor')

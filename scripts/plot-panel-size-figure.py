@@ -2,20 +2,20 @@
 '''Panel size figure: why the analysis focuses on m = 8.
 
   a  classification accuracy vs panel size m for evolved and random
-     panels at low and high noise; m = 8 is the smallest size at which
-     evolved panels are near their ceiling at both noise levels
-  b  number of sensitive nodes in evolved panels vs m, against the
+     panels at noise eps = 0, 0.5, 1; m = 8 is the smallest size at
+     which evolved panels are near their ceiling at every noise level
+  b  sensitive fraction of evolved panels vs m, against the
      hypergeometric random expectation
   c  mean sensitivity of selected vs non-selected nodes vs m
 
-Uses the full panel-size GA sweeps at rho = 0.99 and rho = 0.5.
+Uses the full panel-size GA sweeps at eps = 0, 0.5, 1.
 
 Usage:
   python scripts/plot-panel-size-figure.py \
-    --ga-csv-99 ... --ga-csv-50 ... \
-    --random-dir-99 ... --random-dir-50 ... \
-    --b-file-99 data/sensitivity/B-rho0.99.npz \
-    --b-file-50 data/sensitivity/B-rho0.5.npz \
+    --ga-csvs ... ... ... \
+    --random-dirs ... ... ... \
+    --b-files ... ... ... \
+    --eps-labels 0 0.5 1 \
     --out-dir plots/fig-panel-size
 '''
 import argparse
@@ -28,9 +28,9 @@ import numpy as np
 import pandas as pd
 
 KS = [1, 2, 4, 8, 16, 32, 64, 128]
-EPS = {'0.99': '0.02', '0.5': '1'}
-GA_C = {'0.99': '#2ca02c', '0.5': '#98df8a'}
-RND_C = {'0.99': '#7f7f7f', '0.5': '#c7c7c7'}
+# evolved greens dark to light with increasing noise, randoms likewise gray
+GA_C = ['#14571a', '#2ca02c', '#98df8a']
+RND_C = ['#4a4a4a', '#7f7f7f', '#c7c7c7']
 CHANCE = 1 / 11
 
 plt.rcParams.update({
@@ -76,26 +76,24 @@ def acc_line(ax, df, col, color, label, ls='-'):
 
 def main():
   p = argparse.ArgumentParser()
-  p.add_argument('--ga-csv-99', type=str, required=True)
-  p.add_argument('--ga-csv-50', type=str, required=True)
-  p.add_argument('--random-dir-99', type=str, required=True)
-  p.add_argument('--random-dir-50', type=str, required=True)
-  p.add_argument('--b-file-99', type=str, required=True)
-  p.add_argument('--b-file-50', type=str, required=True)
+  p.add_argument('--ga-csvs', type=str, nargs=3, required=True)
+  p.add_argument('--random-dirs', type=str, nargs=3, required=True)
+  p.add_argument('--b-files', type=str, nargs=3, required=True)
+  p.add_argument('--eps-labels', type=str, nargs=3, required=True)
   p.add_argument('--out-dir', type=str, required=True)
   args = p.parse_args()
 
-  data = {}
-  for rho, ga_csv, rnd_dir, b_file in [
-    ('0.99', args.ga_csv_99, args.random_dir_99, args.b_file_99),
-    ('0.5', args.ga_csv_50, args.random_dir_50, args.b_file_50),
-  ]:
+  cohorts = []
+  for i, (ga_csv, rnd_dir, b_file, eps) in enumerate(zip(
+      args.ga_csvs, args.random_dirs, args.b_files, args.eps_labels)):
     b = np.load(b_file)
-    data[rho] = dict(
-      ga=load_ga(ga_csv), rnd=load_random(rnd_dir),
+    d = dict(
+      eps=eps, ga=load_ga(ga_csv), rnd=load_random(rnd_dir),
       B=b['B'], bnets=[int(x) for x in b['networks']],
+      ga_c=GA_C[i], rnd_c=RND_C[i],
     )
-    data[rho]['cut'] = antimode(data[rho]['B'])
+    d['cut'] = antimode(d['B'])
+    cohorts.append(d)
 
   fig = plt.figure(figsize=(13.2, 9.4))
   gs = fig.add_gridspec(2, 2, hspace=0.34, wspace=0.32)
@@ -104,11 +102,10 @@ def main():
   ax_c = fig.add_subplot(gs[1, 1])
   axes = np.array([ax_a, ax_b, ax_c])
 
-  for rho in ['0.99', '0.5']:
-    d = data[rho]
+  for d in cohorts:
     ga = d['ga'].rename(columns={'best_accuracy': 'accuracy'})
-    acc_line(ax_a, ga, 'accuracy', GA_C[rho], f'evolved, $\\varepsilon = {EPS[rho]}$')
-    acc_line(ax_a, d['rnd'], 'accuracy', RND_C[rho], f'random, $\\varepsilon = {EPS[rho]}$', ls=(0, (4, 2)))
+    acc_line(ax_a, ga, 'accuracy', d['ga_c'], f'evolved, $\\varepsilon = {d["eps"]}$')
+    acc_line(ax_a, d['rnd'], 'accuracy', d['rnd_c'], f'random, $\\varepsilon = {d["eps"]}$', ls=(0, (4, 2)))
   ax_a.axhline(CHANCE, color='#cccccc', lw=1.0, linestyle=(0, (3, 3)))
   ax_a.text(1.3, CHANCE + 0.02, 'chance', fontsize=16, color='#999999')
   ax_a.axvline(8, color='#e8a000', lw=1.4, alpha=0.7, linestyle=(0, (4, 2)))
@@ -119,10 +116,13 @@ def main():
   ax_a.set_xlabel('Panel size, $m$')
   ax_a.set_ylabel('Classification accuracy')
   ax_a.set_ylim(0, 1.02)
-  ax_a.legend(frameon=False, fontsize=18, loc='center right')
+  ax_a.legend(frameon=False, fontsize=15, loc='lower right', ncol=1,
+              handlelength=1.4, labelspacing=0.35)
 
-  for rho in ['0.99', '0.5']:
-    d = data[rho]
+  for i, d in enumerate(cohorts):
+    # shade already encodes the noise level (legend in panel a), so panels
+    # b and c carry one legend entry per family
+    mid = i == 1
     rows = []
     for _, r in d['ga'].iterrows():
       nodes = [int(s.split('-')[1]) for s in eval(r['features'])]
@@ -137,10 +137,10 @@ def main():
         other_B=float(np.delete(d['B'][bi], nodes).mean()),
       ))
     comp = pd.DataFrame(rows)
-    acc_line(ax_b, comp, 'frac_sens', GA_C[rho], f'evolved, $\\varepsilon = {EPS[rho]}$')
-    acc_line(ax_b, comp, 'expect', RND_C[rho], f'random, $\\varepsilon = {EPS[rho]}$', ls=(0, (4, 2)))
-    acc_line(ax_c, comp, 'sel_B', GA_C[rho], f'selected, $\\varepsilon = {EPS[rho]}$')
-    acc_line(ax_c, comp, 'other_B', RND_C[rho], f'not selected, $\\varepsilon = {EPS[rho]}$', ls=(0, (4, 2)))
+    acc_line(ax_b, comp, 'frac_sens', d['ga_c'], 'evolved' if mid else '_nolegend_')
+    acc_line(ax_b, comp, 'expect', d['rnd_c'], 'random' if mid else '_nolegend_', ls=(0, (4, 2)))
+    acc_line(ax_c, comp, 'sel_B', d['ga_c'], 'selected' if mid else '_nolegend_')
+    acc_line(ax_c, comp, 'other_B', d['rnd_c'], 'not selected' if mid else '_nolegend_', ls=(0, (4, 2)))
 
   for ax, ylab in [(ax_b, 'Sensitive fraction of panel'), (ax_c, 'Mean node sensitivity')]:
     ax.set_xscale('log', base=2)
@@ -150,9 +150,9 @@ def main():
     ax.set_ylabel(ylab)
     ax.axvline(8, color='#e8a000', lw=1.4, alpha=0.7, linestyle=(0, (4, 2)))
   ax_b.set_ylim(0, 1.0)
-  ax_b.legend(frameon=False, fontsize=15, loc='upper right', handlelength=1.0)
+  ax_b.legend(frameon=False, fontsize=16, loc='upper right', handlelength=1.2)
   ax_c.set_ylim(0, 0.55)
-  ax_c.legend(frameon=False, fontsize=15, loc='upper right', handlelength=1.0)
+  ax_c.legend(frameon=False, fontsize=16, loc='upper right', handlelength=1.2)
 
   for ax, letter in zip(axes, 'abc'):
     ax.text(-0.14, 1.04, letter, transform=ax.transAxes,

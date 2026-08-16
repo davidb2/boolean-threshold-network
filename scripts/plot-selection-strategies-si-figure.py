@@ -1,26 +1,15 @@
 #!/usr/bin/env python3
-'''Selection strategy comparison: accuracy vs number of reporters.
+'''Full selection strategy curves (SI companion to the main strategies figure).
 
-Three panels (noise eps = 0, 0.5, 1). Foreground curves: genetic
-algorithm, random selection, most sensitive, greedy information gain
-(infomax), the two phase anchors plus reporters rule, and greedy
-influence maximization. The remaining structural and information
-heuristics (in degree, out degree, greedy MMSE, Jaccard coverage,
-upstream coverage, entropy with diversity) are drawn as a thin gray
-background family; their full curves are in the SI.
+Same three panels (noise eps = 0, 0.5, 1) but every heuristic is drawn
+with its own color and listed in the legend, including the ones the main
+figure compresses into a gray background family.
 
-The entropy based strategies stop at m = 16, where the plug in
-estimator they optimize is reliable.
+The entropy based strategies (greedy information gain, anchors plus
+detectors, entropy with diversity, greedy MMSE) stop at m = 16, where the
+plug in estimator they optimize is reliable.
 
-Usage:
-  python scripts/plot-selection-strategies-figure.py \
-    --strategies-dirs data/selection-strategies/rho1.0 \
-                      data/selection-strategies/rho0.75-b4 \
-                      data/selection-strategies/rho0.5 \
-    --ga-csvs ... ... ... \
-    --random-dirs ... ... ... \
-    --eps-labels 0 0.5 1 \
-    --out-dir plots/fig-strategies
+Usage: same arguments as plot-selection-strategies-figure.py.
 '''
 import argparse
 import pathlib
@@ -28,22 +17,26 @@ import pathlib
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 
 CHANCE = 1 / 11
 
-FOREGROUND = {
-  'genetic':         {'color': '#2ca02c', 'label': 'genetic algorithm', 'lw': 3.2, 'zorder': 12},
-  'random':          {'color': '#7f7f7f', 'label': 'random', 'lw': 2.4, 'zorder': 4},
-  'sensitivity':     {'color': '#ff7f0e', 'label': 'most sensitive', 'lw': 2.4, 'zorder': 9},
-  'infomax':         {'color': '#17becf', 'label': 'greedy information gain', 'lw': 2.4, 'zorder': 10},
-  'anchor-reporter': {'color': '#9467bd', 'label': 'anchors plus detectors', 'lw': 2.4, 'zorder': 8},
-  'influence':       {'color': '#8c564b', 'label': 'influence maximization', 'lw': 2.4, 'zorder': 6},
+# Solid lines: the main text foreground. Dashed lines: the SI only family.
+STYLES = {
+  'genetic':            {'color': '#2ca02c', 'label': 'genetic algorithm', 'lw': 3.0, 'ls': '-', 'zorder': 14},
+  'infomax':            {'color': '#17becf', 'label': 'greedy information gain', 'lw': 2.2, 'ls': '-', 'zorder': 12},
+  'anchor-reporter':    {'color': '#9467bd', 'label': 'anchors plus detectors', 'lw': 2.2, 'ls': '-', 'zorder': 11},
+  'sensitivity':        {'color': '#ff7f0e', 'label': 'most sensitive', 'lw': 2.2, 'ls': '-', 'zorder': 10},
+  'influence':          {'color': '#8c564b', 'label': 'influence maximization', 'lw': 2.2, 'ls': '-', 'zorder': 6},
+  'random':             {'color': '#7f7f7f', 'label': 'random', 'lw': 2.2, 'ls': '-', 'zorder': 4},
+  'entropy-diversity':  {'color': '#bcbd22', 'label': 'entropy with diversity', 'lw': 1.8, 'ls': '--', 'zorder': 9},
+  'anchor-sensitivity': {'color': '#e377c2', 'label': 'anchors by sensitivity only', 'lw': 1.8, 'ls': '--', 'zorder': 8},
+  'mmse':               {'color': '#9edae5', 'label': 'greedy MMSE', 'lw': 1.8, 'ls': '--', 'zorder': 7},
+  'upstream':           {'color': '#c49c94', 'label': 'upstream coverage', 'lw': 1.8, 'ls': '--', 'zorder': 5},
+  'jaccard':            {'color': '#c5b0d5', 'label': 'Jaccard coverage', 'lw': 1.8, 'ls': '--', 'zorder': 5},
+  'in-degree':          {'color': '#dbdb8d', 'label': 'in degree', 'lw': 1.8, 'ls': '--', 'zorder': 3},
+  'out-degree':         {'color': '#c7c7c7', 'label': 'out degree', 'lw': 1.8, 'ls': '--', 'zorder': 3},
 }
-BACKGROUND = ['in-degree', 'out-degree', 'mmse', 'jaccard', 'upstream',
-              'entropy-diversity', 'anchor-sensitivity']
-BG_COLOR = '#c7c7c7'
 
 plt.rcParams.update({
   'font.size': 20,
@@ -78,16 +71,8 @@ def load_ga(ga_csv):
 
 
 def draw_panel(ax, strategies_dir, ga_csv, random_dir):
-  for st in BACKGROUND:
-    d = pathlib.Path(strategies_dir) / f'{st}-results'
-    if not d.exists():
-      continue
-    mean, sem = agg(load_dir(d))
-    ax.plot(mean.index.to_numpy(), mean.to_numpy(), color=BG_COLOR, lw=1.3,
-            zorder=2, solid_capstyle='round')
-
   handles = []
-  for name, st in FOREGROUND.items():
+  for name, st in STYLES.items():
     if name == 'genetic':
       df = load_ga(ga_csv)
     elif name == 'random':
@@ -100,8 +85,8 @@ def draw_panel(ax, strategies_dir, ga_csv, random_dir):
     mean, sem = agg(df)
     x = mean.index.to_numpy()
     ax.fill_between(x, mean - 1.96 * sem, mean + 1.96 * sem,
-                    color=st['color'], alpha=0.16, lw=0, zorder=st['zorder'] - 1)
-    line, = ax.plot(x, mean.to_numpy(), color=st['color'], lw=st['lw'],
+                    color=st['color'], alpha=0.12, lw=0, zorder=st['zorder'] - 1)
+    line, = ax.plot(x, mean.to_numpy(), color=st['color'], lw=st['lw'], ls=st['ls'],
                     label=st['label'], zorder=st['zorder'], solid_capstyle='round')
     handles.append(line)
   return handles
@@ -116,12 +101,13 @@ def main():
   p.add_argument('--out-dir', type=str, required=True)
   args = p.parse_args()
 
-  fig, axes = plt.subplots(1, 3, figsize=(15.2, 5.9), sharey=True)
-  fig.subplots_adjust(wspace=0.14, bottom=0.32)
+  fig, axes = plt.subplots(1, 3, figsize=(15.2, 6.6), sharey=True)
+  fig.subplots_adjust(wspace=0.14, bottom=0.40)
   handles = []
   for ax, sdir, gcsv, rdir, eps in zip(axes, args.strategies_dirs, args.ga_csvs,
                                        args.random_dirs, args.eps_labels):
-    handles = draw_panel(ax, sdir, gcsv, rdir) or handles
+    h = draw_panel(ax, sdir, gcsv, rdir)
+    handles = h if len(h) > len(handles) else handles
     ax.axhline(CHANCE, color='#bbbbbb', lw=1.0, linestyle=(0, (3, 3)), zorder=1)
     ax.set_xscale('log', base=2)
     ax.set_xticks([1, 4, 16, 64])
@@ -133,18 +119,17 @@ def main():
   axes[0].set_ylabel('Classification accuracy')
   axes[0].text(1.1, CHANCE + 0.02, 'chance', fontsize=14, color='#999999')
 
-  bg_proxy = plt.Line2D([], [], color=BG_COLOR, lw=1.3, label='other heuristics')
-  fig.legend(handles=handles + [bg_proxy], loc='lower center', frameon=False,
-             fontsize=17, ncol=4, bbox_to_anchor=(0.5, 0.015), columnspacing=1.4)
+  fig.legend(handles=handles, loc='lower center', frameon=False,
+             fontsize=15, ncol=4, bbox_to_anchor=(0.5, 0.01), columnspacing=1.2)
   for ax, letter in zip(axes, 'abc'):
     ax.text(-0.06, 1.05, letter, transform=ax.transAxes,
             fontsize=27, fontweight='bold', color='#222222')
 
   out_dir = pathlib.Path(args.out_dir)
   out_dir.mkdir(parents=True, exist_ok=True)
-  fig.savefig(out_dir / 'fig-strategies.svg', bbox_inches='tight')
-  fig.savefig(out_dir / 'fig-strategies.png', bbox_inches='tight', dpi=300)
-  print(f'wrote {out_dir}/fig-strategies.svg + .png')
+  fig.savefig(out_dir / 'si-strategies-full.svg', bbox_inches='tight')
+  fig.savefig(out_dir / 'si-strategies-full.png', bbox_inches='tight', dpi=300)
+  print(f'wrote {out_dir}/si-strategies-full.svg + .png')
 
 
 if __name__ == '__main__':
