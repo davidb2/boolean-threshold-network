@@ -62,7 +62,7 @@ def si_activity(sens_dir, out_dir):
                    mincnt=1, bins='log')
     r = np.corrcoef(A.ravel(), B.ravel())[0, 1]
     ax.set_xlabel('Control state variance')
-    ax.set_ylabel('Sensitivity, $B$')
+    ax.set_ylabel('Sensitivity, $S$')
     ax.set_title(f'$\\varepsilon = {2 * (1 - float(rho)):g}$, $r = {r:.2f}$', fontsize=19)
   fig.colorbar(hb, ax=axes, label='nodes (log scale)', shrink=0.85)
   save(fig, out_dir, 'si-activity')
@@ -142,7 +142,7 @@ def si_bdist(sens_dir, out_dir):
     ax.set_title(f'$\\varepsilon = {2 * (1 - float(rho)):g}$', fontsize=17)
     ax.set_yscale('log')
   for ax in axes[1]:
-    ax.set_xlabel('$B$', fontsize=16)
+    ax.set_xlabel('$S$', fontsize=16)
   for ax in axes[:, 0]:
     ax.set_ylabel('Nodes')
   save(fig, out_dir, 'si-bdist')

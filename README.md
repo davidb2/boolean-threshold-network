@@ -42,7 +42,10 @@ The code predates the paper's final notation. This table is the dictionary; the 
 | `g` | `--num-targets-per-drug` | target nodes per shock |
 | `c` | `--drug-strength` | shock strength in `w′ = (1 − c)w + c·ξ`; the paper uses `c = 1` throughout |
 | `m` | `--feature-sizes` (scripts) / `max_num_features` (CSVs) | reporter panel size |
-| `B_j` | output of `scripts/compute-b-array.py` | node sensitivity, mean \|shocked − control\| over shocks, replicates, and retained states |
+| `S_j` | the `B` array from `scripts/compute-b-array.py` (`B-rho*.npz`) | node sensitivity, mean \|shocked − control\| over shocks, replicates, and retained states; the paper previously wrote this as `B_j` |
+| `Δ_{j,q}` | the `S` array from `scripts/compute-per-drug-sensitivity.py` (`S-perdrug-rho*.npz`) | per-shock deviation of node `j` under shock `q`; `S_j` is its mean over shocks |
+
+CAUTION: the code and paper letters are crossed for historical reasons. The paper's sensitivity `S_j` lives in files and arrays named `B`, and the paper's per-shock deviation `Δ_{j,q}` lives in files and arrays named `S`. The file names are kept stable because cluster pipelines reference them.
 
 Noise levels used in the paper, in both conventions: `ε ∈ {0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1}` corresponds to `ρ ∈ {0.995, 0.99, 0.975, 0.95, 0.925, 0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6, 0.55, 0.5}`. Data directories, tags, and file names use the `ρ` values (`B-rho0.99.npz`, `rho0.5`, ...).
 

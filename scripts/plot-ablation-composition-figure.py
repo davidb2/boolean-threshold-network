@@ -158,7 +158,7 @@ def panel_c(ax, df):
   ax.axvspan(0.30, 0.36, color='#e8a000', alpha=0.18, lw=0)
   ax.text(0.33, 0.005, 'class\ncutoff', fontsize=13, color='#a97a00',
           ha='center', va='bottom')
-  ax.set_xlabel('Sensitivity $B$ of removed member')
+  ax.set_xlabel('Sensitivity $S$ of removed member')
   ax.set_ylabel('Accuracy drop')
   ax.set_xlim(0, 0.62)
   ax.set_ylim(0, 0.19)
