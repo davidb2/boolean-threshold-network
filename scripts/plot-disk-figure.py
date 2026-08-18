@@ -58,12 +58,12 @@ def load_panels(path):
           for _, r in fin.iterrows() if len(set(eval(r['features']))) == 8}
 
 
-def draw_disk(ax, vals, vmax, cmap, _class_color=None, ring=False):
-  '''Wedges only, no background fill; the colormap itself carries the class.'''
+def draw_disk(ax, vals, vmax, cmap, _class_color=None, ring=False, bg=None):
+  '''Wedges over an optional background disk; the colormap carries the class.'''
   n = len(vals)
   theta = np.linspace(0, 2 * np.pi, n, endpoint=False)
   width = 2 * np.pi / n * 0.9
-  ax.set_facecolor('none')
+  ax.set_facecolor(bg if bg is not None else 'none')
   ax.bar(theta, vals, width=width, bottom=0,
          color=[cmap(v / vmax) for v in vals],
          edgecolor='none', linewidth=0)
@@ -81,9 +81,10 @@ def draw_disk(ax, vals, vmax, cmap, _class_color=None, ring=False):
 AMP_CUT, H_CUT = 0.05, 0.80
 # ring style encodes the breadth class: solid = indiscriminate (responds to
 # nearly every shock), dashed = dormant (selective), dotted = unresponsive
-RING_STYLE = {'indiscriminate': 'solid',
-              'dormant': (0, (3.5, 2)),
-              'unresponsive': (0, (0.7, 1.8))}
+# dormant members carry a pale orange ground so they read as a distinct
+# group; indiscriminate and unresponsive members sit on white
+DORMANT_BG = '#fde7d0'
+CLASS_ORDER = {'indiscriminate': 0, 'dormant': 1, 'unresponsive': 2}
 
 
 def breadth_class(profile):
@@ -178,15 +179,17 @@ def main():
     for i, (net, n_s, acc) in enumerate(order):
       th = np.pi / 2 - 2 * np.pi * i / n_nets
       si, bi = snets.index(net), bnets.index(net)
-      sens, insens = panel_groups(panels[net], B[bi], cut)
-      for k, node in enumerate(sens + insens):
+      # order each ray by breadth class, then by sensitivity within class
+      members = [(node, breadth_class(S[si][:, node])) for node in panels[net]]
+      members.sort(key=lambda t: (CLASS_ORDER[t[1]], -B[bi, t[0]]))
+      for k, (node, klass) in enumerate(members):
         x, y = r[k] * np.cos(th), r[k] * np.sin(th)
         ax = fig.add_axes([cx + x * sx - d[k] * sx / 2, cy + y * sy - d[k] * sy / 2,
                            d[k] * sx, d[k] * sy], projection='polar')
-        prof = S[si][:, node]
-        draw_disk(ax, prof, vmax, cmap_s if k < n_s else cmap_i, ring=True)
+        cm = cmap_s if klass == 'indiscriminate' else cmap_i
+        draw_disk(ax, S[si][:, node], vmax, cm, ring=True,
+                  bg=DORMANT_BG if klass == 'dormant' else None)
         ax.spines['polar'].set_linewidth(0.5 + 0.2 * k / 7)
-        ax.spines['polar'].set_linestyle(RING_STYLE[breadth_class(prof)])
 
     from matplotlib.patches import Wedge
     from matplotlib.colors import to_rgb
@@ -213,14 +216,16 @@ def main():
       color = intensity * rgb_s + (1 - intensity) * np.ones(3)
       ax_bg.add_patch(Wedge((0, 0), ring_out, th_lo, th_hi,
                             width=ring_w, facecolor=color, edgecolor='none'))
-    for cm, x0, lab in [(cmap_s, 0.14, 'Sensitivity, indiscriminate members'),
-                        (cmap_i, 0.56, 'Sensitivity, dormant members')]:
+    for cm, y0, ticks in [(cmap_s, 0.062, False), (cmap_i, 0.028, True)]:
       sm = plt.cm.ScalarMappable(cmap=cm, norm=plt.Normalize(0, vmax))
-      cax = fig.add_axes([x0, 0.028, 0.30, 0.024])
+      cax = fig.add_axes([0.33, y0, 0.34, 0.020])
       cbar = fig.colorbar(sm, cax=cax, orientation='horizontal')
-      cbar.set_label(lab, fontsize=15)
-      cbar.ax.tick_params(labelsize=14)
       cbar.outline.set_edgecolor('#999999')
+      if ticks:
+        cbar.set_label('Sensitivity', fontsize=16)
+        cbar.ax.tick_params(labelsize=14)
+      else:
+        cbar.set_ticks([])
     fig.savefig(out_dir / 'fig-disks-radial.png', bbox_inches='tight', dpi=200)
     fig.savefig(out_dir / 'fig-disks-radial.svg', bbox_inches='tight')
     print(f'wrote {out_dir}/fig-disks-radial.png ({n_nets} networks)')
