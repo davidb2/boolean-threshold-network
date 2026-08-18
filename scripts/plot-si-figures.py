@@ -3,7 +3,7 @@
 
   si-activity      control-run activity vs shock sensitivity B
   si-redundancy    within-panel information: marginal entropy and pairwise MI
-  si-qk            Monte Carlo check of the single-node sensitivity q(K)
+  si-qk            simulation check of the single-node sensitivity q(K)
   si-bdist         sensitivity distributions and antimode cutoffs across noise
   si-convergence   genetic algorithm convergence at m = 8 across noise
 
@@ -118,16 +118,17 @@ def si_qk(out_dir):
     idx = rng.integers(0, K, size=M)
     s2[np.arange(M), idx] = 1 - s2[np.arange(M), idx]
     qs.append((base != out(s2)).mean())
-  fig, ax = plt.subplots(figsize=(5.4, 4.0))
+  fig, ax = plt.subplots(figsize=(6.0, 4.6))
   kk = np.linspace(1, 220, 300)
-  ax.plot(kk, c / np.sqrt(kk), color='#7f7f7f', lw=1.6,
-          label='$q(K) = \\sqrt{3/(4\\pi K)}$')
-  ax.plot(ks, qs, 'o', color='#1f77b4', markersize=6, label='Monte Carlo')
+  ax.plot(kk, c / np.sqrt(kk), color='#7f7f7f', lw=1.6, label='Theory')
+  ax.plot(ks, qs, 'o', color='#1f77b4', markersize=6, label='Simulation')
   ax.set_xscale('log')
   ax.set_yscale('log')
   ax.set_xlabel('In-degree, $K$')
   ax.set_ylabel('Single input sensitivity, $q(K)$')
-  ax.legend(frameon=False, fontsize=16)
+  leg = ax.legend(frameon=True, fontsize=15, framealpha=1.0, borderpad=0.6,
+                  edgecolor='#999999', fancybox=False)
+  leg.get_frame().set_linewidth(0.8)
   save(fig, out_dir, 'si-qk')
 
 
