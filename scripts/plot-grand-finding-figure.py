@@ -214,7 +214,7 @@ def main():
 
   line(ax_b, df, 'n_sens', GA, 'evolved panel')
   line(ax_b, df, 'expect', GRAY, 'random expectation')
-  ax_b.set_ylabel('Promiscuous nodes per panel')
+  ax_b.set_ylabel('Promiscuous nodes\nper panel')
   ax_b.set_ylim(0, 8)
   ax_b.legend(frameon=False, fontsize=22, loc='center left')
 
