@@ -58,7 +58,7 @@ def load_panels(path):
           for _, r in fin.iterrows() if len(set(eval(r['features']))) == 8}
 
 
-def draw_disk(ax, vals, vmax, cmap, _class_color=None):
+def draw_disk(ax, vals, vmax, cmap, _class_color=None, ring=False):
   '''Wedges only, no background fill; the colormap itself carries the class.'''
   n = len(vals)
   theta = np.linspace(0, 2 * np.pi, n, endpoint=False)
@@ -71,7 +71,11 @@ def draw_disk(ax, vals, vmax, cmap, _class_color=None):
   ax.set_xticks([])
   ax.set_yticks([])
   ax.grid(False)
-  ax.spines['polar'].set_visible(False)
+  # the thin bounding circle is opt in: the radial gallery keeps it so that
+  # each panel member reads as a disk, the single panel figures drop it
+  ax.spines['polar'].set_visible(ring)
+  if ring:
+    ax.spines['polar'].set_edgecolor('#999999')
 
 
 def panel_groups(nodes, B_row, cut):
@@ -160,8 +164,8 @@ def main():
         x, y = r[k] * np.cos(th), r[k] * np.sin(th)
         ax = fig.add_axes([cx + x * sx - d[k] * sx / 2, cy + y * sy - d[k] * sy / 2,
                            d[k] * sx, d[k] * sy], projection='polar')
-        draw_disk(ax, S[si][:, node], vmax, cmap_s if k < n_s else cmap_i)
-        ax.spines['polar'].set_linewidth(0.8 + 0.3 * k / 7)
+        draw_disk(ax, S[si][:, node], vmax, cmap_s if k < n_s else cmap_i, ring=True)
+        ax.spines['polar'].set_linewidth(0.5 + 0.2 * k / 7)
 
     from matplotlib.patches import Wedge
     from matplotlib.colors import to_rgb
