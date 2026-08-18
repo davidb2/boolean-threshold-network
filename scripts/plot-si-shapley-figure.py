@@ -18,9 +18,9 @@ chance, which is checked and printed.
      classes converge.
   c  how often an dormant member outranks the median indiscriminate member
      of its own panel, against noise.
-  d  where in the dormant range the evolutionary search recruits.
-     Selected dormant members sit at the top of the dormant range
-     rather than at its floor, so the search avoids dead nodes.
+  d  where below the sensitivity cutoff the evolutionary search
+     recruits. Selected members sit at the top of that range, so the
+     search avoids the unresponsive nodes that never move.
 
 Usage:
   python scripts/plot-si-shapley-figure.py \
@@ -115,7 +115,7 @@ def collect(deep_dir, sens_dir, min_baseline=0.7):
 
 
 def panel_recruitment(ga_csv, b_file, rng):
-  '''B of selected dormant members vs all dormant nodes.'''
+  '''B of selected members vs all nodes below the cutoff.'''
   b = np.load(b_file)
   B, bnets = b['B'], [int(x) for x in b['networks']]
   cut = antimode(B)
@@ -205,12 +205,12 @@ def main():
                                       f'{args.sensitivity_dir}/B-rho0.5.npz', rng)
   bins = np.linspace(0, cut, 26)
   ax_d.hist(avail, bins=bins, density=True, color='#c7c7c7', lw=0,
-            label='all dormant nodes')
+            label='all nodes below cutoff')
   ax_d.hist(sel, bins=bins, density=True, histtype='step', color=INSENS, lw=2.2,
             label='selected by the search')
   ax_d.axvline(np.median(avail), color='#7f7f7f', lw=1.4, linestyle=(0, (4, 3)))
   ax_d.axvline(np.median(sel), color=INSENS, lw=1.4, linestyle=(0, (4, 3)))
-  ax_d.set_xlabel('Sensitivity, $S$ (dormant range only)')
+  ax_d.set_xlabel('Sensitivity, $S$ (below cutoff only)')
   ax_d.set_ylabel('Density')
   ax_d.set_title('$\\varepsilon = 1$', fontsize=19)
   ax_d.legend(frameon=False, fontsize=14, loc='upper left')

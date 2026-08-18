@@ -78,47 +78,55 @@ def draw_disk(ax, vals, vmax, cmap, _class_color=None, ring=False, bg=None):
     ax.spines['polar'].set_edgecolor('#999999')
 
 
-AMP_CUT, H_CUT = 0.05, 0.80
-# ring style encodes the breadth class: solid = indiscriminate (responds to
-# nearly every shock), dashed = dormant (selective), dotted = unresponsive
 # dormant members carry a pale orange ground so they read as a distinct
 # group; indiscriminate and unresponsive members sit on white
 DORMANT_BG = '#fde7d0'
 CLASS_ORDER = {'indiscriminate': 0, 'dormant': 1, 'unresponsive': 2}
 
 
-def breadth_class(profile):
-  '''Classify one node from its per shock response profile.'''
-  tot = float(profile.sum())
-  if float(profile.max()) < AMP_CUT or tot <= 0:
+def breadth_class(profile, cut):
+  '''Class from how many shocks a node answers in absolute terms.
+
+  A node answers shock q when its deviation reaches the sensitivity cutoff.
+  Answering none makes it unresponsive, answering a minority makes it
+  dormant, answering a majority makes it indiscriminate. The rule uses only
+  the cutoff already defined for the sensitivity classes, so it introduces
+  no further threshold.
+  '''
+  n_hit = int((np.asarray(profile) >= cut).sum())
+  if n_hit == 0:
     return 'unresponsive'
-  p = profile / tot
-  p = p[p > 0]
-  H = float(-(p * np.log(p)).sum() / np.log(len(profile)))
-  return 'indiscriminate' if H >= H_CUT else 'dormant'
+  return 'indiscriminate' if n_hit > len(profile) / 2 else 'dormant'
 
 
-def panel_groups(nodes, B_row, cut):
-  sens = sorted([n for n in nodes if B_row[n] > cut], key=lambda n: -B_row[n])
-  insens = sorted([n for n in nodes if B_row[n] <= cut], key=lambda n: -B_row[n])
-  return sens, insens
+def panel_groups(S_net, nodes, B_row, cut):
+  '''Panel members split by breadth class, each group ordered by sensitivity.'''
+  klass = {n: breadth_class(S_net[:, n], cut) for n in nodes}
+  return [sorted([n for n in nodes if klass[n] == c], key=lambda n: -B_row[n])
+          for c in ('indiscriminate', 'dormant', 'unresponsive')]
 
 
 def draw_panel_row(fig, gs_row, S_net, nodes, B_row, cut, vmax, cmaps, label=None):
-  '''One example panel as a row of grouped, axis free disks.'''
-  sens, insens = panel_groups(nodes, B_row, cut)
-  order = sens + insens
-  n_s = len(sens)
-  for k, node in enumerate(order):
-    # small horizontal gap between the two groups
-    slot = k if k < n_s else k + 1
-    ax = fig.add_subplot(gs_row[0, slot], projection='polar')
-    draw_disk(ax, S_net[:, node], vmax, cmaps[0] if k < n_s else cmaps[1])
+  '''One example panel as a row of grouped, axis free disks.
+
+  Slots run indiscriminate, gap, dormant, gap, unresponsive, so the three
+  classes read left to right in the same order as the radial gallery.
+  '''
+  groups = panel_groups(S_net, nodes, B_row, cut)
+  counts = [len(g) for g in groups]
+  slot = 0
+  for gi, g in enumerate(groups):
+    for node in g:
+      ax = fig.add_subplot(gs_row[0, slot], projection='polar')
+      draw_disk(ax, S_net[:, node], vmax, cmaps[0] if gi == 0 else cmaps[1],
+                bg=DORMANT_BG if gi == 1 else None)
+      slot += 1
+    slot += 1                       # gap between groups, kept even when empty
   if label is not None:
     ax0 = fig.add_subplot(gs_row[0, :], frameon=False)
     ax0.set_xticks([]); ax0.set_yticks([])
     ax0.set_ylabel(label, fontsize=18, rotation=0, ha='right', va='center', labelpad=34)
-  return n_s, len(insens)
+  return counts
 
 
 def main():
@@ -147,7 +155,7 @@ def main():
   abl = pd.read_csv(args.ablation_file)
   base = abl.groupby('original_network_idx')['baseline_acc'].first()
 
-  vmax = 0.6
+  vmax = 1.0   # per shock deviations reach 1.0; a lower ceiling clips them
   from matplotlib.colors import LinearSegmentedColormap
   cmap_s = LinearSegmentedColormap.from_list('whiteorange', ['#ffffff', '#ff7f0e', '#8c4a03'])
   cmap_i = LinearSegmentedColormap.from_list('whiteblack', ['#ffffff', '#000000'])
@@ -164,7 +172,7 @@ def main():
         continue
       si = snets.index(net)
       n_ind = sum(1 for node in nodes
-                  if breadth_class(S[si][:, node]) == 'indiscriminate')
+                  if breadth_class(S[si][:, node], cut) == 'indiscriminate')
       rows.append((net, n_ind, float(base.get(net, np.nan))))
     order = sorted(rows, key=lambda r: (-r[1], -(r[2] if r[2] == r[2] else 0)))
     n_nets = len(order)
@@ -184,7 +192,7 @@ def main():
       th = np.pi / 2 - 2 * np.pi * i / n_nets
       si, bi = snets.index(net), bnets.index(net)
       # order each ray by breadth class, then by sensitivity within class
-      members = [(node, breadth_class(S[si][:, node])) for node in panels[net]]
+      members = [(node, breadth_class(S[si][:, node], cut)) for node in panels[net]]
       members.sort(key=lambda t: (CLASS_ORDER[t[1]], -B[bi, t[0]]))
       for k, (node, klass) in enumerate(members):
         x, y = r[k] * np.cos(th), r[k] * np.sin(th)
@@ -215,8 +223,8 @@ def main():
     for n_s, i0, i1 in groups:
       th_hi = 90 - 360.0 * i0 / n_nets + half - gap_deg / 2
       th_lo = 90 - 360.0 * i1 / n_nets - half + gap_deg / 2
-      # intensity of red scales with the indiscriminate count, no blue mixing
-      intensity = (n_s / 8.0) * 0.38
+      # intensity of orange scales with the indiscriminate count, no hue mixing
+      intensity = 0.07 + 0.48 * n_s / 8.0
       color = intensity * rgb_s + (1 - intensity) * np.ones(3)
       ax_bg.add_patch(Wedge((0, 0), ring_out, th_lo, th_hi,
                             width=ring_w, facecolor=color, edgecolor='none'))
@@ -253,14 +261,15 @@ def main():
       prev_ns = None
       for i, (net, n_s, acc) in enumerate(blk):
         si, bi = snets.index(net), bnets.index(net)
-        sens, insens = panel_groups(panels[net], B[bi], cut)
-        for k, node in enumerate(sens):
+        ind, dor, unr = panel_groups(S[si], panels[net], B[bi], cut)
+        for k, node in enumerate(ind):
           ax = fig.add_subplot(grid[i, k], projection='polar')
           draw_disk(ax, S[si][:, node], vmax, cmap_s)
           ax.spines['polar'].set_linewidth(1.0)
-        for k, node in enumerate(insens):
-          ax = fig.add_subplot(grid[i, 9 - len(insens) + k], projection='polar')
-          draw_disk(ax, S[si][:, node], vmax, cmap_i)
+        for k, node in enumerate(dor + unr):
+          ax = fig.add_subplot(grid[i, 9 - len(dor) - len(unr) + k], projection='polar')
+          draw_disk(ax, S[si][:, node], vmax, cmap_i,
+                    bg=DORMANT_BG if k < len(dor) else None)
           ax.spines['polar'].set_linewidth(1.0)
         if n_s != prev_ns:
           # the empty slot between the two groups carries the count
@@ -300,7 +309,7 @@ def main():
     fig = plt.figure(figsize=(11.5, 1.55 * len(picks)))
     outer = fig.add_gridspec(len(picks), 1, hspace=0.5)
     for i, r in enumerate(picks.itertuples()):
-      gs_row = outer[i].subgridspec(1, 9, wspace=0.12)
+      gs_row = outer[i].subgridspec(1, 10, wspace=0.12)
       si, bi = snets.index(r.net), bnets.index(r.net)
       draw_panel_row(fig, gs_row, S[si], panels[r.net], B[bi], cut, vmax, (cmap_s, cmap_i),
                      label=f'network {r.net}\n{r.n_sens} sens, acc {r.baseline:.2f}')
@@ -315,21 +324,24 @@ def main():
   nodes = panels[net]
   si, bi = snets.index(net), bnets.index(net)
 
-  fig = plt.figure(figsize=(12.8, 5.6))
-  outer = fig.add_gridspec(2, 1, height_ratios=[1.0, 1.05], hspace=0.55)
-  gs_row = outer[0].subgridspec(1, 9, wspace=0.12)
-  n_s, n_i = draw_panel_row(fig, gs_row, S[si], nodes, B[bi], cut, vmax, (cmap_s, cmap_i))
+  fig = plt.figure(figsize=(12.8, 6.0))
+  outer = fig.add_gridspec(2, 1, height_ratios=[1.0, 1.05], hspace=0.95)
+  gs_row = outer[0].subgridspec(1, 10, wspace=0.12)
+  counts = draw_panel_row(fig, gs_row, S[si], nodes, B[bi], cut, vmax, (cmap_s, cmap_i))
   fig.text(0.06, 0.965, 'a', fontsize=31, fontweight='bold', color='#222222')
   # group labels centered under each group, computed from the actual axes
   fig.canvas.draw()
   pos = [ax.get_position() for ax in fig.axes if ax.name == 'polar']
-  sens_axes, insens_axes = pos[:n_s], pos[n_s:n_s + n_i]
-  if sens_axes:
-    xc = 0.5 * (sens_axes[0].x0 + sens_axes[-1].x1)
-    fig.text(xc, 0.53, 'indiscriminate members', fontsize=19, color=SENS, ha='center')
-  if insens_axes:
-    xc = 0.5 * (insens_axes[0].x0 + insens_axes[-1].x1)
-    fig.text(xc, 0.53, 'dormant members', fontsize=19, color=INSENS, ha='center')
+  y_lab = min(p.y0 for p in pos[:sum(counts)]) - 0.02
+  start = 0
+  for n_g, lab, col in zip(counts, ['indiscriminate', 'dormant', 'unresponsive'],
+                           [SENS, '#b06a20', INSENS]):
+    if n_g:
+      grp = pos[start:start + n_g]
+      xc = 0.5 * (grp[0].x0 + grp[-1].x1)
+      fig.text(xc, y_lab, f'{lab}\nmembers', fontsize=17, color=col,
+               ha='center', va='top', linespacing=1.1)
+    start += n_g
 
   # panel b: effective number of shocks by member rank, all networks
   eff = []
@@ -358,19 +370,23 @@ def main():
   ax_e.text(-0.42, 1.02, 'b', transform=ax_e.transAxes,
             fontsize=31, fontweight='bold', color='#222222')
 
-  # shared colorbar
-  for cm, y0, lab in [(cmap_s, 0.60, 'indiscriminate'), (cmap_i, 0.16, 'dormant')]:
+  # the two ramps stacked side by side, sharing one axis label
+  for cm, x0, ticks in [(cmap_s, 0.965, False), (cmap_i, 0.997, True)]:
     sm = plt.cm.ScalarMappable(cmap=cm, norm=plt.Normalize(0, vmax))
-    cax = fig.add_axes([0.925, y0, 0.011, 0.28])
+    cax = fig.add_axes([x0, 0.58, 0.016, 0.34])
     cbar = fig.colorbar(sm, cax=cax)
-    cbar.set_label(f'Sensitivity, {lab}', fontsize=15)
-    cbar.ax.tick_params(labelsize=13)
     cbar.outline.set_edgecolor('#999999')
+    if ticks:
+      cbar.set_label('Sensitivity', fontsize=16)
+      cbar.ax.tick_params(labelsize=13)
+    else:
+      cbar.set_ticks([])
 
   name = f'fig-disks-eps{args.eps_label}'
   fig.savefig(out_dir / f'{name}.svg', bbox_inches='tight')
   fig.savefig(out_dir / f'{name}.png', bbox_inches='tight', dpi=300)
-  print(f'wrote {out_dir}/{name}.svg + .png (network {net}, {n_s}+{n_i})')
+  print(f'wrote {out_dir}/{name}.svg + .png (network {net}, '
+        f'{counts[0]} indiscriminate, {counts[1]} dormant, {counts[2]} unresponsive)')
 
 
 if __name__ == '__main__':

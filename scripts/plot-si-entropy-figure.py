@@ -2,29 +2,32 @@
 '''Classifying reporters by response breadth rather than by mean response.
 
 The scalar sensitivity S averages a node's response over the ten shocks,
-so it cannot separate a node that answers every shock weakly from a node
-that answers one shock enormously and the rest not at all. This figure
-splits nodes on two measured axes instead:
+so a node that answers one shock enormously and a node that answers every
+shock weakly can carry the same S. This figure classifies nodes by how
+many shocks they answer in absolute terms instead.
 
-  amplitude  max_q Delta_{j,q}, the largest single shock response
-  breadth    H_j = -sum_q p log p / log 10, the entropy of the node's
-             normalized response profile p_q = Delta_{j,q} / sum Delta,
-             so H = 1 means it answers all ten shocks equally and H -> 0
-             means its whole response sits in one shock
+A node answers shock q when its deviation reaches the sensitivity cutoff,
+Delta_{j,q} >= theta, where theta is the antimode of the pooled S
+distribution, the same cutoff that separates the sensitivity classes. Let
+n_j be the number of shocks a node answers. Then
 
-  unresponsive   amplitude below 0.05
-  indiscriminate responsive with H >= 0.8
-  dormant        responsive with H < 0.8
+  unresponsive    n_j = 0    no shock ever moves it past the cutoff
+  dormant         1 <= n_j <= 5   it answers a minority of shocks
+  indiscriminate  n_j >= 6   it answers a majority of shocks
 
-  a  the two axes together. Broad responders pile against the
-     decorrelation ceiling near amplitude 0.5 at H close to one, while
-     the largest single responses belong to selective nodes.
-  b  what each selection strategy puts in an eight member panel. The
+The rule introduces no threshold beyond theta, and it enforces the
+requirement that a dormant node must respond strongly to something.
+
+  a  the distribution of n_j at three noise levels. It is U shaped with an
+     interior minimum near the majority split, so the split is not
+     arbitrary.
+  b  mean sensitivity against breadth. S predicts n_j well but not
+     exactly, and the disagreement sits at the cutoff, which is where the
+     mean is least informative.
+  c  what each selection strategy puts in an eight member panel. The
      comparison that matters is against the responsiveness heuristic, the
      rule the paper argues with, not against random selection.
-  c  the same composition at three noise levels.
-  d  breadth is not a restatement of amplitude: the relation is not
-     monotone, and the most extreme responders are selective, not broad.
+  d  the same composition at three noise levels.
 
 Usage:
   python scripts/plot-si-entropy-figure.py \
@@ -45,8 +48,7 @@ import pandas as pd
 IND = '#ff7f0e'      # indiscriminate
 DOR = '#000000'      # dormant
 UNR = '#c7c7c7'      # unresponsive
-AMP_CUT = 0.05
-H_CUT = 0.80
+SPLIT = 6            # answering this many shocks or more makes a node indiscriminate
 K = 8
 
 plt.rcParams.update({
@@ -59,27 +61,30 @@ plt.rcParams.update({
 })
 
 
-def profile_stats(sens_dir, tag):
-  '''Amplitude and normalized profile entropy for every node.'''
+def antimode(B, lo=0.05, hi=0.40):
+  c, e = np.histogram(B.ravel(), bins=np.linspace(0, 1, 101))
+  ce = 0.5 * (e[:-1] + e[1:])
+  s = np.convolve(c, np.ones(5) / 5, mode='same')
+  w = (ce > lo) & (ce < hi)
+  return float(ce[w][np.argmin(s[w])])
+
+
+def load(sens_dir, tag):
+  '''Per node breadth n_j, mean sensitivity S, and the cutoff theta.'''
   Sp = np.load(f'{sens_dir}/S-perdrug-rho{tag}.npz')['S']     # (nets, shocks, nodes)
-  tot = Sp.sum(axis=1)
-  amp = Sp.max(axis=1)
-  p = np.divide(Sp, tot[:, None, :], out=np.zeros_like(Sp), where=tot[:, None, :] > 0)
-  with np.errstate(divide='ignore', invalid='ignore'):
-    H = -(np.where(p > 0, p * np.log(p), 0)).sum(axis=1) / np.log(Sp.shape[1])
-  H[tot == 0] = np.nan
-  return amp, H
+  b = np.load(f'{sens_dir}/B-rho{tag}.npz')
+  B, bnets = b['B'], [int(x) for x in b['networks']]
+  cut = antimode(B)
+  n = (Sp >= cut).sum(axis=1)                                 # (nets, nodes)
+  return n, B, bnets, cut, Sp
 
 
-def classes(amp_row, H_row, nodes):
+def classes(n_row, nodes):
   out = []
-  for n in nodes:
-    if amp_row[n] < AMP_CUT or np.isnan(H_row[n]):
-      out.append('unresponsive')
-    elif H_row[n] >= H_CUT:
-      out.append('indiscriminate')
-    else:
-      out.append('dormant')
+  for j in nodes:
+    k = int(n_row[j])
+    out.append('unresponsive' if k == 0 else
+               'indiscriminate' if k >= SPLIT else 'dormant')
   return out
 
 
@@ -97,21 +102,22 @@ def panels_for(ga_csv):
 
 def composition(sens_dir, tag, ga_csv, rng):
   '''Mean class counts per panel for evolved, heuristic, and random selection.'''
-  amp, H = profile_stats(sens_dir, tag)
-  b = np.load(f'{sens_dir}/B-rho{tag}.npz')
-  S, bnets = b['B'], [int(x) for x in b['networks']]
+  n, B, bnets, cut, _ = load(sens_dir, tag)
   panels = panels_for(ga_csv)
   rows = []
+  used = 0
   for net, nodes in panels.items():
+    if net not in bnets:
+      continue
     bi = bnets.index(net)
-    top = list(np.argsort(-S[bi])[:K])
-    rnd = list(rng.choice(S.shape[1], K, replace=False))
+    used += 1
+    top = list(np.argsort(-B[bi])[:K])
+    rnd = list(rng.choice(B.shape[1], K, replace=False))
     for lab, sel in [('evolved', nodes), ('most responsive', top), ('random', rnd)]:
-      for c in classes(amp[bi], H[bi], sel):
+      for c in classes(n[bi], sel):
         rows.append(dict(strategy=lab, cls=c))
   T = pd.DataFrame(rows)
-  n = len(panels)
-  return (T.groupby(['strategy', 'cls']).size().unstack(fill_value=0) / n
+  return (T.groupby(['strategy', 'cls']).size().unstack(fill_value=0) / used
           ).reindex(index=['evolved', 'most responsive', 'random'],
                     columns=['indiscriminate', 'dormant', 'unresponsive'], fill_value=0)
 
@@ -147,31 +153,54 @@ def main():
   args = p.parse_args()
   rng = np.random.default_rng(5)
 
-  fig = plt.figure(figsize=(15.2, 9.6))
-  gs = fig.add_gridspec(2, 2, hspace=0.40, wspace=0.28)
+  fig = plt.figure(figsize=(15.2, 9.8))
+  gs = fig.add_gridspec(2, 2, hspace=0.44, wspace=0.30)
   ax_a, ax_b = fig.add_subplot(gs[0, 0]), fig.add_subplot(gs[0, 1])
   ax_c, ax_d = fig.add_subplot(gs[1, 0]), fig.add_subplot(gs[1, 1])
 
-  # a: the two axes, at high noise
-  amp, H = profile_stats(args.sensitivity_dir, args.tags[2])
-  m = (amp >= AMP_CUT) & ~np.isnan(H)
-  ax_a.hist2d(amp[m], H[m], bins=[np.linspace(0, 1, 70), np.linspace(0, 1.001, 70)],
-              cmap='Greys', norm=matplotlib.colors.LogNorm())
-  ax_a.axhline(H_CUT, color=IND, lw=1.8, linestyle=(0, (4, 3)))
-  ax_a.text(0.02, H_CUT + 0.02, 'indiscriminate', fontsize=14, color=IND)
-  ax_a.text(0.02, H_CUT - 0.07, 'dormant', fontsize=14, color=DOR)
-  ax_a.set_xlabel('Amplitude, $\\max_q \\Delta_{j,q}$')
-  ax_a.set_ylabel('Breadth, profile entropy $H$')
-  ax_a.set_title(f'Responsive nodes, $\\varepsilon = {args.eps_labels[2]}$', fontsize=17)
+  # a: the breadth distribution at every noise level, on one axis
+  greys = ['#c7c7c7', '#7f7f7f', '#222222']
+  for tag, eps, col in zip(args.tags, args.eps_labels, greys):
+    n, _, _, cut, _ = load(args.sensitivity_dir, tag)
+    h = np.bincount(n.ravel(), minlength=11) / n.size
+    ax_a.plot(np.arange(11), 100 * h, color=col, lw=2.2, marker='o', markersize=5,
+              label=f'$\\varepsilon = {eps}$')
+    print(f'eps {eps}: theta {cut:.3f}  unresponsive {100*h[0]:.1f}%  '
+          f'dormant {100*h[1:SPLIT].sum():.1f}%  indiscriminate {100*h[SPLIT:].sum():.1f}%')
+  ax_a.axvline(SPLIT - 0.5, color=IND, lw=1.8, linestyle=(0, (4, 3)))
+  ax_a.set_yscale('log')
+  ax_a.set_xticks(range(0, 11, 2))
+  ax_a.set_xlabel('Shocks answered, $n_j$')
+  ax_a.set_ylabel('Percent of nodes')
+  ax_a.text(SPLIT - 0.35, 32, 'indiscriminate', fontsize=13, color=IND)
+  ax_a.legend(frameon=False, fontsize=14, loc='lower left', handlelength=1.2)
 
-  # b: composition by strategy at high noise -- the headline panel
+  # b: the mean does not determine the breadth
+  n_hi, B_hi, _, cut_hi, _ = load(args.sensitivity_dir, args.tags[2])
+  ax_b.hist2d(B_hi.ravel(), n_hi.ravel(),
+              bins=[np.linspace(0, 0.7, 70), np.arange(-0.5, 11.5, 1)],
+              cmap='Greys', norm=matplotlib.colors.LogNorm())
+  ax_b.axvline(cut_hi, color=IND, lw=1.8, linestyle=(0, (4, 3)))
+  ax_b.axhline(SPLIT - 0.5, color=IND, lw=1.8, linestyle=(0, (4, 3)))
+  ax_b.set_xlabel('Mean sensitivity, $S_j$')
+  ax_b.set_ylabel('Shocks answered, $n_j$')
+  ax_b.set_title(f'$\\varepsilon = {args.eps_labels[2]}$', fontsize=17)
+  ax_b.text(cut_hi + 0.012, 8.6, r'$\theta$', fontsize=17, color=IND)
+  # the two rules disagree exactly where the mean sits near the cutoff
+  agree = ((B_hi.ravel() > cut_hi) == (n_hi.ravel() >= SPLIT)).mean()
+  band = (B_hi.ravel() > cut_hi - 0.05) & (B_hi.ravel() < cut_hi + 0.05)
+  print(f'mean rule and breadth rule agree on {100*agree:.0f}% of nodes; '
+        f'{100*band[((B_hi.ravel() > cut_hi) != (n_hi.ravel() >= SPLIT))].mean():.0f}% '
+        f'of the disagreements lie within 0.05 of the cutoff')
+
+  # c: composition by strategy at high noise, the headline panel
   comp_hi = composition(args.sensitivity_dir, args.tags[2], args.ga_csvs[2], rng)
-  stacked(ax_b, comp_hi, title=f'$\\varepsilon = {args.eps_labels[2]}$', legend=True)
-  ax_b.legend(frameon=False, fontsize=13, ncol=3, loc='upper center',
-              bbox_to_anchor=(0.5, -0.22), columnspacing=1.2, handlelength=1.1)
+  stacked(ax_c, comp_hi, title=f'$\\varepsilon = {args.eps_labels[2]}$', legend=True)
+  ax_c.legend(frameon=False, fontsize=13, ncol=3, loc='upper center',
+              bbox_to_anchor=(0.5, -0.26), columnspacing=1.2, handlelength=1.1)
   print(comp_hi.round(2).to_string())
 
-  # c: the same at all three noise levels, evolved vs the heuristic
+  # d: the same across noise, evolved against the heuristic
   width = 0.26
   xs = np.arange(3)
   for j, (lab, col) in enumerate([('evolved', DOR), ('most responsive', IND),
@@ -179,39 +208,17 @@ def main():
     vals = []
     for tag, ga in zip(args.tags, args.ga_csvs):
       c = composition(args.sensitivity_dir, tag, ga, np.random.default_rng(5))
-      vals.append(c.loc[lab, 'dormant'] + c.loc[lab, 'unresponsive'])
-    ax_c.bar(xs + (j - 1) * width, vals, width * 0.92, color=col,
+      vals.append(c.loc[lab, 'dormant'])
+    ax_d.bar(xs + (j - 1) * width, vals, width * 0.92, color=col,
              edgecolor='#222222', linewidth=1.0, label=lab)
     for x, v in zip(xs + (j - 1) * width, vals):
-      ax_c.text(x, v + 0.06, f'{v:.2f}', ha='center', fontsize=12)
-  ax_c.set_xticks(xs)
-  ax_c.set_xticklabels([f'$\\varepsilon = {e}$' for e in args.eps_labels])
-  ax_c.set_ylabel('Non indiscriminate\nmembers per panel')
-  ax_c.set_ylim(0, 5.2)
-  ax_c.legend(frameon=False, fontsize=12.5, loc='upper right', ncol=1,
+      ax_d.text(x, v + 0.06, f'{v:.2f}', ha='center', fontsize=12)
+  ax_d.set_xticks(xs)
+  ax_d.set_xticklabels([f'$\\varepsilon = {e}$' for e in args.eps_labels])
+  ax_d.set_ylabel('Dormant members\nper panel')
+  ax_d.set_ylim(0, 4.1)
+  ax_d.legend(frameon=False, fontsize=12.5, loc='upper left', ncol=1,
               handlelength=1.1, labelspacing=0.3)
-
-  # d: breadth is not amplitude
-  qs = np.quantile(amp[m], np.linspace(0, 1, 9))
-  mids, meds, fsel = [], [], []
-  for i in range(len(qs) - 1):
-    sel = (amp[m] >= qs[i]) & (amp[m] <= qs[i + 1])
-    if sel.sum() < 50:
-      continue
-    mids.append(0.5 * (qs[i] + qs[i + 1]))
-    meds.append(np.nanmedian(H[m][sel]))
-    fsel.append(np.nanmean(H[m][sel] < H_CUT))
-  ax_d.plot(mids, meds, color='#222222', lw=2.2, marker='o', markersize=5)
-  ax_d.set_xlabel('Amplitude, $\\max_q \\Delta_{j,q}$')
-  ax_d.set_ylabel('Median profile entropy $H$')
-  ax_d.axhline(H_CUT, color=IND, lw=1.4, linestyle=(0, (4, 3)))
-  ax_d.set_ylim(0, 1.05)
-  ax2 = ax_d.twinx()
-  ax2.plot(mids, fsel, color=DOR, lw=1.6, linestyle=(0, (3, 2)), marker='s', markersize=4)
-  ax2.set_ylabel('Fraction dormant', fontsize=15)
-  ax2.set_ylim(0, 1.0)
-  ax2.spines['top'].set_visible(False)
-  ax_d.text(0.42, 0.30, 'decorrelation\nceiling', fontsize=13, color='#666666', ha='center')
 
   for ax, letter in zip([ax_a, ax_b, ax_c, ax_d], 'abcd'):
     ax.text(-0.17, 1.06, letter, transform=ax.transAxes,

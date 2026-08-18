@@ -44,6 +44,10 @@ The code predates the paper's final notation. This table is the dictionary; the 
 | `m` | `--feature-sizes` (scripts) / `max_num_features` (CSVs) | reporter panel size |
 | `S_j` | the `B` array from `scripts/compute-b-array.py` (`B-rho*.npz`) | node sensitivity, mean \|shocked − control\| over shocks, replicates, and retained states; the paper previously wrote this as `B_j` |
 | `Δ_{j,q}` | the `S` array from `scripts/compute-per-drug-sensitivity.py` (`S-perdrug-rho*.npz`) | per-shock deviation of node `j` under shock `q`; `S_j` is its mean over shocks |
+| `θ` | `antimode()` in the plotting scripts | cutoff separating the two modes of the pooled `S` histogram, searched on `[0.05, 0.40]`; 0.335 at ε=0, 0.305 at ε=0.5, 0.355 at ε=1 |
+| `n_j` | `(S_perdrug >= θ).sum(axis=shocks)` | number of shocks node `j` answers, i.e. how many `Δ_{j,q}` reach `θ` |
+
+Node classes are defined from `n_j` and are disjoint: **unresponsive** `n_j = 0`, **dormant** `1 ≤ n_j ≤ 5`, **indiscriminate** `n_j ≥ 6`. An unresponsive node is not a quiet dormant one; a dormant node answers at least one shock at full strength. The `S_j > θ` test picks out the same nodes as `n_j ≥ 6` for 97% of nodes, so figures that only count indiscriminate members use it (it is available at every ρ, whereas `S-perdrug` is cached only for ρ ∈ {0.5, 0.75-b4, 0.99, 1.0}).
 
 CAUTION: the code and paper letters are crossed for historical reasons. The paper's sensitivity `S_j` lives in files and arrays named `B`, and the paper's per-shock deviation `Δ_{j,q}` lives in files and arrays named `S`. The file names are kept stable because cluster pipelines reference them.
 
