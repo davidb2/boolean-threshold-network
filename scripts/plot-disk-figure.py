@@ -78,6 +78,25 @@ def draw_disk(ax, vals, vmax, cmap, _class_color=None, ring=False):
     ax.spines['polar'].set_edgecolor('#999999')
 
 
+AMP_CUT, H_CUT = 0.05, 0.80
+# ring style encodes the breadth class: solid = indiscriminate (responds to
+# nearly every shock), dashed = dormant (selective), dotted = unresponsive
+RING_STYLE = {'indiscriminate': 'solid',
+              'dormant': (0, (3.5, 2)),
+              'unresponsive': (0, (0.7, 1.8))}
+
+
+def breadth_class(profile):
+  '''Classify one node from its per shock response profile.'''
+  tot = float(profile.sum())
+  if float(profile.max()) < AMP_CUT or tot <= 0:
+    return 'unresponsive'
+  p = profile / tot
+  p = p[p > 0]
+  H = float(-(p * np.log(p)).sum() / np.log(len(profile)))
+  return 'indiscriminate' if H >= H_CUT else 'dormant'
+
+
 def panel_groups(nodes, B_row, cut):
   sens = sorted([n for n in nodes if B_row[n] > cut], key=lambda n: -B_row[n])
   insens = sorted([n for n in nodes if B_row[n] <= cut], key=lambda n: -B_row[n])
@@ -164,8 +183,10 @@ def main():
         x, y = r[k] * np.cos(th), r[k] * np.sin(th)
         ax = fig.add_axes([cx + x * sx - d[k] * sx / 2, cy + y * sy - d[k] * sy / 2,
                            d[k] * sx, d[k] * sy], projection='polar')
-        draw_disk(ax, S[si][:, node], vmax, cmap_s if k < n_s else cmap_i, ring=True)
+        prof = S[si][:, node]
+        draw_disk(ax, prof, vmax, cmap_s if k < n_s else cmap_i, ring=True)
         ax.spines['polar'].set_linewidth(0.5 + 0.2 * k / 7)
+        ax.spines['polar'].set_linestyle(RING_STYLE[breadth_class(prof)])
 
     from matplotlib.patches import Wedge
     from matplotlib.colors import to_rgb
