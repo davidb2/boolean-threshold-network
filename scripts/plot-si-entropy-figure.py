@@ -13,7 +13,7 @@ n_j be the number of shocks a node answers. Then
 
   unresponsive    n_j = 0    no shock ever moves it past the cutoff
   dormant         1 <= n_j <= 5   it answers a minority of shocks
-  indiscriminate  n_j >= 6   it answers a majority of shocks
+  promiscuous  n_j >= 6   it answers a majority of shocks
 
 The rule introduces no threshold beyond theta, and it enforces the
 requirement that a dormant node must respond strongly to something.
@@ -45,10 +45,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-IND = '#ff7f0e'      # indiscriminate
+IND = '#ff7f0e'      # promiscuous
 DOR = '#000000'      # dormant
 UNR = '#c7c7c7'      # unresponsive
-SPLIT = 6            # answering this many shocks or more makes a node indiscriminate
+SPLIT = 6            # answering this many shocks or more makes a node promiscuous
 K = 8
 
 plt.rcParams.update({
@@ -84,7 +84,7 @@ def classes(n_row, nodes):
   for j in nodes:
     k = int(n_row[j])
     out.append('unresponsive' if k == 0 else
-               'indiscriminate' if k >= SPLIT else 'dormant')
+               'promiscuous' if k >= SPLIT else 'dormant')
   return out
 
 
@@ -113,19 +113,19 @@ def composition(sens_dir, tag, ga_csv, rng):
     used += 1
     top = list(np.argsort(-B[bi])[:K])
     rnd = list(rng.choice(B.shape[1], K, replace=False))
-    for lab, sel in [('evolved', nodes), ('most responsive', top), ('random', rnd)]:
+    for lab, sel in [('evolved', nodes), ('highest sensitivity', top), ('random', rnd)]:
       for c in classes(n[bi], sel):
         rows.append(dict(strategy=lab, cls=c))
   T = pd.DataFrame(rows)
   return (T.groupby(['strategy', 'cls']).size().unstack(fill_value=0) / used
-          ).reindex(index=['evolved', 'most responsive', 'random'],
-                    columns=['indiscriminate', 'dormant', 'unresponsive'], fill_value=0)
+          ).reindex(index=['evolved', 'highest sensitivity', 'random'],
+                    columns=['promiscuous', 'dormant', 'unresponsive'], fill_value=0)
 
 
 def stacked(ax, comp, title=None, legend=False):
   ys = np.arange(len(comp))
   left = np.zeros(len(comp))
-  for cls, col in [('indiscriminate', IND), ('dormant', DOR), ('unresponsive', UNR)]:
+  for cls, col in [('promiscuous', IND), ('dormant', DOR), ('unresponsive', UNR)]:
     v = comp[cls].to_numpy()
     ax.barh(ys, v, left=left, color=col, height=0.62,
             edgecolor='white', linewidth=1.2, label=cls if legend else None)
@@ -166,13 +166,13 @@ def main():
     ax_a.plot(np.arange(11), 100 * h, color=col, lw=2.2, marker='o', markersize=5,
               label=f'$\\varepsilon = {eps}$')
     print(f'eps {eps}: theta {cut:.3f}  unresponsive {100*h[0]:.1f}%  '
-          f'dormant {100*h[1:SPLIT].sum():.1f}%  indiscriminate {100*h[SPLIT:].sum():.1f}%')
+          f'dormant {100*h[1:SPLIT].sum():.1f}%  promiscuous {100*h[SPLIT:].sum():.1f}%')
   ax_a.axvline(SPLIT - 0.5, color=IND, lw=1.8, linestyle=(0, (4, 3)))
   ax_a.set_yscale('log')
   ax_a.set_xticks(range(0, 11, 2))
   ax_a.set_xlabel('Shocks answered, $n_j$')
   ax_a.set_ylabel('Percent of nodes')
-  ax_a.text(SPLIT - 0.35, 32, 'indiscriminate', fontsize=13, color=IND)
+  ax_a.text(SPLIT - 0.35, 32, 'promiscuous', fontsize=13, color=IND)
   ax_a.legend(frameon=False, fontsize=14, loc='lower left', handlelength=1.2)
 
   # b: the mean does not determine the breadth
@@ -203,7 +203,7 @@ def main():
   # d: the same across noise, evolved against the heuristic
   width = 0.26
   xs = np.arange(3)
-  for j, (lab, col) in enumerate([('evolved', DOR), ('most responsive', IND),
+  for j, (lab, col) in enumerate([('evolved', DOR), ('highest sensitivity', IND),
                                   ('random', UNR)]):
     vals = []
     for tag, ga in zip(args.tags, args.ga_csvs):

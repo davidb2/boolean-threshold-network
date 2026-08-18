@@ -47,7 +47,7 @@ The code predates the paper's final notation. This table is the dictionary; the 
 | `θ` | `antimode()` in the plotting scripts | cutoff separating the two modes of the pooled `S` histogram, searched on `[0.05, 0.40]`; 0.335 at ε=0, 0.305 at ε=0.5, 0.355 at ε=1 |
 | `n_j` | `(S_perdrug >= θ).sum(axis=shocks)` | number of shocks node `j` answers, i.e. how many `Δ_{j,q}` reach `θ` |
 
-Node classes are defined from `n_j` and are disjoint: **unresponsive** `n_j = 0`, **dormant** `1 ≤ n_j ≤ 5`, **indiscriminate** `n_j ≥ 6`. An unresponsive node is not a quiet dormant one; a dormant node answers at least one shock at full strength. The `S_j > θ` test picks out the same nodes as `n_j ≥ 6` for 97% of nodes, so figures that only count indiscriminate members use it (it is available at every ρ, whereas `S-perdrug` is cached only for ρ ∈ {0.5, 0.75-b4, 0.99, 1.0}).
+Node classes are defined from `n_j` and are disjoint: **unresponsive** `n_j = 0`, **dormant** `1 ≤ n_j ≤ 5`, **promiscuous** `n_j ≥ 6`. An unresponsive node is not a quiet dormant one; a dormant node answers at least one shock at full strength. The `S_j > θ` test picks out the same nodes as `n_j ≥ 6` for 97% of nodes, so figures that only count promiscuous members use it (it is available at every ρ, whereas `S-perdrug` is cached only for ρ ∈ {0.5, 0.75-b4, 0.99, 1.0}).
 
 CAUTION: the code and paper letters are crossed for historical reasons. The paper's sensitivity `S_j` lives in files and arrays named `B`, and the paper's per-shock deviation `Δ_{j,q}` lives in files and arrays named `S`. The file names are kept stable because cluster pipelines reference them.
 
@@ -140,7 +140,7 @@ Key scripts (run from the repo root; all classifier-based scripts share the rand
 - `scripts/random-node-selection.py` — same interface; evaluates uniformly random panels (`--num-trials` per feature size) as the null baseline.
 - `scripts/heuristic-node-selection.py` — five ranking baselines scored with the same evaluator: `sensitivity` (per-node Hamming distance from control; needs `--b-file`), `in-degree`, `out-degree` (need `--networks-file`), `mmse` (greedy covariance column selection), and `jaccard` (greedy coverage of downstream influence sets; needs `--networks-file`).
 - `scripts/compute-b-array.py` — computes the per-node sensitivity array `B[network, node]` (mean |state − control| over drugs, initial conditions, and stored steps) from a states CSV into an `.npz`.
-- `scripts/node-ablation-k8.py` — knockout analysis of the GA-evolved k=8 panels: retrains the same random forest after removing every subset of `1..--max-remove` members (the paper uses up to 7) and records the accuracy drop together with how many removed members were indiscriminate. `--networks lo-hi` restricts to a network range so SLURM arrays can chunk the work; `--n-trials` sets the classifier trials per subset.
+- `scripts/node-ablation-k8.py` — knockout analysis of the GA-evolved k=8 panels: retrains the same random forest after removing every subset of `1..--max-remove` members (the paper uses up to 7) and records the accuracy drop together with how many removed members were promiscuous. `--networks lo-hi` restricts to a network range so SLURM arrays can chunk the work; `--n-trials` sets the classifier trials per subset.
 - `scripts/compute-per-drug-sensitivity.py` — per-shock per-node sensitivity `S[network, shock, node]` (the disk figure input).
 - `scripts/compute-connectivity-arrays.py` — per-node degrees, shock target masks parsed from the raw protobuf, and directed BFS distances from each shock's targets.
 - `scripts/compute-panel-topology.py` — pairwise graph distances and downstream/upstream coverage of evolved panels against random baselines.
@@ -170,15 +170,15 @@ The `scripts/submit-*.py` files submit the pipelines above as SLURM job chains (
 - `boolean_network_drug_classification_demo.ipynb` — early demo comparing retention-vs-accuracy curves of node-selection strategies from `data/random-forests/` CSVs.
 - `ecoli-network.ipynb` — degree histogram and connected-component exploration of an E. coli network.
 - `faster_hamming_dist_plot.ipynb` — scratch work on faster Hamming-distance plotting and RF classification from states/networks/GA result files.
-- `ga-interpretability-analysis.ipynb` — why the GA selected its best k=8 panel: the indiscriminate/dormant node-mix hypothesis.
+- `ga-interpretability-analysis.ipynb` — why the GA selected its best k=8 panel: the promiscuous/dormant node-mix hypothesis.
 - `node-drug-sensitivity.ipynb` — per-shock sensitivity of each node in the GA-evolved k=8 panel.
 - `protobuf-check.ipynb` — sanity check that generated Python protobuf bindings can decode experiment `.pb` files.
 - `sanity-check.ipynb` — early sanity checks on JSON trajectory dumps and network statistics.
-- `sensitive-nodes-vs-rho.ipynb` — number of indiscriminate nodes in the evolved k=8 panels as a function of ρ.
+- `sensitive-nodes-vs-rho.ipynb` — number of promiscuous nodes in the evolved k=8 panels as a function of ρ.
 
 `notebooks/polished/` (figure-quality):
 
-- `anchor-reporter-selection.ipynb` — entropy-based greedy anchor/reporter selection test (dormant anchors + indiscriminate reporters).
+- `anchor-reporter-selection.ipynb` — entropy-based greedy anchor/reporter selection test (dormant anchors + promiscuous reporters).
 - `fixed-targets-comparison.ipynb` — GA accuracy vs panel size for N=500/5000/50000 at matched `<K>`, plus training curves.
 - `ga-vs-random-comparison.ipynb` — GA vs uniformly random panels on the v7 dataset.
 - `n-scaling-comparison.ipynb` — GA accuracy vs panel size for N=100/1000/5000 at matched `<K>`.

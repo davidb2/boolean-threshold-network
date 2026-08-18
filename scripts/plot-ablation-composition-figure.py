@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
-'''Ablation composition figure: what it costs to remove indiscriminate versus
+'''Ablation composition figure: what it costs to remove promiscuous versus
 dormant reporters, and how noise changes the answer.
 
   a  the direct view (modeled on the original exploratory panel): accuracy
      after removal versus the number of members removed, each removal
-     subset classified as all indiscriminate, mixed, or all dormant.
+     subset classified as all promiscuous, mixed, or all dormant.
      One column per noise level (eps = 0, 0.5, 1), unit means as jittered
      points, class means with 95 percent CIs on top, baseline dashed.
-  b  the paired premium of removing one indiscriminate instead of one
+  b  the paired premium of removing one promiscuous instead of one
      dormant member, across all fifteen noise levels. The premium is
      a step: elevated only near eps = 0, flat from eps = 0.05 to 1.
   c  the accuracy drop from removing one member as a function of the mean
      sensitivity B of that member. Damage is a smooth function of B with
      no jump at the class cutoff, so the dichotomy is a discretization.
   d  the anchoring synergy: the cost of removing one dormant member,
-     for an intact panel and after one indiscriminate member is already gone.
+     for an intact panel and after one promiscuous member is already gone.
 
 Statistical unit is one (cohort, network) panel. Values are aggregated
 within a unit before any statistics. Cells backed by fewer than 10 units
-are not drawn. Composition classes: all indiscriminate means every removed
+are not drawn. Composition classes: all promiscuous means every removed
 node is above the per network sensitivity cutoff, all dormant means
 none is.
 
@@ -71,7 +71,7 @@ def load_all(deep_dir):
 
 
 def classify(d):
-  cls = np.where(d.n_sensitive_removed == d.m_removed, 'all indiscriminate',
+  cls = np.where(d.n_sensitive_removed == d.m_removed, 'all promiscuous',
                  np.where(d.n_sensitive_removed == 0, 'all dormant', 'mixed'))
   return d.assign(cls=cls)
 
@@ -79,7 +79,7 @@ def classify(d):
 def panel_a(axes, df):
   eps_levels = [0.0, 0.5, 1.0]
   order = [('all dormant', INSENS, -0.28), ('mixed', MIXED, 0.0),
-           ('all indiscriminate', SENS, 0.28)]
+           ('all promiscuous', SENS, 0.28)]
   rng = np.random.default_rng(3)
   for ax, eps in zip(axes, eps_levels):
     d = classify(df[np.isclose(df.eps, eps) & (df.m_removed <= 4)])
@@ -134,7 +134,7 @@ def panel_b(ax, df):
   ax.set_xlim(-0.004, 1.35)
   ax.set_ylim(0, 0.105)
   ax.set_xlabel('Noise, $\\varepsilon$')
-  ax.set_ylabel('Indiscriminate premium\n(paired, one removal)')
+  ax.set_ylabel('Promiscuous premium\n(paired, one removal)')
   ax.text(0.96, plateau.mean() + 2 * plateau.std() + 0.004, 'plateau band',
           fontsize=14, color='#7f7f7f', ha='right')
 
@@ -166,7 +166,7 @@ def panel_c(ax, df):
 
 
 def panel_d(ax, df):
-  labels = {0: 'panel intact', 1: 'one indiscriminate\nalready removed'}
+  labels = {0: 'panel intact', 1: 'one promiscuous\nalready removed'}
   width = 0.34
   d12 = df[df.m_removed <= 2]
   res = {}

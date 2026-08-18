@@ -13,10 +13,10 @@ chance, which is checked and printed.
   a  Shapley value against sensitivity for every member of every evolved
      panel at high noise. Dormant members carry substantial credit.
   b  mean Shapley value by class across every noise level with deep
-     ablation data. The credit assigned to indiscriminate members falls with
+     ablation data. The credit assigned to promiscuous members falls with
      noise while that assigned to dormant members rises, so the two
      classes converge.
-  c  how often an dormant member outranks the median indiscriminate member
+  c  how often an dormant member outranks the median promiscuous member
      of its own panel, against noise.
   d  where below the sensitivity cutoff the evolutionary search
      recruits. Selected members sit at the top of that range, so the
@@ -155,7 +155,7 @@ def main():
   # a: Shapley vs sensitivity at high noise
   hi = R[np.isclose(R.eps, 1.0)]
   for lab, sub, col in [('dormant', hi[~hi.sens], INSENS),
-                        ('indiscriminate', hi[hi.sens], SENS)]:
+                        ('promiscuous', hi[hi.sens], SENS)]:
     ax_a.scatter(sub.S, sub.phi, s=16, color=col, alpha=0.45, lw=0, label=lab)
   ax_a.axvline(hi.cut.iloc[0], color='#e8a000', lw=1.6, linestyle=(0, (4, 3)))
   ax_a.axhline(0, color='#bbbbbb', lw=1.0)
@@ -165,7 +165,7 @@ def main():
   ax_a.legend(frameon=False, fontsize=14, loc='upper left', handletextpad=0.2)
 
   # b: mean Shapley by class across noise
-  for lab, sub, col in [('indiscriminate', R[R.sens], SENS), ('dormant', R[~R.sens], INSENS)]:
+  for lab, sub, col in [('promiscuous', R[R.sens], SENS), ('dormant', R[~R.sens], INSENS)]:
     g = sub.groupby('eps')['phi'].agg(['mean', 'sem'])
     ax_b.fill_between(g.index, g['mean'] - 1.96 * g['sem'], g['mean'] + 1.96 * g['sem'],
                       color=col, alpha=0.18, lw=0)
@@ -180,7 +180,7 @@ def main():
   ax_b.set_ylabel('Mean Shapley value')
   ax_b.legend(frameon=False, fontsize=14, loc='center left')
 
-  # c: how often an dormant member outranks the panel median indiscriminate member
+  # c: how often an dormant member outranks the panel median promiscuous member
   def frac_beat(g):
     s, i = g[g.sens], g[~g.sens]
     if not len(s) or not len(i):
@@ -198,7 +198,7 @@ def main():
   ax_c.set_xlim(-0.004, 1.35)
   ax_c.set_ylim(0, None)
   ax_c.set_xlabel('Noise, $\\varepsilon$')
-  ax_c.set_ylabel('Fraction above the panel\nmedian indiscriminate member')
+  ax_c.set_ylabel('Fraction above the panel\nmedian promiscuous member')
 
   # d: where the search recruits inside the dormant range
   sel, avail, cut = panel_recruitment(args.ga_csv_50,

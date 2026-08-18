@@ -4,7 +4,7 @@
 Panel a shows the eight members of one evolved panel as disks with no
 axes. Each wedge is one of the ten shocks, with wedge length and color
 equal to that member's sensitivity to that shock. Disks are grouped by
-class: indiscriminate members bundled on the left, dormant members on
+class: promiscuous members bundled on the left, dormant members on
 the right, each group ordered by mean sensitivity.
 
 Panel b shows the effective number of shocks each member rank responds
@@ -78,10 +78,12 @@ def draw_disk(ax, vals, vmax, cmap, _class_color=None, ring=False, bg=None):
     ax.spines['polar'].set_edgecolor('#999999')
 
 
-# dormant members carry a pale orange ground so they read as a distinct
-# group; indiscriminate and unresponsive members sit on white
-DORMANT_BG = '#fde7d0'
-CLASS_ORDER = {'indiscriminate': 0, 'dormant': 1, 'unresponsive': 2}
+# dormant members carry an orange ground so they read as a distinct group;
+# promiscuous and unresponsive members sit on white. The hue is the bright
+# series orange and the wash comes from alpha, so the wedges drawn on top
+# stay legible
+DORMANT_BG = (1.0, 0.498, 0.055, 0.22)      # '#ff7f0e' at alpha 0.22
+CLASS_ORDER = {'promiscuous': 0, 'dormant': 1, 'unresponsive': 2}
 
 
 def breadth_class(profile, cut):
@@ -89,27 +91,27 @@ def breadth_class(profile, cut):
 
   A node answers shock q when its deviation reaches the sensitivity cutoff.
   Answering none makes it unresponsive, answering a minority makes it
-  dormant, answering a majority makes it indiscriminate. The rule uses only
+  dormant, answering a majority makes it promiscuous. The rule uses only
   the cutoff already defined for the sensitivity classes, so it introduces
   no further threshold.
   '''
   n_hit = int((np.asarray(profile) >= cut).sum())
   if n_hit == 0:
     return 'unresponsive'
-  return 'indiscriminate' if n_hit > len(profile) / 2 else 'dormant'
+  return 'promiscuous' if n_hit > len(profile) / 2 else 'dormant'
 
 
 def panel_groups(S_net, nodes, B_row, cut):
   '''Panel members split by breadth class, each group ordered by sensitivity.'''
   klass = {n: breadth_class(S_net[:, n], cut) for n in nodes}
   return [sorted([n for n in nodes if klass[n] == c], key=lambda n: -B_row[n])
-          for c in ('indiscriminate', 'dormant', 'unresponsive')]
+          for c in ('promiscuous', 'dormant', 'unresponsive')]
 
 
 def draw_panel_row(fig, gs_row, S_net, nodes, B_row, cut, vmax, cmaps, label=None):
   '''One example panel as a row of grouped, axis free disks.
 
-  Slots run indiscriminate, gap, dormant, gap, unresponsive, so the three
+  Slots run promiscuous, gap, dormant, gap, unresponsive, so the three
   classes read left to right in the same order as the radial gallery.
   '''
   groups = panel_groups(S_net, nodes, B_row, cut)
@@ -165,14 +167,14 @@ def main():
 
   if args.gallery_radial:
     # rays, the inner ring, and the disks all use the SAME breadth class, so
-    # sweeping around the circle gives a non-increasing indiscriminate count
+    # sweeping around the circle gives a non-increasing promiscuous count
     rows = []
     for net, nodes in panels.items():
       if net not in snets:
         continue
       si = snets.index(net)
       n_ind = sum(1 for node in nodes
-                  if breadth_class(S[si][:, node], cut) == 'indiscriminate')
+                  if breadth_class(S[si][:, node], cut) == 'promiscuous')
       rows.append((net, n_ind, float(base.get(net, np.nan))))
     order = sorted(rows, key=lambda r: (-r[1], -(r[2] if r[2] == r[2] else 0)))
     n_nets = len(order)
@@ -198,7 +200,7 @@ def main():
         x, y = r[k] * np.cos(th), r[k] * np.sin(th)
         ax = fig.add_axes([cx + x * sx - d[k] * sx / 2, cy + y * sy - d[k] * sy / 2,
                            d[k] * sx, d[k] * sy], projection='polar')
-        cm = cmap_s if klass == 'indiscriminate' else cmap_i
+        cm = cmap_s if klass == 'promiscuous' else cmap_i
         draw_disk(ax, S[si][:, node], vmax, cm, ring=True,
                   bg=DORMANT_BG if klass == 'dormant' else None)
         ax.spines['polar'].set_linewidth(0.5 + 0.2 * k / 7)
@@ -223,7 +225,7 @@ def main():
     for n_s, i0, i1 in groups:
       th_hi = 90 - 360.0 * i0 / n_nets + half - gap_deg / 2
       th_lo = 90 - 360.0 * i1 / n_nets - half + gap_deg / 2
-      # intensity of orange scales with the indiscriminate count, no hue mixing
+      # intensity of orange scales with the promiscuous count, no hue mixing
       intensity = 0.07 + 0.48 * n_s / 8.0
       color = intensity * rgb_s + (1 - intensity) * np.ones(3)
       ax_bg.add_patch(Wedge((0, 0), ring_out, th_lo, th_hi,
@@ -279,7 +281,7 @@ def main():
                       fontsize=24, color=SENS, ha='center', va='center',
                       fontweight='bold')
           prev_ns = n_s
-    for cm, y0, lab in [(cmap_s, 0.52, 'indiscriminate'), (cmap_i, 0.18, 'dormant')]:
+    for cm, y0, lab in [(cmap_s, 0.52, 'promiscuous'), (cmap_i, 0.18, 'dormant')]:
       sm = plt.cm.ScalarMappable(cmap=cm, norm=plt.Normalize(0, vmax))
       cax = fig.add_axes([0.92, y0, 0.008, 0.26])
       cbar = fig.colorbar(sm, cax=cax)
@@ -334,7 +336,7 @@ def main():
   pos = [ax.get_position() for ax in fig.axes if ax.name == 'polar']
   y_lab = min(p.y0 for p in pos[:sum(counts)]) - 0.02
   start = 0
-  for n_g, lab, col in zip(counts, ['indiscriminate', 'dormant', 'unresponsive'],
+  for n_g, lab, col in zip(counts, ['promiscuous', 'dormant', 'unresponsive'],
                            [SENS, '#b06a20', INSENS]):
     if n_g:
       grp = pos[start:start + n_g]
@@ -386,7 +388,7 @@ def main():
   fig.savefig(out_dir / f'{name}.svg', bbox_inches='tight')
   fig.savefig(out_dir / f'{name}.png', bbox_inches='tight', dpi=300)
   print(f'wrote {out_dir}/{name}.svg + .png (network {net}, '
-        f'{counts[0]} indiscriminate, {counts[1]} dormant, {counts[2]} unresponsive)')
+        f'{counts[0]} promiscuous, {counts[1]} dormant, {counts[2]} unresponsive)')
 
 
 if __name__ == '__main__':
