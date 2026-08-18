@@ -4,10 +4,10 @@ and the balance shifts with noise.
 
   a  classification accuracy of evolved k=8 panels vs random panels,
      as a function of initial condition noise
-  b  number of sensitive nodes in evolved panels vs the random expectation
-  c  accuracy drop when one sensitive or one insensitive member is removed
-  d  the insensitive share of the total removal penalty
-  e  the extra penalty per sensitive node removed, as a function of how many
+  b  number of indiscriminate nodes in evolved panels vs the random expectation
+  c  accuracy drop when one indiscriminate or one dormant member is removed
+  d  the dormant share of the total removal penalty
+  e  the extra penalty per indiscriminate node removed, as a function of how many
      panel members are removed, at three noise levels
 
 Panels c to e use the deep ablation campaign (30 RF trials, every removal
@@ -214,12 +214,12 @@ def main():
 
   line(ax_b, df, 'n_sens', GA, 'evolved panel')
   line(ax_b, df, 'expect', GRAY, 'random expectation')
-  ax_b.set_ylabel('Sensitive nodes per panel')
+  ax_b.set_ylabel('Indiscriminate nodes per panel')
   ax_b.set_ylim(0, 8)
   ax_b.legend(frameon=False, fontsize=22, loc='center left')
 
-  line(ax_c, deep, 'drop_s', SENS, 'remove one sensitive')
-  line(ax_c, deep, 'drop_i', INSENS, 'remove one insensitive')
+  line(ax_c, deep, 'drop_s', SENS, 'remove one indiscriminate')
+  line(ax_c, deep, 'drop_i', INSENS, 'remove one dormant')
   ax_c.set_ylabel('Accuracy drop')
   ax_c.set_ylim(0, 0.19)
   ax_c.legend(frameon=False, fontsize=18, loc='upper right', handlelength=1.0, borderaxespad=0.1)
@@ -243,7 +243,7 @@ def main():
   ax_d.plot(xs, shares, color=INSENS, lw=2.0, marker='o', markersize=4.5)
   ax_d.axhline(0.5, color='#bbbbbb', lw=1.0, linestyle=(0, (3, 3)))
   ax_d.text(0.011, 0.512, 'equal\nimportance', fontsize=17, color='#999999', va='bottom')
-  ax_d.set_ylabel('Insensitive share\nof penalty')
+  ax_d.set_ylabel('Dormant share\nof penalty')
   ax_d.set_ylim(0.2, 0.56)
 
   for rho_s, color in DEPTH_COLORS.items():
@@ -256,7 +256,7 @@ def main():
               markersize=4.5, label=f'$\\varepsilon = {2 * (1 - float(rho_s)):g}$')
   ax_e.axhline(0, color='#bbbbbb', lw=1.0, linestyle=(0, (3, 3)))
   ax_e.set_xlabel('Members removed')
-  ax_e.set_ylabel('Extra penalty per\nsensitive removed')
+  ax_e.set_ylabel('Extra penalty per\nindiscriminate removed')
   ax_e.set_xticks(range(1, 8))
   ax_e.legend(frameon=False, fontsize=18, loc='upper right', handlelength=1.0, borderaxespad=0.1)
 

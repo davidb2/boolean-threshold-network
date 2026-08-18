@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-'''Why insensitive reporters carry information (SI figure).
+'''Why dormant reporters carry information (SI figure).
 
 Every panel member is scored by its exact Shapley value in the cooperative
 game whose value function is the classification accuracy of a sub panel.
@@ -11,15 +11,15 @@ axiom by construction: they sum to the accuracy of the intact panel minus
 chance, which is checked and printed.
 
   a  Shapley value against sensitivity for every member of every evolved
-     panel at high noise. Insensitive members carry substantial credit.
+     panel at high noise. Dormant members carry substantial credit.
   b  mean Shapley value by class across every noise level with deep
-     ablation data. The credit assigned to sensitive members falls with
-     noise while that assigned to insensitive members rises, so the two
+     ablation data. The credit assigned to indiscriminate members falls with
+     noise while that assigned to dormant members rises, so the two
      classes converge.
-  c  how often an insensitive member outranks the median sensitive member
+  c  how often an dormant member outranks the median indiscriminate member
      of its own panel, against noise.
-  d  where in the insensitive range the evolutionary search recruits.
-     Selected insensitive members sit at the top of the insensitive range
+  d  where in the dormant range the evolutionary search recruits.
+     Selected dormant members sit at the top of the dormant range
      rather than at its floor, so the search avoids dead nodes.
 
 Usage:
@@ -115,7 +115,7 @@ def collect(deep_dir, sens_dir, min_baseline=0.7):
 
 
 def panel_recruitment(ga_csv, b_file, rng):
-  '''B of selected insensitive members vs all insensitive nodes.'''
+  '''B of selected dormant members vs all dormant nodes.'''
   b = np.load(b_file)
   B, bnets = b['B'], [int(x) for x in b['networks']]
   cut = antimode(B)
@@ -154,8 +154,8 @@ def main():
 
   # a: Shapley vs sensitivity at high noise
   hi = R[np.isclose(R.eps, 1.0)]
-  for lab, sub, col in [('insensitive', hi[~hi.sens], INSENS),
-                        ('sensitive', hi[hi.sens], SENS)]:
+  for lab, sub, col in [('dormant', hi[~hi.sens], INSENS),
+                        ('indiscriminate', hi[hi.sens], SENS)]:
     ax_a.scatter(sub.S, sub.phi, s=16, color=col, alpha=0.45, lw=0, label=lab)
   ax_a.axvline(hi.cut.iloc[0], color='#e8a000', lw=1.6, linestyle=(0, (4, 3)))
   ax_a.axhline(0, color='#bbbbbb', lw=1.0)
@@ -165,7 +165,7 @@ def main():
   ax_a.legend(frameon=False, fontsize=14, loc='upper left', handletextpad=0.2)
 
   # b: mean Shapley by class across noise
-  for lab, sub, col in [('sensitive', R[R.sens], SENS), ('insensitive', R[~R.sens], INSENS)]:
+  for lab, sub, col in [('indiscriminate', R[R.sens], SENS), ('dormant', R[~R.sens], INSENS)]:
     g = sub.groupby('eps')['phi'].agg(['mean', 'sem'])
     ax_b.fill_between(g.index, g['mean'] - 1.96 * g['sem'], g['mean'] + 1.96 * g['sem'],
                       color=col, alpha=0.18, lw=0)
@@ -180,7 +180,7 @@ def main():
   ax_b.set_ylabel('Mean Shapley value')
   ax_b.legend(frameon=False, fontsize=14, loc='center left')
 
-  # c: how often an insensitive member outranks the panel median sensitive member
+  # c: how often an dormant member outranks the panel median indiscriminate member
   def frac_beat(g):
     s, i = g[g.sens], g[~g.sens]
     if not len(s) or not len(i):
@@ -198,19 +198,19 @@ def main():
   ax_c.set_xlim(-0.004, 1.35)
   ax_c.set_ylim(0, None)
   ax_c.set_xlabel('Noise, $\\varepsilon$')
-  ax_c.set_ylabel('Fraction above the panel\nmedian sensitive member')
+  ax_c.set_ylabel('Fraction above the panel\nmedian indiscriminate member')
 
-  # d: where the search recruits inside the insensitive range
+  # d: where the search recruits inside the dormant range
   sel, avail, cut = panel_recruitment(args.ga_csv_50,
                                       f'{args.sensitivity_dir}/B-rho0.5.npz', rng)
   bins = np.linspace(0, cut, 26)
   ax_d.hist(avail, bins=bins, density=True, color='#c7c7c7', lw=0,
-            label='all insensitive nodes')
+            label='all dormant nodes')
   ax_d.hist(sel, bins=bins, density=True, histtype='step', color=INSENS, lw=2.2,
             label='selected by the search')
   ax_d.axvline(np.median(avail), color='#7f7f7f', lw=1.4, linestyle=(0, (4, 3)))
   ax_d.axvline(np.median(sel), color=INSENS, lw=1.4, linestyle=(0, (4, 3)))
-  ax_d.set_xlabel('Sensitivity, $S$ (insensitive range only)')
+  ax_d.set_xlabel('Sensitivity, $S$ (dormant range only)')
   ax_d.set_ylabel('Density')
   ax_d.set_title('$\\varepsilon = 1$', fontsize=19)
   ax_d.legend(frameon=False, fontsize=14, loc='upper left')

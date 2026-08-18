@@ -26,7 +26,7 @@ STYLES = {
   'genetic':            {'color': '#2ca02c', 'label': 'genetic algorithm', 'lw': 3.0, 'ls': '-', 'zorder': 14},
   'infomax':            {'color': '#17becf', 'label': 'greedy information gain', 'lw': 2.2, 'ls': '-', 'zorder': 12},
   'anchor-reporter':    {'color': '#9467bd', 'label': 'anchors plus detectors', 'lw': 2.2, 'ls': '-', 'zorder': 11},
-  'sensitivity':        {'color': '#ff7f0e', 'label': 'most sensitive', 'lw': 2.2, 'ls': '-', 'zorder': 10},
+  'sensitivity':        {'color': '#ff7f0e', 'label': 'most responsive', 'lw': 2.2, 'ls': '-', 'zorder': 10},
   'influence':          {'color': '#8c564b', 'label': 'influence maximization', 'lw': 2.2, 'ls': '-', 'zorder': 6},
   'random':             {'color': '#7f7f7f', 'label': 'random', 'lw': 2.2, 'ls': '-', 'zorder': 4},
   'entropy-diversity':  {'color': '#bcbd22', 'label': 'entropy with diversity', 'lw': 1.8, 'ls': '--', 'zorder': 9},

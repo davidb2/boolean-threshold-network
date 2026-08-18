@@ -4,7 +4,7 @@
 Panel a shows the eight members of one evolved panel as disks with no
 axes. Each wedge is one of the ten shocks, with wedge length and color
 equal to that member's sensitivity to that shock. Disks are grouped by
-class: sensitive members bundled on the left, insensitive members on
+class: indiscriminate members bundled on the left, dormant members on
 the right, each group ordered by mean sensitivity.
 
 Panel b shows the effective number of shocks each member rank responds
@@ -183,13 +183,13 @@ def main():
     for n_s, i0, i1 in groups:
       th_hi = 90 - 360.0 * i0 / n_nets + half - gap_deg / 2
       th_lo = 90 - 360.0 * i1 / n_nets - half + gap_deg / 2
-      # intensity of red scales with the sensitive count, no blue mixing
+      # intensity of red scales with the indiscriminate count, no blue mixing
       intensity = (n_s / 8.0) * 0.38
       color = intensity * rgb_s + (1 - intensity) * np.ones(3)
       ax_bg.add_patch(Wedge((0, 0), ring_out, th_lo, th_hi,
                             width=ring_w, facecolor=color, edgecolor='none'))
-    for cm, x0, lab in [(cmap_s, 0.14, 'Sensitivity, sensitive members'),
-                        (cmap_i, 0.56, 'Sensitivity, insensitive members')]:
+    for cm, x0, lab in [(cmap_s, 0.14, 'Sensitivity, indiscriminate members'),
+                        (cmap_i, 0.56, 'Sensitivity, dormant members')]:
       sm = plt.cm.ScalarMappable(cmap=cm, norm=plt.Normalize(0, vmax))
       cax = fig.add_axes([x0, 0.028, 0.30, 0.024])
       cbar = fig.colorbar(sm, cax=cax, orientation='horizontal')
@@ -236,7 +236,7 @@ def main():
                       fontsize=24, color=SENS, ha='center', va='center',
                       fontweight='bold')
           prev_ns = n_s
-    for cm, y0, lab in [(cmap_s, 0.52, 'sensitive'), (cmap_i, 0.18, 'insensitive')]:
+    for cm, y0, lab in [(cmap_s, 0.52, 'indiscriminate'), (cmap_i, 0.18, 'dormant')]:
       sm = plt.cm.ScalarMappable(cmap=cm, norm=plt.Normalize(0, vmax))
       cax = fig.add_axes([0.92, y0, 0.008, 0.26])
       cbar = fig.colorbar(sm, cax=cax)
@@ -292,10 +292,10 @@ def main():
   sens_axes, insens_axes = pos[:n_s], pos[n_s:n_s + n_i]
   if sens_axes:
     xc = 0.5 * (sens_axes[0].x0 + sens_axes[-1].x1)
-    fig.text(xc, 0.53, 'sensitive members', fontsize=19, color=SENS, ha='center')
+    fig.text(xc, 0.53, 'indiscriminate members', fontsize=19, color=SENS, ha='center')
   if insens_axes:
     xc = 0.5 * (insens_axes[0].x0 + insens_axes[-1].x1)
-    fig.text(xc, 0.53, 'insensitive members', fontsize=19, color=INSENS, ha='center')
+    fig.text(xc, 0.53, 'dormant members', fontsize=19, color=INSENS, ha='center')
 
   # panel b: effective number of shocks by member rank, all networks
   eff = []
@@ -325,7 +325,7 @@ def main():
             fontsize=31, fontweight='bold', color='#222222')
 
   # shared colorbar
-  for cm, y0, lab in [(cmap_s, 0.60, 'sensitive'), (cmap_i, 0.16, 'insensitive')]:
+  for cm, y0, lab in [(cmap_s, 0.60, 'indiscriminate'), (cmap_i, 0.16, 'dormant')]:
     sm = plt.cm.ScalarMappable(cmap=cm, norm=plt.Normalize(0, vmax))
     cax = fig.add_axes([0.925, y0, 0.011, 0.28])
     cbar = fig.colorbar(sm, cax=cax)

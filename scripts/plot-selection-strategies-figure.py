@@ -2,7 +2,7 @@
 '''Selection strategy comparison: accuracy vs number of reporters.
 
 Three panels (noise eps = 0, 0.5, 1). Foreground curves: genetic
-algorithm, random selection, most sensitive, greedy information gain
+algorithm, random selection, most responsive, greedy information gain
 (infomax), the two phase anchors plus reporters rule, and greedy
 influence maximization. The remaining structural and information
 heuristics (in degree, out degree, greedy MMSE, Jaccard coverage,
@@ -36,7 +36,7 @@ CHANCE = 1 / 11
 FOREGROUND = {
   'genetic':         {'color': '#2ca02c', 'label': 'genetic algorithm', 'lw': 3.2, 'zorder': 12},
   'random':          {'color': '#7f7f7f', 'label': 'random', 'lw': 2.4, 'zorder': 4},
-  'sensitivity':     {'color': '#ff7f0e', 'label': 'most sensitive', 'lw': 2.4, 'zorder': 9},
+  'sensitivity':     {'color': '#ff7f0e', 'label': 'most responsive', 'lw': 2.4, 'zorder': 9},
   'infomax':         {'color': '#17becf', 'label': 'greedy information gain', 'lw': 2.4, 'zorder': 10},
   'anchor-reporter': {'color': '#9467bd', 'label': 'anchors plus detectors', 'lw': 2.4, 'zorder': 8},
   'influence':       {'color': '#8c564b', 'label': 'influence maximization', 'lw': 2.4, 'zorder': 6},
