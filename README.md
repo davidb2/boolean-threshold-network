@@ -1,6 +1,6 @@
 # Boolean Threshold Networks
 
-Research code for the paper **"Insensitive reporters anchor the classification of shocks in noisy network dynamics"** (David A. Brewster and Philippe Cluzel, Harvard). The code simulates directed Boolean threshold networks with power-law out-degree distributions, applies *shocks* (perturbations to the outgoing edge weights of randomly chosen target nodes), and studies which small panels of *reporter nodes* allow a classifier to identify which shock occurred from noisy, partial observations of the network state.
+Research code for the paper **"Dormant reporters anchor the classification of shocks in noisy network dynamics"** (David A. Brewster and Philippe Cluzel, Harvard). The code simulates directed Boolean threshold networks with power-law out-degree distributions, applies *shocks* (perturbations to the outgoing edge weights of randomly chosen target nodes), and studies which small panels of *reporter nodes* allow a classifier to identify which shock occurred from noisy, partial observations of the network state.
 
 A fast Rust core generates network ensembles and dynamics (written as protobuf), and a Python layer selects reporter panels (genetic algorithm, random, and heuristic baselines), scores them with random-forest classifiers, and produces the figures.
 
@@ -136,7 +136,7 @@ Key scripts (run from the repo root; all classifier-based scripts share the rand
 - `scripts/random-node-selection.py` — same interface; evaluates uniformly random panels (`--num-trials` per feature size) as the null baseline.
 - `scripts/heuristic-node-selection.py` — five ranking baselines scored with the same evaluator: `sensitivity` (per-node Hamming distance from control; needs `--b-file`), `in-degree`, `out-degree` (need `--networks-file`), `mmse` (greedy covariance column selection), and `jaccard` (greedy coverage of downstream influence sets; needs `--networks-file`).
 - `scripts/compute-b-array.py` — computes the per-node sensitivity array `B[network, node]` (mean |state − control| over drugs, initial conditions, and stored steps) from a states CSV into an `.npz`.
-- `scripts/node-ablation-k8.py` — knockout analysis of the GA-evolved k=8 panels: retrains the same random forest after removing every subset of `1..--max-remove` members (the paper uses up to 7) and records the accuracy drop together with how many removed members were sensitive. `--networks lo-hi` restricts to a network range so SLURM arrays can chunk the work; `--n-trials` sets the classifier trials per subset.
+- `scripts/node-ablation-k8.py` — knockout analysis of the GA-evolved k=8 panels: retrains the same random forest after removing every subset of `1..--max-remove` members (the paper uses up to 7) and records the accuracy drop together with how many removed members were indiscriminate. `--networks lo-hi` restricts to a network range so SLURM arrays can chunk the work; `--n-trials` sets the classifier trials per subset.
 - `scripts/compute-per-drug-sensitivity.py` — per-shock per-node sensitivity `S[network, shock, node]` (the disk figure input).
 - `scripts/compute-connectivity-arrays.py` — per-node degrees, shock target masks parsed from the raw protobuf, and directed BFS distances from each shock's targets.
 - `scripts/compute-panel-topology.py` — pairwise graph distances and downstream/upstream coverage of evolved panels against random baselines.
@@ -166,15 +166,15 @@ The `scripts/submit-*.py` files submit the pipelines above as SLURM job chains (
 - `boolean_network_drug_classification_demo.ipynb` — early demo comparing retention-vs-accuracy curves of node-selection strategies from `data/random-forests/` CSVs.
 - `ecoli-network.ipynb` — degree histogram and connected-component exploration of an E. coli network.
 - `faster_hamming_dist_plot.ipynb` — scratch work on faster Hamming-distance plotting and RF classification from states/networks/GA result files.
-- `ga-interpretability-analysis.ipynb` — why the GA selected its best k=8 panel: the sensitive/insensitive node-mix hypothesis.
+- `ga-interpretability-analysis.ipynb` — why the GA selected its best k=8 panel: the indiscriminate/dormant node-mix hypothesis.
 - `node-drug-sensitivity.ipynb` — per-shock sensitivity of each node in the GA-evolved k=8 panel.
 - `protobuf-check.ipynb` — sanity check that generated Python protobuf bindings can decode experiment `.pb` files.
 - `sanity-check.ipynb` — early sanity checks on JSON trajectory dumps and network statistics.
-- `sensitive-nodes-vs-rho.ipynb` — number of sensitive nodes in the evolved k=8 panels as a function of ρ.
+- `sensitive-nodes-vs-rho.ipynb` — number of indiscriminate nodes in the evolved k=8 panels as a function of ρ.
 
 `notebooks/polished/` (figure-quality):
 
-- `anchor-reporter-selection.ipynb` — entropy-based greedy anchor/reporter selection test (insensitive anchors + sensitive reporters).
+- `anchor-reporter-selection.ipynb` — entropy-based greedy anchor/reporter selection test (dormant anchors + indiscriminate reporters).
 - `fixed-targets-comparison.ipynb` — GA accuracy vs panel size for N=500/5000/50000 at matched `<K>`, plus training curves.
 - `ga-vs-random-comparison.ipynb` — GA vs uniformly random panels on the v7 dataset.
 - `n-scaling-comparison.ipynb` — GA accuracy vs panel size for N=100/1000/5000 at matched `<K>`.
