@@ -35,6 +35,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from scipy import stats
 
 SENS = '#ff7f0e'
 INSENS = '#000000'
@@ -52,6 +53,14 @@ plt.rcParams.update({
   'axes.linewidth': 0.8,
   'svg.fonttype': 'none',
 })
+
+
+def antimode(B, lo=0.05, hi=0.40):
+  c, e = np.histogram(B.ravel(), bins=np.linspace(0, 1, 101))
+  ce = 0.5 * (e[:-1] + e[1:])
+  sm = np.convolve(c, np.ones(5) / 5, mode='same')
+  w = (ce > lo) & (ce < hi)
+  return float(ce[w][np.argmin(sm[w])])
 
 
 def load_all(deep_dir):
@@ -116,27 +125,40 @@ def panel_a(axes, df):
                  labelspacing=0.3)
 
 
-def panel_b(ax, df):
+def panel_b(ax, df, three_class=None):
+  '''The promiscuous premium against noise, under both class rules.
+
+  Open circles are the two class contrast on mean sensitivity, which is
+  available at every noise level but pools unresponsive members into the
+  dormant reference and so overstates the premium. Filled circles are the
+  three class contrast, promiscuous minus genuinely dormant, computable
+  only where per shock deviations were cached. The corrected premium
+  declines monotonically and reaches zero under full noise.
+  '''
   m1 = df[df.m_removed == 1]
   per = (m1.groupby(['cohort', 'eps', 'unit', 'n_sensitive_removed'])['acc_drop']
            .mean().unstack('n_sensitive_removed'))
   per = per.dropna(subset=[0, 1])
   per['gap'] = per[1] - per[0]
   coh = per.groupby(['cohort', 'eps'])['gap'].mean().reset_index()
-  plateau = coh[coh.eps >= 0.05]['gap']
-  ax.axhspan(plateau.mean() - 2 * plateau.std(), plateau.mean() + 2 * plateau.std(),
-             color='#c7c7c7', alpha=0.35, lw=0, zorder=1)
-  ax.axhline(plateau.mean(), color='#7f7f7f', lw=1.2, zorder=2)
-  ax.scatter(coh.eps, coh.gap, s=52, color='#222222', zorder=4)
+  ax.scatter(coh.eps, coh.gap, s=46, facecolor='none', edgecolor='#999999',
+             linewidth=1.4, zorder=3, label='vs. all low sensitivity')
+  if three_class is not None:
+    e, g, lo, hi = three_class
+    ax.errorbar(e, g, yerr=[np.array(g) - np.array(lo), np.array(hi) - np.array(g)],
+                fmt='o', color='#222222', markersize=8, capsize=3, elinewidth=1.6,
+                zorder=5, label='vs. dormant only')
+    ax.plot(e, g, color='#222222', lw=1.4, zorder=4)
+  ax.axhline(0, color='#bbbbbb', lw=1.0, zorder=1)
   ax.set_xscale('symlog', linthresh=0.02, linscale=0.55)
   ax.set_xticks([0, 0.02, 0.1, 0.5, 1])
   ax.set_xticklabels(['0', '0.02', '0.1', '0.5', '1'])
   ax.set_xlim(-0.004, 1.35)
-  ax.set_ylim(0, 0.105)
+  ax.set_ylim(-0.02, 0.105)
   ax.set_xlabel('Noise, $\\varepsilon$')
   ax.set_ylabel('Promiscuous premium\n(paired, one removal)')
-  ax.text(0.96, plateau.mean() + 2 * plateau.std() + 0.004, 'plateau band',
-          fontsize=14, color='#7f7f7f', ha='right')
+  ax.legend(frameon=False, fontsize=13, loc='upper right', handletextpad=0.3,
+            borderaxespad=0.2, labelspacing=0.3)
 
 
 def panel_c(ax, df):
@@ -193,9 +215,70 @@ def panel_d(ax, df):
   ax.legend(frameon=False, fontsize=15, loc='upper left', handlelength=1.1)
 
 
+
+def three_class_premium(deep_dir, sens_dir):
+  '''Promiscuous minus dormant premium, paired within panel, at one removal.
+
+  Only cohorts whose per shock deviations were cached can be relabelled by
+  n_j, so this returns the four noise levels where that holds. Each
+  ablation file is matched to its sensitivity tag by checking that
+  meanB_removed reproduces from that tag's B array, so the pairing is
+  verified rather than assumed.
+  '''
+  import ast
+  out = []
+  for tag, eps in [('1.0', 0.0), ('0.99', 0.02), ('0.75-b4', 0.5), ('0.5', 1.0)]:
+    sp = pathlib.Path(sens_dir) / f'S-perdrug-rho{tag}.npz'
+    bp = pathlib.Path(sens_dir) / f'B-rho{tag}.npz'
+    if not sp.exists() or not bp.exists():
+      continue
+    S = np.load(sp)['S'].transpose(0, 2, 1)               # (nets, nodes, shocks)
+    bd = np.load(bp)
+    B, bnets = bd['B'], [int(x) for x in bd['networks']]
+    cut = antimode(B)
+    n = (S >= cut).sum(axis=2)
+    best = None
+    for f in sorted(pathlib.Path(deep_dir).glob('ablation-k8-deep-rho*.csv')):
+      d = pd.read_csv(f)
+      d = d[d.m_removed == 1]
+      if not len(d):
+        continue
+      try:
+        got = np.array([B[bnets.index(int(r.original_network_idx)),
+                          ast.literal_eval(r.removed_nodes)].mean()
+                        for r in d.head(200).itertuples()])
+      except (ValueError, IndexError):
+        continue
+      frac = float(np.mean(np.abs(got - d.head(200).meanB_removed.to_numpy()) < 6e-4))
+      if best is None or frac > best[0]:
+        best = (frac, f)
+    if best is None or best[0] < 0.99:
+      continue
+    d = pd.read_csv(best[1])
+    d = d[d.m_removed == 1].copy()
+    d['node'] = [ast.literal_eval(x)[0] for x in d.removed_nodes]
+    d['cls'] = [('unresponsive' if n[bnets.index(int(net)), nd] == 0 else
+                 'promiscuous' if n[bnets.index(int(net)), nd] >= 6 else 'dormant')
+                for net, nd in zip(d.original_network_idx, d.node)]
+    per = (d.groupby(['original_network_idx', 'cls'])['acc_drop'].mean()
+             .unstack('cls').dropna(subset=['promiscuous', 'dormant']))
+    gap = (per['promiscuous'] - per['dormant']).to_numpy()
+    m = float(gap.mean())
+    se = float(gap.std(ddof=1) / np.sqrt(len(gap)))
+    t = stats.t.ppf(0.975, len(gap) - 1)
+    out.append((eps, m, m - t * se, m + t * se, len(gap)))
+    print(f'  eps {eps:4}: premium {m:+.4f}  CI [{m - t * se:+.4f}, {m + t * se:+.4f}]  n={len(gap)}')
+  if not out:
+    return None
+  e, g, lo, hi, _ = zip(*out)
+  return list(e), list(g), list(lo), list(hi)
+
+
 def main():
   p = argparse.ArgumentParser()
   p.add_argument('--deep-dir', type=str, required=True)
+  p.add_argument('--sensitivity-dir', type=str, default=None,
+                 help='enables the corrected three class premium in panel b')
   p.add_argument('--out-dir', type=str, required=True)
   args = p.parse_args()
 
@@ -211,7 +294,9 @@ def main():
   ax_d = fig.add_subplot(gs[1, 4:6])
 
   panel_a(ax_a, df)
-  panel_b(ax_b, df)
+  tc = three_class_premium(args.deep_dir, args.sensitivity_dir) \
+      if args.sensitivity_dir else None
+  panel_b(ax_b, df, three_class=tc)
   panel_c(ax_c, df)
   panel_d(ax_d, df)
 
