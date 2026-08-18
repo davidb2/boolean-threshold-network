@@ -145,6 +145,8 @@ def main():
   p.add_argument('--gallery-blocks', type=int, default=2)
   p.add_argument('--gallery-radial', action='store_true',
                  help='master circle: angle = network, radius = member rank')
+  p.add_argument('--panel-letters', type=str, default='ab',
+                 help='letters for the two panels, so the figure can sit beside others')
   p.add_argument('--out-dir', type=str, required=True)
   args = p.parse_args()
 
@@ -330,7 +332,7 @@ def main():
   outer = fig.add_gridspec(2, 1, height_ratios=[1.0, 1.05], hspace=0.95)
   gs_row = outer[0].subgridspec(1, 10, wspace=0.12)
   counts = draw_panel_row(fig, gs_row, S[si], nodes, B[bi], cut, vmax, (cmap_s, cmap_i))
-  fig.text(0.06, 0.965, 'a', fontsize=31, fontweight='bold', color='#222222')
+  fig.text(0.06, 0.965, args.panel_letters[0], fontsize=31, fontweight='bold', color='#222222')
   # group labels centered under each group, computed from the actual axes
   fig.canvas.draw()
   pos = [ax.get_position() for ax in fig.axes if ax.name == 'polar']
@@ -369,7 +371,7 @@ def main():
   ax_e.set_xticks(range(1, 9))
   ax_e.spines['top'].set_visible(False)
   ax_e.spines['right'].set_visible(False)
-  ax_e.text(-0.42, 1.02, 'b', transform=ax_e.transAxes,
+  ax_e.text(-0.42, 1.02, args.panel_letters[1], transform=ax_e.transAxes,
             fontsize=31, fontweight='bold', color='#222222')
 
   # the two ramps stacked side by side, sharing one axis label

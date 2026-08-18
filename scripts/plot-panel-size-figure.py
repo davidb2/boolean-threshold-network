@@ -4,7 +4,7 @@
   a  classification accuracy vs panel size m for evolved and random
      panels at noise eps = 0, 0.5, 1; m = 8 is the smallest size at
      which evolved panels are near their ceiling at every noise level
-  b  promiscuous fraction of evolved panels vs m, against the
+  b  highly sensitive fraction of evolved panels vs m, against the
      hypergeometric random expectation
   c  mean sensitivity of selected vs non-selected nodes vs m
 
@@ -142,7 +142,7 @@ def main():
     acc_line(ax_c, comp, 'sel_B', d['ga_c'], 'selected' if mid else '_nolegend_')
     acc_line(ax_c, comp, 'other_B', d['rnd_c'], 'not selected' if mid else '_nolegend_', ls=(0, (4, 2)))
 
-  for ax, ylab in [(ax_b, 'Promiscuous fraction of panel'), (ax_c, 'Mean node sensitivity')]:
+  for ax, ylab in [(ax_b, 'Fraction above\nsensitivity cutoff'), (ax_c, 'Mean node sensitivity')]:
     ax.set_xscale('log', base=2)
     ax.set_xticks(KS)
     ax.set_xticklabels(['1', '2', '4', '8', '16', '', '64', ''])
