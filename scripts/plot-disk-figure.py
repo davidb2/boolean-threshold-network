@@ -156,12 +156,16 @@ def main():
   out_dir.mkdir(parents=True, exist_ok=True)
 
   if args.gallery_radial:
+    # rays, the inner ring, and the disks all use the SAME breadth class, so
+    # sweeping around the circle gives a non-increasing indiscriminate count
     rows = []
     for net, nodes in panels.items():
       if net not in snets:
         continue
-      n_s = int((B[bnets.index(net), nodes] > cut).sum())
-      rows.append((net, n_s, float(base.get(net, np.nan))))
+      si = snets.index(net)
+      n_ind = sum(1 for node in nodes
+                  if breadth_class(S[si][:, node]) == 'indiscriminate')
+      rows.append((net, n_ind, float(base.get(net, np.nan))))
     order = sorted(rows, key=lambda r: (-r[1], -(r[2] if r[2] == r[2] else 0)))
     n_nets = len(order)
     # sunflower geometry: disk diameter grows with radius so the innermost
