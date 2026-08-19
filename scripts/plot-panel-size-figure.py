@@ -80,6 +80,8 @@ def main():
   p.add_argument('--random-dirs', type=str, nargs=3, required=True)
   p.add_argument('--b-files', type=str, nargs=3, required=True)
   p.add_argument('--eps-labels', type=str, nargs=3, required=True)
+  p.add_argument('--s-file', type=str, default=None,
+                 help='per shock deviations at the highest noise level, for panel d')
   p.add_argument('--out-dir', type=str, required=True)
   args = p.parse_args()
 
@@ -95,9 +97,10 @@ def main():
     d['cut'] = antimode(d['B'])
     cohorts.append(d)
 
-  fig = plt.figure(figsize=(13.2, 9.4))
-  gs = fig.add_gridspec(2, 2, hspace=0.34, wspace=0.32)
-  ax_a = fig.add_subplot(gs[0, :])
+  fig = plt.figure(figsize=(13.8, 9.4))
+  gs = fig.add_gridspec(2, 2, hspace=0.34, wspace=0.36)
+  ax_a = fig.add_subplot(gs[0, 0])
+  ax_d = fig.add_subplot(gs[0, 1])
   ax_b = fig.add_subplot(gs[1, 0])
   ax_c = fig.add_subplot(gs[1, 1])
   axes = np.array([ax_a, ax_b, ax_c])
@@ -155,8 +158,37 @@ def main():
   ax_c.set_ylim(0, 0.55)
   ax_c.legend(frameon=False, fontsize=16, loc='upper right', handlelength=1.2)
 
-  for ax, letter in zip(axes, 'abc'):
-    ax.text(-0.14, 1.04, letter, transform=ax.transAxes,
+  # d: effective number of shocks by member rank, at the highest noise level
+  if args.s_file:
+    sd = np.load(args.s_file, allow_pickle=True)
+    Sp, snets = sd['S'], [int(x) for x in sd['networks']]
+    dd = cohorts[2]
+    eff = []
+    for _, r in dd['ga'][dd['ga'].max_num_features == 8].iterrows():
+      nodes = [int(s.split('-')[1]) for s in eval(r['features'])]
+      if len(set(nodes)) != 8 or int(r['original_network_idx']) not in snets:
+        continue
+      sj = snets.index(int(r['original_network_idx']))
+      bi = dd['bnets'].index(int(r['original_network_idx']))
+      members = sorted(set(nodes), key=lambda n_: -dd['B'][bi, n_])
+      tot = Sp[sj][:, members].sum(axis=0)
+      sq = (Sp[sj][:, members] ** 2).sum(axis=0)
+      with np.errstate(divide='ignore', invalid='ignore'):
+        eff.append(np.where(sq > 0, tot ** 2 / sq, 0.0))
+    eff = np.array(eff)
+    m = eff.mean(axis=0)
+    se = 1.96 * eff.std(axis=0) / np.sqrt(eff.shape[0])
+    ax_d.errorbar(range(1, 9), m, yerr=se, color='#2ca02c', lw=2.0,
+                  marker='o', markersize=5, capsize=3)
+    ax_d.set_xlabel('Member rank by sensitivity')
+    ax_d.set_ylabel('Effective number of shocks')
+    ax_d.set_ylim(0, 10)
+    ax_d.set_xticks(range(1, 9))
+    ax_d.set_title(f'$\\varepsilon = {cohorts[2]["eps"]}$, $m = 8$', fontsize=17)
+
+  for ax, letter, dx in [(ax_a, 'a', -0.14), (ax_d, 'd', -0.23),
+                         (ax_b, 'b', -0.14), (ax_c, 'c', -0.14)]:
+    ax.text(dx, 1.04, letter, transform=ax.transAxes,
             fontsize=28, fontweight='bold', color='#222222')
 
   out_dir = pathlib.Path(args.out_dir)

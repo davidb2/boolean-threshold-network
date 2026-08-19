@@ -145,6 +145,8 @@ def main():
   p.add_argument('--gallery-blocks', type=int, default=2)
   p.add_argument('--gallery-radial', action='store_true',
                  help='master circle: angle = network, radius = member rank')
+  p.add_argument('--row-only', action='store_true',
+                 help='render only the disk row, for composing into another figure')
   p.add_argument('--panel-letters', type=str, default='ab',
                  help='letters for the two panels, so the figure can sit beside others')
   p.add_argument('--out-dir', type=str, required=True)
@@ -348,6 +350,13 @@ def main():
     start += n_g
 
   # panel b: effective number of shocks by member rank, all networks
+  if args.row_only:
+    name = f'fig-disks-eps{args.eps_label}-row'
+    fig.savefig(out_dir / f'{name}.svg', bbox_inches='tight')
+    fig.savefig(out_dir / f'{name}.png', bbox_inches='tight', dpi=300)
+    print(f'wrote {out_dir}/{name}.svg + .png (row only)')
+    return
+
   eff = []
   for net_j, nodes_j in panels.items():
     if net_j not in snets:
