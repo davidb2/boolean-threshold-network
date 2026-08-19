@@ -120,7 +120,7 @@ def main():
   ax_a.set_ylabel('Classification accuracy')
   ax_a.set_ylim(0, 1.02)
   ax_a.legend(frameon=True, facecolor='white', framealpha=1.0, edgecolor='none',
-              fontsize=13.5, loc='lower right', bbox_to_anchor=(1.03, -0.02),
+              fontsize=13.5, loc='lower right', bbox_to_anchor=(1.045, 0.10),
               ncol=1, handlelength=1.2, labelspacing=0.3, borderaxespad=0.0)
 
   for i, d in enumerate(cohorts):
