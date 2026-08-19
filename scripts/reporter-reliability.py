@@ -99,6 +99,11 @@ def main():
   with np.errstate(divide='ignore', invalid='ignore'):
     dprime = np.where(pooled > 1e-9, diff / pooled, 0.0)
 
+  np.savez_compressed(out / f'{net}-pairs.npz',
+                      mu=mu.astype(np.float32), sd=sd.astype(np.float32),
+                      dprime=dprime.astype(np.float32),
+                      drugs=np.array(drugs, dtype=object), nodes=idx)
+
   cls = np.where(n_row[idx] == 0, 'unresponsive',
                  np.where(n_row[idx] >= SPLIT, 'promiscuous', 'dormant'))
   rows = pd.DataFrame(dict(
