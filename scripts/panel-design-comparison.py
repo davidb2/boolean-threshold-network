@@ -190,6 +190,40 @@ def main():
   states_df = pd.read_csv(args.states_file, index_col=0)
   states_df = states_df.reset_index().rename(columns={'drug_name': 'Drug'})
   states_df = states_df[states_df.original_network_idx == net]
+
+  if args.pairs_file:
+    # greedy on the low tail of COVARIANCE AWARE discriminability, the rule
+    # the sign rule mechanism says ought to work; candidates are the 400
+    # nodes of highest individual d prime
+    pool = [int(node_ids[i]) for i in np.argsort(-mean_dp)[:400]]
+    cols = [f'node-{i}' for i in pool]
+    drugs = sorted(states_df['Drug'].unique())
+    reads = {d: states_df[states_df['Drug'] == d]
+                 .groupby('initial_condition_idx')[cols].mean().to_numpy()
+             for d in drugs}
+    mus = {d: v.mean(axis=0) for d, v in reads.items()}
+    centered = np.vstack([v - v.mean(axis=0) for v in reads.values()])
+    dof = max(len(centered) - len(drugs), 1)
+    pairs_dr = list(itertools.combinations(drugs, 2))
+    chosen = []
+    remaining = list(range(len(pool)))
+    for _ in range(M):
+      best, bj = -np.inf, None
+      for j in remaining:
+        idxs = chosen + [j]
+        C = centered[:, idxs]
+        Sg = C.T @ C / dof
+        Sg = 0.5 * Sg + 0.5 * np.diag(np.diag(Sg)) + 1e-6 * np.eye(len(idxs))
+        Si = np.linalg.inv(Sg)
+        vals = [float(np.sqrt(max((mus[a][idxs] - mus[b][idxs]) @ Si
+                                  @ (mus[a][idxs] - mus[b][idxs]), 0.0)))
+                for a, b in pairs_dr]
+        v = np.percentile(vals, 10)
+        if v > best:
+          best, bj = v, j
+      chosen.append(bj); remaining.remove(bj)
+    panels['greedy-mahalanobis'] = [pool[j] for j in chosen]
+
   states_df = states_df.drop(columns=['original_network_idx', 'initial_condition_idx'])
 
   rows = []
