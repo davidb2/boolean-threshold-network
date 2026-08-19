@@ -54,6 +54,7 @@ def main():
   p = argparse.ArgumentParser()
   p.add_argument('--panels-csv', required=True)
   p.add_argument('--redundancy-csv', required=True)
+  p.add_argument('--panel-letters', type=str, default='ab')
   p.add_argument('--out-dir', required=True)
   args = p.parse_args()
 
@@ -96,7 +97,7 @@ def main():
   print(f'spearman p10_dM vs acc: {rho.statistic:.3f} (p={rho.pvalue:.1e})')
   print(f'spearman min_dNB vs acc: {rho_nb.statistic:.3f}')
 
-  for ax, letter, dx in [(ax_a, 'a', -0.62), (ax_b, 'b', -0.16)]:
+  for ax, letter, dx in [(ax_a, args.panel_letters[0], -0.62), (ax_b, args.panel_letters[1], -0.16)]:
     ax.text(dx, 1.04, letter, transform=ax.transAxes,
             fontsize=27, fontweight='bold', color='#222222')
 
