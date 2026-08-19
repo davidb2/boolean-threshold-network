@@ -25,7 +25,7 @@ CHANCE = 1 / 11
 STYLES = {
   'genetic':            {'color': '#2ca02c', 'label': 'genetic algorithm', 'lw': 3.0, 'ls': '-', 'zorder': 14},
   'infomax':            {'color': '#17becf', 'label': 'greedy information gain', 'lw': 2.2, 'ls': '-', 'zorder': 12},
-  'anchor-reporter':    {'color': '#9467bd', 'label': 'anchors plus detectors', 'lw': 2.2, 'ls': '-', 'zorder': 11},
+  'anchor-reporter':    {'color': '#9467bd', 'label': 'anchors then information gain', 'lw': 2.2, 'ls': '-', 'zorder': 11},
   'sensitivity':        {'color': '#ff7f0e', 'label': 'highest sensitivity', 'lw': 2.2, 'ls': '-', 'zorder': 10},
   'influence':          {'color': '#8c564b', 'label': 'influence maximization', 'lw': 2.2, 'ls': '-', 'zorder': 6},
   'random':             {'color': '#7f7f7f', 'label': 'random', 'lw': 2.2, 'ls': '-', 'zorder': 4},
@@ -117,7 +117,7 @@ def main():
     ax.set_xlabel('Number of reporters, $m$')
     ax.set_title(f'$\\varepsilon = {eps}$', fontsize=21)
   axes[0].set_ylabel('Classification accuracy')
-  axes[0].text(1.1, CHANCE + 0.02, 'chance', fontsize=14, color='#999999')
+  axes[0].text(60, CHANCE + 0.02, 'chance', fontsize=14, color='#999999')
 
   fig.legend(handles=handles, loc='lower center', frameon=False,
              fontsize=15, ncol=4, bbox_to_anchor=(0.5, 0.01), columnspacing=1.2)

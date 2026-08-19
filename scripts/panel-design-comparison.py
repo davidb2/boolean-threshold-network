@@ -122,6 +122,8 @@ def main():
   p.add_argument('--network-size', type=int, default=5000)
   p.add_argument('--num-trials', type=int, default=10)
   p.add_argument('--seed', type=int, default=0)
+  p.add_argument('--pairs-file', type=str, default=None,
+                 help='per pair d prime npz from reporter-reliability.py; enables the v2 designs')
   p.add_argument('--output-dir', type=str, required=True)
   args = p.parse_args()
 
@@ -165,6 +167,25 @@ def main():
             'dormant-random': dorm_rand, 'half-and-half': mixed}
   if evolved is not None:
     panels['evolved'] = evolved
+
+  if args.pairs_file:
+    z = np.load(args.pairs_file, allow_pickle=True)
+    DP = z['dprime'].astype(float)                    # (pairs, nodes)
+    node_ids = z['nodes']
+    # reliability analogue of the sensitivity heuristic
+    mean_dp = DP.mean(axis=0)
+    panels['top-dprime'] = [int(node_ids[i]) for i in np.argsort(-mean_dp)[:M]]
+    # greedy on the low tail of independence-assuming panel d prime
+    cand = list(np.argsort(-mean_dp)[:400])
+    acc2 = np.zeros(DP.shape[0]); chosen = []
+    for _ in range(M):
+      best, bj = -np.inf, None
+      for j in cand:
+        v = np.percentile(np.sqrt(acc2 + DP[:, j] ** 2), 10)
+        if v > best:
+          best, bj = v, j
+      chosen.append(bj); acc2 = acc2 + DP[:, bj] ** 2; cand.remove(bj)
+    panels['greedy-nb-p10'] = [int(node_ids[i]) for i in chosen]
 
   states_df = pd.read_csv(args.states_file, index_col=0)
   states_df = states_df.reset_index().rename(columns={'drug_name': 'Drug'})

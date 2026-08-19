@@ -38,7 +38,7 @@ FOREGROUND = {
   'random':          {'color': '#7f7f7f', 'label': 'random', 'lw': 2.4, 'zorder': 4},
   'sensitivity':     {'color': '#ff7f0e', 'label': 'highest sensitivity', 'lw': 2.4, 'zorder': 9},
   'infomax':         {'color': '#17becf', 'label': 'greedy information gain', 'lw': 2.4, 'zorder': 10},
-  'anchor-reporter': {'color': '#9467bd', 'label': 'anchors plus detectors', 'lw': 2.4, 'zorder': 8},
+  'anchor-reporter': {'color': '#9467bd', 'label': 'anchors then information gain', 'lw': 2.4, 'zorder': 8},
   'influence':       {'color': '#8c564b', 'label': 'influence maximization', 'lw': 2.4, 'zorder': 6},
 }
 BACKGROUND = ['in-degree', 'out-degree', 'mmse', 'jaccard', 'upstream',
@@ -131,7 +131,7 @@ def main():
     ax.set_xlabel('Number of reporters, $m$')
     ax.set_title(f'$\\varepsilon = {eps}$', fontsize=21)
   axes[0].set_ylabel('Classification accuracy')
-  axes[0].text(1.1, CHANCE + 0.02, 'chance', fontsize=14, color='#999999')
+  axes[0].text(60, CHANCE + 0.02, 'chance', fontsize=14, color='#999999')
 
   bg_proxy = plt.Line2D([], [], color=BG_COLOR, lw=1.3, label='other heuristics')
   fig.legend(handles=handles + [bg_proxy], loc='lower center', frameon=False,

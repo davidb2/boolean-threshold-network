@@ -222,7 +222,9 @@ def main():
   line(ax_c, deep, 'drop_i', INSENS, 'remove one dormant')
   ax_c.set_ylabel('Accuracy drop')
   ax_c.set_ylim(0, 0.19)
-  ax_c.legend(frameon=False, fontsize=18, loc='upper right', handlelength=1.0, borderaxespad=0.1)
+  ax_c.legend(frameon=True, facecolor='white', framealpha=1.0, edgecolor='none',
+              fontsize=17, loc='upper right', bbox_to_anchor=(1.0, 1.02),
+              handlelength=1.0, borderaxespad=0.0)
 
   rng = np.random.default_rng(7)
   xs, shares, los, his = [], [], [], []

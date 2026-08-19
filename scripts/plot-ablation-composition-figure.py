@@ -120,7 +120,8 @@ def panel_a(axes, df):
              for l, c, _ in order]
   handles.append(plt.Line2D([], [], color='#555555', lw=1.2,
                             linestyle=(0, (4, 3)), label='no removal'))
-  axes[0].legend(handles=handles, frameon=False, fontsize=14,
+  axes[0].legend(handles=handles, frameon=True, facecolor='white',
+                 framealpha=1.0, edgecolor='none', fontsize=14,
                  loc='lower left', handlelength=1.1, borderaxespad=0.2,
                  labelspacing=0.3)
 
@@ -153,6 +154,8 @@ def panel_b(ax, df, three_class=None):
   ax.set_xscale('symlog', linthresh=0.02, linscale=0.55)
   ax.set_xticks([0, 0.02, 0.1, 0.5, 1])
   ax.set_xticklabels(['0', '0.02', '0.1', '0.5', '1'])
+  ax.set_xticks([0.01, 0.05, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9], minor=True)
+  ax.tick_params(axis='x', which='minor', length=2.5)
   ax.set_xlim(-0.004, 1.35)
   ax.set_ylim(-0.02, 0.105)
   ax.set_xlabel('Noise, $\\varepsilon$')
@@ -212,7 +215,9 @@ def panel_d(ax, df):
   ax.set_xticklabels(['$\\varepsilon = 0$', '$\\varepsilon = 0.5$', '$\\varepsilon = 1$'])
   ax.set_ylabel('Cost of one\ndormant removal')
   ax.set_ylim(0, 0.105)
-  ax.legend(frameon=False, fontsize=15, loc='upper left', handlelength=1.1)
+  ax.legend(frameon=True, facecolor='white', framealpha=1.0, edgecolor='none',
+            fontsize=14, loc='upper left', bbox_to_anchor=(0.28, 1.06),
+            handlelength=1.1)
 
 
 

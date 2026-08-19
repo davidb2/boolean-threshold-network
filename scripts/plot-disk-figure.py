@@ -121,7 +121,7 @@ def draw_panel_row(fig, gs_row, S_net, nodes, B_row, cut, vmax, cmaps, label=Non
     for node in g:
       ax = fig.add_subplot(gs_row[0, slot], projection='polar')
       draw_disk(ax, S_net[:, node], vmax, cmaps[0] if gi == 0 else cmaps[1],
-                bg=DORMANT_BG if gi == 1 else None)
+                ring=True, bg=DORMANT_BG if gi == 1 else None)
       slot += 1
     slot += 1                       # gap between groups, kept even when empty
   if label is not None:

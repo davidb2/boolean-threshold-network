@@ -107,16 +107,17 @@ def main():
     acc_line(ax_a, ga, 'accuracy', d['ga_c'], f'evolved, $\\varepsilon = {d["eps"]}$')
     acc_line(ax_a, d['rnd'], 'accuracy', d['rnd_c'], f'random, $\\varepsilon = {d["eps"]}$', ls=(0, (4, 2)))
   ax_a.axhline(CHANCE, color='#cccccc', lw=1.0, linestyle=(0, (3, 3)))
-  ax_a.text(1.3, CHANCE + 0.02, 'chance', fontsize=16, color='#999999')
+  ax_a.text(52, CHANCE + 0.02, 'chance', fontsize=16, color='#999999')
   ax_a.axvline(8, color='#e8a000', lw=1.4, alpha=0.7, linestyle=(0, (4, 2)))
-  ax_a.text(8 * 1.12, 1.005, '$m = 8$', fontsize=18, color='#e8a000')
+  ax_a.text(8 * 1.12, 1.035, '$m = 8$', fontsize=18, color='#e8a000')
   ax_a.set_xscale('log', base=2)
   ax_a.set_xticks(KS)
   ax_a.set_xticklabels(['1', '2', '4', '8', '16', '32', '64', '128'])
   ax_a.set_xlabel('Panel size, $m$')
   ax_a.set_ylabel('Classification accuracy')
   ax_a.set_ylim(0, 1.02)
-  ax_a.legend(frameon=False, fontsize=15, loc='lower right', ncol=1,
+  ax_a.legend(frameon=True, facecolor='white', framealpha=1.0, edgecolor='none',
+              fontsize=15, loc='lower right', ncol=1,
               handlelength=1.4, labelspacing=0.35)
 
   for i, d in enumerate(cohorts):
@@ -142,7 +143,7 @@ def main():
     acc_line(ax_c, comp, 'sel_B', d['ga_c'], 'selected' if mid else '_nolegend_')
     acc_line(ax_c, comp, 'other_B', d['rnd_c'], 'not selected' if mid else '_nolegend_', ls=(0, (4, 2)))
 
-  for ax, ylab in [(ax_b, 'Fraction above\nsensitivity cutoff'), (ax_c, 'Mean node sensitivity')]:
+  for ax, ylab in [(ax_b, 'Highly sensitive\nfraction of panel'), (ax_c, 'Mean node sensitivity')]:
     ax.set_xscale('log', base=2)
     ax.set_xticks(KS)
     ax.set_xticklabels(['1', '2', '4', '8', '16', '', '64', ''])
