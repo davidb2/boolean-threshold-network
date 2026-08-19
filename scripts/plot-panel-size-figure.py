@@ -110,7 +110,7 @@ def main():
     acc_line(ax_a, ga, 'accuracy', d['ga_c'], f'evolved, $\\varepsilon = {d["eps"]}$')
     acc_line(ax_a, d['rnd'], 'accuracy', d['rnd_c'], f'random, $\\varepsilon = {d["eps"]}$', ls=(0, (4, 2)))
   ax_a.axhline(CHANCE, color='#cccccc', lw=1.0, linestyle=(0, (3, 3)))
-  ax_a.text(17, CHANCE + 0.02, 'chance', fontsize=16, color='#999999')
+  ax_a.text(1.05, CHANCE - 0.055, 'chance', fontsize=15, color='#999999')
   ax_a.axvline(8, color='#e8a000', lw=1.4, alpha=0.7, linestyle=(0, (4, 2)))
   ax_a.text(8 * 1.12, 1.035, '$m = 8$', fontsize=18, color='#e8a000')
   ax_a.set_xscale('log', base=2)
@@ -120,8 +120,8 @@ def main():
   ax_a.set_ylabel('Classification accuracy')
   ax_a.set_ylim(0, 1.02)
   ax_a.legend(frameon=True, facecolor='white', framealpha=1.0, edgecolor='none',
-              fontsize=15, loc='lower right', ncol=1,
-              handlelength=1.4, labelspacing=0.35)
+              fontsize=13.5, loc='lower right', bbox_to_anchor=(1.03, -0.02),
+              ncol=1, handlelength=1.2, labelspacing=0.3, borderaxespad=0.0)
 
   for i, d in enumerate(cohorts):
     # shade already encodes the noise level (legend in panel a), so panels
@@ -186,8 +186,8 @@ def main():
     ax_d.set_xticks(range(1, 9))
     ax_d.set_title(f'$\\varepsilon = {cohorts[2]["eps"]}$, $m = 8$', fontsize=17)
 
-  for ax, letter, dx in [(ax_a, 'a', -0.14), (ax_d, 'd', -0.23),
-                         (ax_b, 'b', -0.14), (ax_c, 'c', -0.14)]:
+  for ax, letter, dx in [(ax_a, 'a', -0.14), (ax_d, 'b', -0.23),
+                         (ax_b, 'c', -0.14), (ax_c, 'd', -0.14)]:
     ax.text(dx, 1.04, letter, transform=ax.transAxes,
             fontsize=28, fontweight='bold', color='#222222')
 

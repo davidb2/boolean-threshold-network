@@ -351,10 +351,42 @@ def main():
 
   # panel b: effective number of shocks by member rank, all networks
   if args.row_only:
+    # stacked variant: one row per class, labels at the right, no "members"
+    plt.close(fig)
+    groups = panel_groups(S[si], nodes, B[bi], cut)
+    maxc = max(len(g) for g in groups)
+    fig = plt.figure(figsize=(7.6, 5.6))
+    gs2 = fig.add_gridspec(3, maxc, left=0.03, right=0.70, top=0.92,
+                           bottom=0.06, wspace=0.08, hspace=0.28)
+    row_info = [('promiscuous', SENS, cmap_s, None),
+                ('dormant', '#b06a20', cmap_i, DORMANT_BG),
+                ('unresponsive', '#8a8a8a', cmap_i, None)]
+    for gi, (g, (lab, col, cm, bg)) in enumerate(zip(groups, row_info)):
+      ymid = None
+      for k, node in enumerate(g):
+        ax = fig.add_subplot(gs2[gi, k], projection='polar')
+        draw_disk(ax, S[si][:, node], vmax, cm, ring=True, bg=bg)
+        ymid = 0.5 * (ax.get_position().y0 + ax.get_position().y1)
+      if ymid is not None:
+        fig.text(0.72, ymid, lab, fontsize=17, color=col,
+                 ha='left', va='center')
+    fig.text(0.02, 0.97, args.panel_letters[0], fontsize=26,
+             fontweight='bold', color='#222222')
+    for cm, x0, ticks in [(cmap_s, 0.88, False), (cmap_i, 0.92, True)]:
+      sm = plt.cm.ScalarMappable(cmap=cm, norm=plt.Normalize(0, vmax))
+      cax = fig.add_axes([x0, 0.25, 0.022, 0.5])
+      cbar = fig.colorbar(sm, cax=cax)
+      cbar.outline.set_edgecolor('#999999')
+      if ticks:
+        cbar.set_label('Sensitivity', fontsize=14)
+        cbar.ax.tick_params(labelsize=12)
+      else:
+        cbar.set_ticks([])
     name = f'fig-disks-eps{args.eps_label}-row'
     fig.savefig(out_dir / f'{name}.svg', bbox_inches='tight')
     fig.savefig(out_dir / f'{name}.png', bbox_inches='tight', dpi=300)
-    print(f'wrote {out_dir}/{name}.svg + .png (row only)')
+    print(f'wrote {out_dir}/{name}.svg + .png (stacked, network {net}, '
+          f'{len(groups[0])}P/{len(groups[1])}D/{len(groups[2])}U)')
     return
 
   eff = []
