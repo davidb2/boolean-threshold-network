@@ -357,78 +357,89 @@ def main():
 
   # panel b: effective number of shocks by member rank, all networks
   if args.row_only:
-    # combined class figure: the decision tree (drawn in matplotlib, so the
-    # text ships inside the svg/png) beside the stacked disk rows, with the
-    # sensitivity bars between them, on panel f's left
+    # combined class figure: the tree's leaves line up with the disk rows
+    # they classify, and an arrow runs from each leaf to its row
     plt.close(fig)
     groups = panel_groups(S[si], nodes, B[bi], cut)
     maxc = max(len(g) for g in groups)
     fig = plt.figure(figsize=(13.6, 5.4))
 
-    # ---- panel e: the tree ----
-    axt = fig.add_axes([0.015, 0.04, 0.40, 0.90])
-    axt.set_xlim(0, 10); axt.set_ylim(-2.4, 3.0); axt.axis('off')
+    # ---- panel f first, so the rows fix the geometry ----
+    gs2 = fig.add_gridspec(3, maxc, left=0.475, right=0.815, top=0.90,
+                           bottom=0.06, wspace=0.08, hspace=0.28)
+    row_info = [(cmap_s, None), (cmap_i, DORMANT_BG), (cmap_i, None)]
+    ymids = []
+    for gi, (g, (cm, bg)) in enumerate(zip(groups, row_info)):
+      ymid = None
+      for k, node in enumerate(g):
+        ax = fig.add_subplot(gs2[gi, k], projection='polar')
+        draw_disk(ax, S[si][:, node], vmax, cm, ring=True, bg=bg, cutoff=cut)
+        pos = ax.get_position()
+        ymid = 0.5 * (pos.y0 + pos.y1)
+      ymids.append(ymid)
+
+    # ---- sensitivity bars, back on the right ----
+    for cm, x0, ticks in [(cmap_s, 0.853, False), (cmap_i, 0.886, True)]:
+      sm = plt.cm.ScalarMappable(cmap=cm, norm=plt.Normalize(0, vmax))
+      cax = fig.add_axes([x0, 0.22, 0.020, 0.56])
+      cbar = fig.colorbar(sm, cax=cax)
+      cbar.outline.set_edgecolor('#999999')
+      if ticks:
+        cbar.set_label('Sensitivity', fontsize=14)
+        cbar.ax.tick_params(labelsize=12)
+      else:
+        cbar.set_ticks([])
+
+    # ---- panel e: the tree, leaves at the rows' heights ----
+    AXPOS = [0.015, 0.04, 0.415, 0.90]
+    axt = fig.add_axes(AXPOS)
+    YLIM = (-2.4, 3.0)
+    axt.set_xlim(0, 10); axt.set_ylim(*YLIM); axt.axis('off')
+    def fig2data(fy):
+      return YLIM[0] + (fy - AXPOS[1]) / AXPOS[3] * (YLIM[1] - YLIM[0])
+    y_pro, y_dor, y_unr = [fig2data(y) for y in ymids]
     TESTBOX = dict(boxstyle='round,pad=0.45', fc='#f5f5f5', ec='#8c8c8c', lw=1.0)
     def leafbox(fc): return dict(boxstyle='round,pad=0.45', fc=fc, ec='#4d4d4d', lw=1.6)
-    axt.text(1.45, 0.35, 'does any shock\nmove the node\nstrongly?', ha='center',
+    y_t2 = 0.5 * (y_pro + y_dor)
+    y_t1 = 0.5 * (y_t2 + y_unr)
+    axt.text(1.45, y_t1, 'does any shock\nmove the node\nstrongly?', ha='center',
              va='center', fontsize=13.5, bbox=TESTBOX)
-    axt.text(4.8, 1.55, 'how many\nshocks?', ha='center', va='center',
+    axt.text(4.8, y_t2, 'how many\nshocks?', ha='center', va='center',
              fontsize=13.5, bbox=TESTBOX)
-    axt.text(8.35, 2.35, 'promiscuous', ha='center', va='center', fontsize=14,
+    axt.text(8.35, y_pro, 'promiscuous', ha='center', va='center', fontsize=14,
              fontweight='bold', color='#C25E05', bbox=leafbox('white'))
-    axt.text(8.35, 0.65, 'dormant', ha='center', va='center', fontsize=14,
+    axt.text(8.35, y_dor, 'dormant', ha='center', va='center', fontsize=14,
              fontweight='bold', color='#262626', bbox=leafbox('#FFE3CA'))
-    axt.text(8.35, -1.45, 'unresponsive', ha='center', va='center', fontsize=14,
+    axt.text(8.35, y_unr, 'unresponsive', ha='center', va='center', fontsize=14,
              fontweight='bold', color='#8c8c8c', bbox=leafbox('white'))
-    def elbow(x0, y0, xs, y1, x2, lab=None, labdy=0.0):
+    def elbow(x0, y0, xs, y1, x2, lab=None):
       axt.plot([x0, xs], [y0, y0], color='#333333', lw=1.1, zorder=1)
       axt.plot([xs, xs], [y0, y1], color='#333333', lw=1.1, zorder=1)
       axt.annotate('', xy=(x2, y1), xytext=(xs, y1), zorder=1,
                    arrowprops=dict(arrowstyle='-|>', color='#333333', lw=1.1,
                                    mutation_scale=16, shrinkA=0, shrinkB=0))
       if lab:
-        axt.text(xs, (y0 + y1) / 2 + labdy, lab, fontsize=11.5, ha='center',
+        axt.text(xs, (y0 + y1) / 2, lab, fontsize=11.5, ha='center',
                  va='center', bbox=dict(fc='white', ec='none', pad=1.2))
-    elbow(2.85, 0.35, 3.35, 1.55, 3.75, 'yes')
-    elbow(2.85, 0.35, 3.35, -1.45, 6.82, 'no')
-    elbow(5.85, 1.55, 6.45, 2.35, 6.82, 'most')
-    elbow(5.85, 1.55, 6.45, 0.65, 7.32, 'few')
+    elbow(2.85, y_t1, 3.35, y_t2, 3.75, 'yes')
+    elbow(2.85, y_t1, 3.35, y_unr, 6.82, 'no')
+    elbow(5.85, y_t2, 6.45, y_pro, 6.82, 'most')
+    elbow(5.85, y_t2, 6.45, y_dor, 7.32, 'few')
 
-    # ---- sensitivity bars, on panel f's left ----
-    for cm, x0, ticks in [(cmap_s, 0.455, True), (cmap_i, 0.488, False)]:
-      sm = plt.cm.ScalarMappable(cmap=cm, norm=plt.Normalize(0, vmax))
-      cax = fig.add_axes([x0, 0.22, 0.020, 0.56])
-      cbar = fig.colorbar(sm, cax=cax)
-      cbar.outline.set_edgecolor('#999999')
-      if ticks:
-        cax.yaxis.set_ticks_position('left')
-        cax.yaxis.set_label_position('left')
-        cbar.set_label('Sensitivity', fontsize=14)
-        cbar.ax.tick_params(labelsize=12)
-      else:
-        cbar.set_ticks([])
-
-    # ---- panel f: stacked disk rows, class labels at the right ----
-    gs2 = fig.add_gridspec(3, maxc, left=0.545, right=0.865, top=0.90,
-                           bottom=0.06, wspace=0.08, hspace=0.28)
-    row_info = [('promiscuous', SENS, cmap_s, None),
-                ('dormant', '#b06a20', cmap_i, DORMANT_BG),
-                ('unresponsive', '#8a8a8a', cmap_i, None)]
-    for gi, (g, (lab, col, cm, bg)) in enumerate(zip(groups, row_info)):
-      ymid = None
-      for k, node in enumerate(g):
-        ax = fig.add_subplot(gs2[gi, k], projection='polar')
-        draw_disk(ax, S[si][:, node], vmax, cm, ring=True, bg=bg, cutoff=cut)
-        ymid = 0.5 * (ax.get_position().y0 + ax.get_position().y1)
-      if ymid is not None:
-        fig.text(0.875, ymid, lab, fontsize=16, color=col, ha='left', va='center')
+    # ---- arrows from each leaf to its disk row ----
+    from matplotlib.patches import FancyArrowPatch
+    for fy in ymids:
+      fig.add_artist(FancyArrowPatch((0.428, fy), (0.468, fy),
+                                     transform=fig.transFigure,
+                                     arrowstyle='-|>', mutation_scale=16,
+                                     color='#333333', lw=1.1))
 
     fig.text(0.012, 0.95, 'e', fontsize=27, fontweight='bold', color='#222222')
-    fig.text(0.418, 0.95, 'f', fontsize=27, fontweight='bold', color='#222222')
+    fig.text(0.455, 0.95, 'f', fontsize=27, fontweight='bold', color='#222222')
     name = f'fig-disks-eps{args.eps_label}-row'
     fig.savefig(out_dir / f'{name}.svg', bbox_inches='tight')
     fig.savefig(out_dir / f'{name}.png', bbox_inches='tight', dpi=300)
-    print(f'wrote {out_dir}/{name}.svg + .png (tree + stacked, network {net}, '
+    print(f'wrote {out_dir}/{name}.svg + .png (aligned tree + rows, network {net}, '
           f'{len(groups[0])}P/{len(groups[1])}D/{len(groups[2])}U)')
     return
 
