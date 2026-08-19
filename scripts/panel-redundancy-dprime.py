@@ -42,6 +42,8 @@ def main():
   p.add_argument('--states-file', type=str, required=True)
   p.add_argument('--panels-csv', type=str, required=True)
   p.add_argument('--output-csv', type=str, required=True)
+  p.add_argument('--shrink', type=float, default=0.5,
+                 help='weight on the diagonal in the covariance shrinkage')
   args = p.parse_args()
 
   panels = pd.read_csv(args.panels_csv)
@@ -62,7 +64,8 @@ def main():
       # pooled within condition covariance, shrunk halfway to its diagonal
       centered = np.vstack([v - v.mean(axis=0) for v in reads.values()])
       S = centered.T @ centered / max(len(centered) - len(drugs), 1)
-      Sigma = 0.5 * S + 0.5 * np.diag(np.diag(S))
+      lam = args.shrink
+      Sigma = (1 - lam) * S + lam * np.diag(np.diag(S))
       Sigma += 1e-6 * np.eye(m)
       Sinv = np.linalg.inv(Sigma)
       # member redundancy: mean absolute off diagonal correlation
