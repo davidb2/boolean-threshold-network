@@ -107,7 +107,7 @@ def main():
     acc_line(ax_a, ga, 'accuracy', d['ga_c'], f'evolved, $\\varepsilon = {d["eps"]}$')
     acc_line(ax_a, d['rnd'], 'accuracy', d['rnd_c'], f'random, $\\varepsilon = {d["eps"]}$', ls=(0, (4, 2)))
   ax_a.axhline(CHANCE, color='#cccccc', lw=1.0, linestyle=(0, (3, 3)))
-  ax_a.text(52, CHANCE + 0.02, 'chance', fontsize=16, color='#999999')
+  ax_a.text(17, CHANCE + 0.02, 'chance', fontsize=16, color='#999999')
   ax_a.axvline(8, color='#e8a000', lw=1.4, alpha=0.7, linestyle=(0, (4, 2)))
   ax_a.text(8 * 1.12, 1.035, '$m = 8$', fontsize=18, color='#e8a000')
   ax_a.set_xscale('log', base=2)
