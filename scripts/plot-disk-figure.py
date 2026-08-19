@@ -378,14 +378,15 @@ def main():
       axt.plot([x0, xs], [y0, y0], color='#333333', lw=1.1, zorder=1)
       axt.plot([xs, xs], [y0, y1], color='#333333', lw=1.1, zorder=1)
       axt.annotate('', xy=(x2, y1), xytext=(xs, y1), zorder=1,
-                   arrowprops=dict(arrowstyle='-|>', color='#333333', lw=1.1))
+                   arrowprops=dict(arrowstyle='-|>', color='#333333', lw=1.1,
+                                   mutation_scale=16, shrinkA=0, shrinkB=0))
       if lab:
         axt.text(xs, (y0 + y1) / 2 + labdy, lab, fontsize=11.5, ha='center',
                  va='center', bbox=dict(fc='white', ec='none', pad=1.2))
     elbow(2.85, 0.35, 3.35, 1.55, 3.75, 'yes')
-    elbow(2.85, 0.35, 3.35, -1.45, 7.0, 'no')
-    elbow(5.85, 1.55, 6.45, 2.35, 7.15, 'most')
-    elbow(5.85, 1.55, 6.45, 0.65, 7.35, 'few')
+    elbow(2.85, 0.35, 3.35, -1.45, 6.82, 'no')
+    elbow(5.85, 1.55, 6.45, 2.35, 6.82, 'most')
+    elbow(5.85, 1.55, 6.45, 0.65, 7.32, 'few')
 
     # ---- sensitivity bars, on panel f's left ----
     for cm, x0, ticks in [(cmap_s, 0.455, True), (cmap_i, 0.488, False)]:
@@ -417,7 +418,7 @@ def main():
         fig.text(0.875, ymid, lab, fontsize=16, color=col, ha='left', va='center')
 
     fig.text(0.012, 0.95, 'e', fontsize=27, fontweight='bold', color='#222222')
-    fig.text(0.535, 0.95, 'f', fontsize=27, fontweight='bold', color='#222222')
+    fig.text(0.418, 0.95, 'f', fontsize=27, fontweight='bold', color='#222222')
     name = f'fig-disks-eps{args.eps_label}-row'
     fig.savefig(out_dir / f'{name}.svg', bbox_inches='tight')
     fig.savefig(out_dir / f'{name}.png', bbox_inches='tight', dpi=300)
