@@ -58,15 +58,21 @@ def load_panels(path):
           for _, r in fin.iterrows() if len(set(eval(r['features']))) == 8}
 
 
-def draw_disk(ax, vals, vmax, cmap, _class_color=None, ring=False, bg=None):
+def draw_disk(ax, vals, vmax, cmap, _class_color=None, ring=False, bg=None,
+              cutoff=None):
   '''Wedges over an optional background disk; the colormap carries the class.'''
   n = len(vals)
   theta = np.linspace(0, 2 * np.pi, n, endpoint=False)
   width = 2 * np.pi / n * 0.9
   ax.set_facecolor(bg if bg is not None else 'none')
+  if cutoff is not None:
+    # the sensitivity cutoff, drawn under the wedges
+    tt = np.linspace(0, 2 * np.pi, 181)
+    ax.plot(tt, np.full_like(tt, cutoff), color='#a8a8a8', lw=0.9,
+            linestyle=(0, (1.5, 2)), zorder=1)
   ax.bar(theta, vals, width=width, bottom=0,
          color=[cmap(v / vmax) for v in vals],
-         edgecolor='none', linewidth=0)
+         edgecolor='none', linewidth=0, zorder=2)
   ax.set_ylim(0, vmax)
   ax.set_xticks([])
   ax.set_yticks([])
@@ -412,7 +418,7 @@ def main():
       ymid = None
       for k, node in enumerate(g):
         ax = fig.add_subplot(gs2[gi, k], projection='polar')
-        draw_disk(ax, S[si][:, node], vmax, cm, ring=True, bg=bg)
+        draw_disk(ax, S[si][:, node], vmax, cm, ring=True, bg=bg, cutoff=cut)
         ymid = 0.5 * (ax.get_position().y0 + ax.get_position().y1)
       if ymid is not None:
         fig.text(0.875, ymid, lab, fontsize=16, color=col, ha='left', va='center')
