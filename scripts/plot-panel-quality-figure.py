@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-'''Panel quality is collective (main text figure).
+'''Panel quality is a set level property (SI figure).
 
   a  classification accuracy of the six panel designs at eps = 1, means
      with 95 percent confidence intervals across the 50 networks. The
@@ -82,20 +82,18 @@ def main():
   # b: the covariance aware low tail against accuracy
   for k in ORDER:
     s = red[red.panel == k]
-    ax_b.scatter(s.p10_dM, s.accuracy, s=26, color=COLOR[k], alpha=0.65,
+    ax_b.scatter(s.v_diag, s.accuracy, s=26, color=COLOR[k], alpha=0.65,
                  lw=0, label=LABEL[k])
-  rho = stats.spearmanr(red.p10_dM, red.accuracy)
-  rho_nb = stats.spearmanr(red.min_dNB, red.accuracy)
+  rho = stats.spearmanr(red.v_diag, red.accuracy)
   ax_b.set_xscale('log')
-  ax_b.set_xlabel('Covariance aware discriminability\n(tenth percentile over pairs)')
+  ax_b.set_xlabel('Single trial discriminability, pooled variance\n(tenth percentile over shock pairs)')
   ax_b.set_ylabel('Classification accuracy')
   ax_b.text(0.03, 0.97, f'$\\rho = {rho.statistic:.2f}$', fontsize=17,
             transform=ax_b.transAxes, va='top')
   ax_b.legend(frameon=True, facecolor='white', framealpha=1.0, edgecolor='none',
               fontsize=11.5, loc='lower right', handletextpad=0.2,
               labelspacing=0.25, borderaxespad=0.2)
-  print(f'spearman p10_dM vs acc: {rho.statistic:.3f} (p={rho.pvalue:.1e})')
-  print(f'spearman min_dNB vs acc: {rho_nb.statistic:.3f}')
+  print(f'spearman v_diag vs acc: {rho.statistic:.3f} (p={rho.pvalue:.1e})')
 
   for ax, letter, dx in [(ax_a, args.panel_letters[0], -0.62), (ax_b, args.panel_letters[1], -0.16)]:
     ax.text(dx, 1.04, letter, transform=ax.transAxes,
