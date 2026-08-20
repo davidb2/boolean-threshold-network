@@ -62,6 +62,9 @@ def load_dir(results_dir):
 
 def load_ga(ga_csv):
   ga = pd.read_csv(ga_csv)
+  if 'accuracy' in ga.columns:
+    # a rescored file: final panels re-evaluated on fresh splits
+    return ga[['original_network_idx', 'max_num_features', 'accuracy']]
   final = ga.loc[ga.groupby(['original_network_idx', 'max_num_features'])['generation'].idxmax()]
   df = final.rename(columns={'best_accuracy': 'accuracy'})
   full = df.pivot(index='original_network_idx', columns='max_num_features', values='accuracy')
