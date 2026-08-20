@@ -153,7 +153,6 @@ def draw_seq_grid(ax, M):
   cmap = ListedColormap(['white', '#ff7f0e', '#262626'])
   ax.pcolormesh(M, cmap=cmap, vmin=0, vmax=2, edgecolors='#dddddd',
                 linewidth=0.4)
-  ax.set_aspect('equal', anchor='NW')
   ax.invert_yaxis()
   ax.set_yticks(np.arange(M.shape[0]) + 0.5)
   ax.set_yticklabels([str(k + 1) for k in range(M.shape[0])], fontsize=13)
@@ -178,13 +177,14 @@ def draw_seq_bars(ax, M):
   ax.barh(steps, fD, left=fP, color='#262626', height=0.8)
   ax.barh(steps, fU, left=fP + fD, color='white', edgecolor='#bbbbbb',
           linewidth=0.8, height=0.8)
-  ax.invert_yaxis()
-  ax.set_yticks(steps)
+  # rows are shared with the grid to the left, so no vertical labels here
+  ax.set_ylim(8.5, 0.5)
+  ax.set_yticks([])
   ax.tick_params(labelsize=15)
-  ax.set_ylabel('Greedy step')
   ax.set_xlabel('Proportion of networks', fontsize=16)
   ax.set_xlim(0, 1)
   ax.set_xticks([0, 0.5, 1])
+  ax.spines['left'].set_visible(False)
 
 
 def draw_rule_panel(ax, v2_csv, recipe):
@@ -247,8 +247,13 @@ def main():
       plt.setp(ax.get_yticklabels(), visible=False)
     ax_d = fig.add_subplot(gs[1, :2])
     ax_e = fig.add_subplot(gs[1, 2])
-    pos = ax_e.get_position()
-    ax_e.set_position([pos.x0 + 0.045, pos.y0, pos.width - 0.045, pos.height])
+    # size the grid box to exactly square cells (8 rows x 50 columns) and
+    # give the bars the same vertical extent so bar k lines up with row k
+    pd_, pe_ = ax_d.get_position(), ax_e.get_position()
+    fw, fh = fig.get_size_inches()
+    h = pd_.width * fw * (8 / 50) / fh
+    ax_d.set_position([pd_.x0, pd_.y1 - h, pd_.width, h])
+    ax_e.set_position([pe_.x0 + 0.045, pd_.y1 - h, pe_.width - 0.045, h])
   elif args.rule_v2_csv:
     fig = plt.figure(figsize=(15.2, 11.6))
     gs = fig.add_gridspec(2, 3, hspace=0.34, wspace=0.14)
@@ -301,9 +306,9 @@ def main():
     fig.legend(handles=handles + [bg_proxy] + grid_handles, loc='lower center',
                frameon=False, fontsize=16, ncol=4, bbox_to_anchor=(0.5, 0.005),
                columnspacing=1.3)
-    ax_d.text(-0.105, 1.02, 'd', transform=ax_d.transAxes,
+    ax_d.text(-0.105, 1.06, 'd', transform=ax_d.transAxes,
               fontsize=27, fontweight='bold', color='#222222')
-    ax_e.text(-0.30, 1.08, 'e', transform=ax_e.transAxes,
+    ax_e.text(-0.10, 1.06, 'e', transform=ax_e.transAxes,
               fontsize=27, fontweight='bold', color='#222222')
   elif ax_d is not None:
     draw_rule_panel(ax_d, args.rule_v2_csv, args.rule_name)
