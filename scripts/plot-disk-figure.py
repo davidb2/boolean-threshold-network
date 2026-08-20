@@ -399,11 +399,15 @@ def main():
       return YLIM[0] + (fy - AXPOS[1]) / AXPOS[3] * (YLIM[1] - YLIM[0])
     y_pro, y_dor, y_unr = [fig2data(y) for y in ymids]
     TESTBOX = dict(boxstyle='round,pad=0.45', fc='#f5f5f5', ec='#8c8c8c', lw=1.0)
+    # the root box asks the threshold question, so its border is dotted
+    # like the cutoff circles inside the disks
+    ROOTBOX = dict(boxstyle='round,pad=0.45', fc='#f5f5f5', ec='#8c8c8c',
+                   lw=1.2, linestyle=(0, (1.5, 2)))
     def leafbox(fc): return dict(boxstyle='round,pad=0.45', fc=fc, ec='#4d4d4d', lw=1.6)
     y_t2 = 0.5 * (y_pro + y_dor)
     y_t1 = 0.5 * (y_t2 + y_unr)
     axt.text(1.45, y_t1, 'does any shock\nmove the node\nstrongly?', ha='center',
-             va='center', fontsize=13.5, bbox=TESTBOX)
+             va='center', fontsize=13.5, bbox=ROOTBOX)
     axt.text(4.8, y_t2, 'how many\nshocks?', ha='center', va='center',
              fontsize=13.5, bbox=TESTBOX)
     axt.text(8.35, y_pro, 'promiscuous', ha='center', va='center', fontsize=14,
