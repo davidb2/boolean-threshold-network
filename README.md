@@ -1,6 +1,6 @@
 # Boolean Threshold Networks
 
-Research code for the paper **"Dormant reporters are needed to classify shocks efficiently in noisy networks"** (David A. Brewster and Philippe Cluzel, Harvard). The code simulates directed Boolean threshold networks with power-law out-degree distributions, applies *shocks* (perturbations to the outgoing edge weights of randomly chosen target nodes), and studies which small panels of *reporter nodes* allow a classifier to identify which shock occurred from noisy, partial observations of the network state.
+Research code for the paper **"Efficiently classifying shocks in noisy networks requires dormant reporters"** (David A. Brewster and Philippe Cluzel, Harvard). The code simulates directed Boolean threshold networks with power-law out-degree distributions, applies *shocks* (perturbations to the outgoing edge weights of randomly chosen target nodes), and studies which small panels of *reporter nodes* allow a classifier to identify which shock occurred from noisy, partial observations of the network state.
 
 A fast Rust core generates network ensembles and dynamics (written as protobuf), and a Python layer selects reporter panels (genetic algorithm, random, and heuristic baselines), scores them with random-forest classifiers, and produces the figures.
 
