@@ -186,7 +186,7 @@ def main():
       ax.fill_between(x, mean - 1.96 * sem, mean + 1.96 * sem,
                       color=RULE_C, alpha=0.16, lw=0, zorder=10)
       rule_handle, = ax.plot(x, mean.to_numpy(), color=RULE_C, lw=2.4,
-                             label='mixed PD rule', zorder=11,
+                             label='worst pair rule', zorder=11,
                              solid_capstyle='round')
     ax.axhline(CHANCE, color='#bbbbbb', lw=1.0, linestyle=(0, (3, 3)), zorder=1)
     ax.set_xscale('log', base=2)

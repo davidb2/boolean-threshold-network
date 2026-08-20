@@ -78,6 +78,10 @@ def _one(net):
     chosen.append(bj)
     remaining.remove(bj)
   seq = [pool_nodes[j] for j in chosen]
+  if ARGS.sequences_only:
+    print(f'net {net} sequence done', flush=True)
+    return [dict(original_network_idx=net, step=k + 1, node=n)
+            for k, n in enumerate(seq)]
 
   drop = [c for c in ('original_network_idx', 'initial_condition_idx')
           if c in sub.columns]
@@ -103,6 +107,8 @@ def main():
   p.add_argument('--num-trials', type=int, default=10)
   p.add_argument('--workers', type=int, default=16)
   p.add_argument('--output-csv', required=True)
+  p.add_argument('--sequences-only', action='store_true',
+                 help='write the greedy pick order (net, step, node) and skip evaluation')
   ARGS = p.parse_args()
 
   _load(ARGS.states_files)
@@ -112,8 +118,9 @@ def main():
     all_rows = [r for rows in pool.imap_unordered(_one, nets) for r in rows]
   out = pathlib.Path(ARGS.output_csv)
   out.parent.mkdir(parents=True, exist_ok=True)
-  pd.DataFrame(all_rows).sort_values(
-    ['original_network_idx', 'max_num_features']).to_csv(out, index=False)
+  keys = ['original_network_idx',
+          'step' if ARGS.sequences_only else 'max_num_features']
+  pd.DataFrame(all_rows).sort_values(keys).to_csv(out, index=False)
   print(f'wrote {out} ({len(all_rows)} rows)')
 
 
