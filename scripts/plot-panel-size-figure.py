@@ -186,8 +186,8 @@ def main():
     ax_d.set_xticks(range(1, 9))
     ax_d.set_title(f'$\\varepsilon = {cohorts[2]["eps"]}$, $m = 8$', fontsize=17)
 
-  for ax, letter, dx in [(ax_a, 'a', -0.14), (ax_d, 'b', -0.23),
-                         (ax_b, 'c', -0.14), (ax_c, 'd', -0.14)]:
+  for ax, letter, dx in [(ax_a, 'a', -0.14), (ax_d, 'b', -0.26),
+                         (ax_b, 'c', -0.14), (ax_c, 'd', -0.26)]:
     ax.text(dx, 1.04, letter, transform=ax.transAxes,
             fontsize=28, fontweight='bold', color='#222222')
 
