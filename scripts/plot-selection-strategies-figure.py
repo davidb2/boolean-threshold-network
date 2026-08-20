@@ -153,6 +153,7 @@ def draw_seq_grid(ax, M):
   cmap = ListedColormap(['white', '#ff7f0e', '#262626'])
   ax.pcolormesh(M, cmap=cmap, vmin=0, vmax=2, edgecolors='#dddddd',
                 linewidth=0.4)
+  ax.set_aspect('equal', anchor='NW')
   ax.invert_yaxis()
   ax.set_yticks(np.arange(M.shape[0]) + 0.5)
   ax.set_yticklabels([str(k + 1) for k in range(M.shape[0])], fontsize=13)
@@ -167,21 +168,23 @@ def draw_seq_grid(ax, M):
 
 
 def draw_seq_bars(ax, M):
-  '''Stacked shares of the classes added at each greedy step.'''
+  '''Stacked proportions of the classes added at each greedy step, with
+  the step on the vertical axis to mirror the grid.'''
   steps = np.arange(1, M.shape[0] + 1)
-  fP = (M == 1).mean(axis=1) * 100
-  fD = (M == 2).mean(axis=1) * 100
-  fU = (M == 0).mean(axis=1) * 100
-  ax.bar(steps, fP, color='#ff7f0e', width=0.8)
-  ax.bar(steps, fD, bottom=fP, color='#262626', width=0.8)
-  ax.bar(steps, fU, bottom=fP + fD, color='white', edgecolor='#bbbbbb',
-         linewidth=0.8, width=0.8)
-  ax.set_xticks(steps)
+  fP = (M == 1).mean(axis=1)
+  fD = (M == 2).mean(axis=1)
+  fU = (M == 0).mean(axis=1)
+  ax.barh(steps, fP, color='#ff7f0e', height=0.8)
+  ax.barh(steps, fD, left=fP, color='#262626', height=0.8)
+  ax.barh(steps, fU, left=fP + fD, color='white', edgecolor='#bbbbbb',
+          linewidth=0.8, height=0.8)
+  ax.invert_yaxis()
+  ax.set_yticks(steps)
   ax.tick_params(labelsize=15)
-  ax.set_xlabel('Greedy step')
-  ax.set_ylabel('Share of networks (%)', fontsize=16)
-  ax.set_ylim(0, 100)
-  ax.set_yticks([0, 25, 50, 75, 100])
+  ax.set_ylabel('Greedy step')
+  ax.set_xlabel('Proportion of networks', fontsize=16)
+  ax.set_xlim(0, 1)
+  ax.set_xticks([0, 0.5, 1])
 
 
 def draw_rule_panel(ax, v2_csv, recipe):
@@ -235,9 +238,9 @@ def main():
   args = p.parse_args()
 
   if args.rule_seq_csv:
-    fig = plt.figure(figsize=(15.2, 10.8))
-    gs = fig.add_gridspec(2, 3, height_ratios=[1.0, 0.55], hspace=0.40,
-                          wspace=0.14, bottom=0.20)
+    fig = plt.figure(figsize=(15.2, 10.0))
+    gs = fig.add_gridspec(2, 3, height_ratios=[1.0, 0.42], hspace=0.38,
+                          wspace=0.14, bottom=0.215)
     axes = [fig.add_subplot(gs[0, k]) for k in range(3)]
     for ax in axes[1:]:
       ax.sharey(axes[0])
@@ -298,7 +301,7 @@ def main():
     fig.legend(handles=handles + [bg_proxy] + grid_handles, loc='lower center',
                frameon=False, fontsize=16, ncol=4, bbox_to_anchor=(0.5, 0.005),
                columnspacing=1.3)
-    ax_d.text(-0.065, 1.08, 'd', transform=ax_d.transAxes,
+    ax_d.text(-0.105, 1.02, 'd', transform=ax_d.transAxes,
               fontsize=27, fontweight='bold', color='#222222')
     ax_e.text(-0.30, 1.08, 'e', transform=ax_e.transAxes,
               fontsize=27, fontweight='bold', color='#222222')
