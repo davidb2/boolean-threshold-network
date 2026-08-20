@@ -148,7 +148,9 @@ def draw_seq_grid(ax, M):
   '''Which class the worst pair rule adds at each greedy step, per network.
   Columns are sorted by their number of promiscuous picks, most to least.'''
   from matplotlib.colors import ListedColormap
-  order = np.lexsort((np.arange(M.shape[1]), -(M == 1).sum(axis=0)))
+  T = np.where(M == 1, 0, np.where(M == 2, 1, 2))
+  order = sorted(range(M.shape[1]),
+                 key=lambda c: (-(M[:, c] == 1).sum(), tuple(T[:, c])))
   M = M[:, order]
   cmap = ListedColormap(['white', '#ff7f0e', '#262626'])
   ax.pcolormesh(M, cmap=cmap, vmin=0, vmax=2, edgecolors='#dddddd',

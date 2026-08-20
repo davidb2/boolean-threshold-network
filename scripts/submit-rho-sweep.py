@@ -230,7 +230,7 @@ def submit_rho(rho, args):
     print(f'  {b_file} already exists')
 
   abl_deps = ':'.join(x for x in [combine_dep, b_dep, extract_dep] if x)
-  chunk = 5 if args.ablation_max_remove <= 3 else 2
+  chunk = 5 if args.ablation_max_remove <= 3 else 1
   n_chunks = (NUM_NETWORKS + chunk - 1) // chunk
   part = f'{ablation_out}.part${{SLURM_ARRAY_TASK_ID}}'
   lo = f'$((SLURM_ARRAY_TASK_ID * {chunk}))'
@@ -254,7 +254,7 @@ def submit_rho(rho, args):
     f'--out {part}'
   )
   abl_arr = sbatch(
-    wrap=abl_wrap, job_name=f'abl-rho{rho}{suffix}', time='10:00:00',
+    wrap=abl_wrap, job_name=f'abl-rho{rho}{suffix}', time='30:00:00',
     mem='16G', cpus=2, output=f'{log_dir(rho, "ablation")}-%A_%a.out',
     dependency=abl_deps or None, array=','.join(map(str, range(n_chunks))),
   )
