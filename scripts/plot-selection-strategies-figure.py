@@ -177,10 +177,11 @@ def draw_seq_bars(ax, M):
   ax.barh(steps, fD, left=fP, color='#262626', height=0.8)
   ax.barh(steps, fU, left=fP + fD, color='white', edgecolor='#bbbbbb',
           linewidth=0.8, height=0.8)
-  # rows are shared with the grid to the left, so no vertical labels here
+  # rows are shared with the grid to the left, so ticks only, no label
   ax.set_ylim(8.5, 0.5)
-  ax.set_yticks([])
-  ax.tick_params(labelsize=15)
+  ax.set_yticks(steps)
+  ax.set_yticklabels([str(k) for k in steps])
+  ax.tick_params(labelsize=15, length=0)
   ax.set_xlabel('Proportion of networks', fontsize=16)
   ax.set_xlim(0, 1)
   ax.set_xticks([0, 0.5, 1])
@@ -238,9 +239,9 @@ def main():
   args = p.parse_args()
 
   if args.rule_seq_csv:
-    fig = plt.figure(figsize=(15.2, 10.0))
-    gs = fig.add_gridspec(2, 3, height_ratios=[1.0, 0.42], hspace=0.38,
-                          wspace=0.14, bottom=0.215)
+    fig = plt.figure(figsize=(15.2, 10.4))
+    gs = fig.add_gridspec(2, 3, height_ratios=[1.0, 0.42], hspace=0.78,
+                          wspace=0.14, bottom=0.10)
     axes = [fig.add_subplot(gs[0, k]) for k in range(3)]
     for ax in axes[1:]:
       ax.sharey(axes[0])
@@ -303,9 +304,14 @@ def main():
     grid_handles = [Patch(fc='#ff7f0e', label='promiscuous added'),
                     Patch(fc='#262626', label='dormant added'),
                     Patch(fc='white', ec='#bbbbbb', label='unresponsive added')]
-    fig.legend(handles=handles + [bg_proxy] + grid_handles, loc='lower center',
-               frameon=False, fontsize=16, ncol=4, bbox_to_anchor=(0.5, 0.005),
-               columnspacing=1.3)
+    band_top = ax_d.get_position().y1
+    band_bot = ax_d.get_position().y0
+    fig.legend(handles=handles + [bg_proxy], loc='center', frameon=False,
+               fontsize=16, ncol=3, bbox_to_anchor=(0.5, band_top + 0.085),
+               columnspacing=1.6)
+    fig.legend(handles=grid_handles, loc='center', frameon=False,
+               fontsize=16, ncol=3, bbox_to_anchor=(0.5, band_bot - 0.085),
+               columnspacing=1.6)
     ax_d.text(-0.105, 1.06, 'd', transform=ax_d.transAxes,
               fontsize=27, fontweight='bold', color='#222222')
     ax_e.text(-0.10, 1.06, 'e', transform=ax_e.transAxes,
