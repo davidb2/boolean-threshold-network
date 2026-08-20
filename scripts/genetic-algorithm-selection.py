@@ -252,6 +252,7 @@ def get_accuracies(
 
 
 def main(args: argparse.Namespace):
+  pathlib.Path(args.output_dir).mkdir(parents=True, exist_ok=True)
   output_path = pathlib.Path(f'{args.output_dir}/{args.original_network_idx}-full.csv')
   done_path = pathlib.Path(f'{args.output_dir}/{args.original_network_idx}-full.done')
   if done_path.exists():
