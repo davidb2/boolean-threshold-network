@@ -210,18 +210,14 @@ def panel_d(ax, df):
     vals = [res[e][f'c{s}'].mean() for e in [0.0, 0.5, 1.0]]
     errs = [1.96 * res[e][f'c{s}'].sem() for e in [0.0, 0.5, 1.0]]
     x = xs + (j - 0.5) * width
-    if s == 0:
-      ax.bar(x, vals, width * 0.92, yerr=errs,
-             color='#ffffff', edgecolor=INSENS, linewidth=1.4,
-             error_kw=dict(elinewidth=1.4, capsize=3), label=labels[s])
-    else:
-      # white CI bars with a black outline, readable on the black fill
-      ax.bar(x, vals, width * 0.92, color=INSENS, edgecolor=INSENS,
-             linewidth=1.4, label=labels[s])
-      ax.errorbar(x, vals, yerr=errs, fmt='none', ecolor=INSENS,
-                  elinewidth=3.6, capsize=4.6, capthick=3.6, zorder=3)
-      ax.errorbar(x, vals, yerr=errs, fmt='none', ecolor='white',
-                  elinewidth=1.6, capsize=3.2, capthick=1.6, zorder=4)
+    # every CI bar is white with a black outline so thicknesses match and
+    # the bars stay readable on the black fill
+    ax.bar(x, vals, width * 0.92, color='#ffffff' if s == 0 else INSENS,
+           edgecolor=INSENS, linewidth=1.4, label=labels[s])
+    ax.errorbar(x, vals, yerr=errs, fmt='none', ecolor=INSENS,
+                elinewidth=3.6, capsize=4.6, capthick=3.6, zorder=3)
+    ax.errorbar(x, vals, yerr=errs, fmt='none', ecolor='white',
+                elinewidth=1.6, capsize=3.2, capthick=1.6, zorder=4)
   ax.set_xticks(xs)
   ax.set_xticklabels(['$\\varepsilon = 0$', '$\\varepsilon = 0.5$', '$\\varepsilon = 1$'])
   ax.set_ylabel('Cost of one\ndormant removal')
