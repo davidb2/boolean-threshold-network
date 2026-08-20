@@ -92,7 +92,8 @@ def submit_rho(rho, args):
   print(f'\n--- rho = {rho} (batch {batch}) ---')
   raw     = SCRATCH / f'rho{rho}{suffix}' / 'raw'
   derived = SCRATCH / f'rho{rho}{suffix}' / 'derived'
-  ga_out  = HOME_OUT / f'rho{rho}{suffix}' / 'ga-results'
+  ga_tag  = '-clean' if args.ga_clean else ''
+  ga_out  = HOME_OUT / f'rho{rho}{suffix}' / f'ga-results{ga_tag}'
   rnd_out = HOME_OUT / f'rho{rho}{suffix}' / 'random-results'
   for d in [raw, derived, ga_out, rnd_out, SENS_OUT]:
     d.mkdir(parents=True, exist_ok=True)
@@ -149,7 +150,7 @@ def submit_rho(rho, args):
 
   todo = [i for i in range(NUM_NETWORKS) if not (ga_out / f'{i}-full.done').exists()]
   sizes = ' '.join(str(k) for k in args.feature_sizes)
-  ga_time = '6:00:00' if args.feature_sizes == [8] else '2-00:00:00'
+  ga_time = ('12:00:00' if args.ga_clean else '6:00:00') if args.feature_sizes == [8] else '2-12:00:00'
   ga_dep = None
   if todo:
     ga_wrap = (
@@ -162,7 +163,9 @@ def submit_rho(rho, args):
       f'--network-size {N} '
       f'--feature-sizes {sizes} '
       f'--num-workers 16 '
-      f'--output-dir {ga_out}'
+      + ('--no-early-stop --fitness-splits 10 --reevaluate-elites '
+         if args.ga_clean else '')
+      + f'--output-dir {ga_out}'
     )
     ga_dep = sbatch(
       wrap=ga_wrap, job_name=f'ga-rho{rho}', time=ga_time,
@@ -263,6 +266,9 @@ def submit_rho(rho, args):
     dependency=abl_arr,
   )
 
+  if args.no_cleanup:
+    print('  cleanup skipped (--no-cleanup)')
+    return
   clean_deps = ':'.join(x for x in [abl_dep, rnd_dep] if x)
   sbatch(
     wrap=f'rm -rf {SCRATCH / f"rho{rho}{suffix}"}',
@@ -278,6 +284,10 @@ def main():
   p.add_argument('--batch', type=int, default=1,
                  help='network cohort; batch b uses seeds offset by (b-1)*50 networks')
   p.add_argument('--ablation-trials', type=int, default=10)
+  p.add_argument('--ga-clean', action='store_true',
+                 help='ten split fitness, rescored elites, no early stop; outputs to ga-results-clean')
+  p.add_argument('--no-cleanup', action='store_true',
+                 help='keep the netscratch states after the chain finishes')
   p.add_argument('--ablation-max-remove', type=int, default=3)
   p.add_argument('--feature-sizes', type=int, nargs='+', default=[8],
                  help='panel sizes for the GA and random stages')
