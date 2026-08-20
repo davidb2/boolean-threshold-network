@@ -42,11 +42,9 @@ FOREGROUND = {
   'random':          {'color': '#7f7f7f', 'label': 'random', 'lw': 2.4, 'zorder': 4},
   'sensitivity':     {'color': '#ff7f0e', 'label': 'highest sensitivity', 'lw': 2.4, 'zorder': 9},
   'infomax':         {'color': '#17becf', 'label': 'greedy information gain', 'lw': 2.4, 'zorder': 10},
-  'anchor-reporter': {'color': '#9467bd', 'label': 'anchors then information gain', 'lw': 2.4, 'zorder': 8},
-  'influence':       {'color': '#8c564b', 'label': 'influence maximization', 'lw': 2.4, 'zorder': 6},
 }
 BACKGROUND = ['in-degree', 'out-degree', 'mmse', 'jaccard', 'upstream',
-              'entropy-diversity', 'anchor-sensitivity']
+              'entropy-diversity']
 BG_COLOR = '#c7c7c7'
 
 plt.rcParams.update({
@@ -157,6 +155,8 @@ def main():
   p.add_argument('--random-dirs', type=str, nargs=3, required=True)
   p.add_argument('--eps-labels', type=str, nargs=3, required=True)
   p.add_argument('--rule-v2-csv', type=str, default=None)
+  p.add_argument('--rule-curve-csvs', type=str, nargs=3, default=None,
+                 help='rule prefix accuracies per noise level, drawn in a to c')
   p.add_argument('--rule-name', type=str, default='greedy-mahalanobis')
   p.add_argument('--out-dir', type=str, required=True)
   args = p.parse_args()
@@ -174,9 +174,20 @@ def main():
     fig.subplots_adjust(wspace=0.14, bottom=0.32)
     ax_d = None
   handles = []
-  for ax, sdir, gcsv, rdir, eps in zip(axes, args.strategies_dirs, args.ga_csvs,
-                                       args.random_dirs, args.eps_labels):
+  rule_handle = None
+  for k, (ax, sdir, gcsv, rdir, eps) in enumerate(zip(axes, args.strategies_dirs,
+                                                      args.ga_csvs,
+                                                      args.random_dirs,
+                                                      args.eps_labels)):
     handles = draw_panel(ax, sdir, gcsv, rdir) or handles
+    if args.rule_curve_csvs:
+      mean, sem = agg(pd.read_csv(args.rule_curve_csvs[k]))
+      x = mean.index.to_numpy()
+      ax.fill_between(x, mean - 1.96 * sem, mean + 1.96 * sem,
+                      color=RULE_C, alpha=0.16, lw=0, zorder=10)
+      rule_handle, = ax.plot(x, mean.to_numpy(), color=RULE_C, lw=2.4,
+                             label='set level rule', zorder=11,
+                             solid_capstyle='round')
     ax.axhline(CHANCE, color='#bbbbbb', lw=1.0, linestyle=(0, (3, 3)), zorder=1)
     ax.set_xscale('log', base=2)
     ax.set_xticks([1, 4, 16, 64])
@@ -189,6 +200,8 @@ def main():
   axes[0].text(60, CHANCE + 0.02, 'chance', fontsize=14, color='#999999')
 
   bg_proxy = plt.Line2D([], [], color=BG_COLOR, lw=1.3, label='other heuristics')
+  if rule_handle is not None:
+    handles = handles + [rule_handle]
   if ax_d is not None:
     draw_rule_panel(ax_d, args.rule_v2_csv, args.rule_name)
     fig.legend(handles=handles + [bg_proxy], loc='center', frameon=False,

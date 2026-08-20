@@ -187,6 +187,7 @@ def get_accuracies(
   network_size: int,
   pool: Pool,
   feature_sizes: Optional[List[int]] = None,
+  no_early_stop: bool = False,
 ):
   '''Generator: yields a list of rows for each feature_size after it finishes all generations.
 
@@ -228,7 +229,10 @@ def get_accuracies(
       avg = np.mean([ind.accuracy for ind in population.individuals])
       rows.append((original_network_idx, max_num_features, generation_num, best.accuracy, avg, best.features))
       print(f'generation {generation_num}, k={max_num_features}, best={best.accuracy:.4f}, avg={avg:.4f}', flush=True)
-      if best.accuracy >= 1.0:
+      if best.accuracy >= 1.0 and not no_early_stop:
+        # a perfect score on a single noisy split is usually luck, so
+        # stopping here truncates runs at a lucky evaluation; pass
+        # --no-early-stop to run the full generation budget
         print(f'perfect accuracy at generation {generation_num}, k={max_num_features} — stopping early', flush=True)
         perfect = True
         break
@@ -237,7 +241,7 @@ def get_accuracies(
         patience_counter = 0
       else:
         patience_counter += 1
-      if patience_counter >= PATIENCE:
+      if patience_counter >= PATIENCE and not no_early_stop:
         print(f'plateau ({PATIENCE} generations without >{MIN_DELTA:.3f} gain), k={max_num_features} — moving on', flush=True)
         break
 
@@ -268,6 +272,7 @@ def main(args: argparse.Namespace):
       network_size=args.network_size,
       pool=pool,
       feature_sizes=args.feature_sizes,
+      no_early_stop=args.no_early_stop,
     ):
       pd.DataFrame(rows, columns=cols).to_csv(output_path, mode='a', header=first_chunk, index=False)
       first_chunk = False
@@ -285,6 +290,8 @@ def parse_args() -> argparse.Namespace:
                       help='feature set sizes to test (default: powers of 2 up to network-size)')
   parser.add_argument('--num-workers', type=int, default=None,
                       help='multiprocessing pool size (default: os.cpu_count()); reduce if OOM')
+  parser.add_argument('--no-early-stop', action='store_true',
+                      help='run the full generation budget; never stop on a perfect noisy fitness')
   args = parser.parse_args()
   return args
 
