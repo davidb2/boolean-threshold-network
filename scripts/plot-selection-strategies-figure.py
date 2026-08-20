@@ -186,7 +186,7 @@ def main():
       ax.fill_between(x, mean - 1.96 * sem, mean + 1.96 * sem,
                       color=RULE_C, alpha=0.16, lw=0, zorder=10)
       rule_handle, = ax.plot(x, mean.to_numpy(), color=RULE_C, lw=2.4,
-                             label='set level rule', zorder=11,
+                             label='mixed PD rule', zorder=11,
                              solid_capstyle='round')
     ax.axhline(CHANCE, color='#bbbbbb', lw=1.0, linestyle=(0, (3, 3)), zorder=1)
     ax.set_xscale('log', base=2)
@@ -211,7 +211,7 @@ def main():
               fontsize=27, fontweight='bold', color='#222222')
   else:
     fig.legend(handles=handles + [bg_proxy], loc='lower center', frameon=False,
-               fontsize=17, ncol=4, bbox_to_anchor=(0.5, 0.015), columnspacing=1.4)
+               fontsize=17, ncol=3, bbox_to_anchor=(0.5, 0.015), columnspacing=1.4)
   for ax, letter in zip(axes, 'abc'):
     ax.text(-0.06, 1.05, letter, transform=ax.transAxes,
             fontsize=27, fontweight='bold', color='#222222')

@@ -75,7 +75,7 @@ def main():
             transform=ax.transAxes, va='top', ha='right', color='#777777')
     print(f'eps {eps}: rule {rc[j].mean():.3f} vs GA {ev[j].mean():.3f}, '
           f'wins {100*frac:.0f}%, Wilcoxon p={w.pvalue:.1e}, n={len(j)}')
-  axes[0].set_ylabel('Greedy rule accuracy')
+  axes[0].set_ylabel('Mixed PD rule accuracy')
   axes[0].text(0.60, 0.62, 'rule better', fontsize=14, color=RECIPE,
                rotation=45, ha='center', va='bottom', alpha=0.9)
   for ax, letter in zip(axes, 'abc'):
