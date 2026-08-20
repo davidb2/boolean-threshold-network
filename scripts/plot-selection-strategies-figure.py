@@ -113,6 +113,51 @@ def draw_panel(ax, strategies_dir, ga_csv, random_dir):
 
 
 RULE_C = '#e377c2'
+SPLIT = 6      # answered shocks at or above this = promiscuous
+
+
+def antimode(B, lo=0.05, hi=0.40):
+  c, e = np.histogram(B.ravel(), bins=np.linspace(0, 1, 101))
+  ce = 0.5 * (e[:-1] + e[1:])
+  sm = np.convolve(c, np.ones(5) / 5, mode='same')
+  w = (ce > lo) & (ce < hi)
+  return float(ce[w][np.argmin(sm[w])])
+
+
+def draw_seq_grid(ax, seq_csv, s_file, b_file):
+  '''Which class the worst pair rule adds at each greedy step, per network.
+  Rows are steps (time runs downward), columns are networks, and each cell
+  is colored by the class of the reporter added: orange promiscuous, black
+  dormant, white unresponsive.'''
+  from matplotlib.colors import ListedColormap
+  seq = pd.read_csv(seq_csv)
+  sd = np.load(s_file, allow_pickle=True)
+  S_all = sd['S'].transpose(0, 2, 1)
+  snets = [int(x) for x in sd['networks']]
+  cut = antimode(np.load(b_file)['B'])
+  nets = sorted(seq.original_network_idx.unique())
+  n_steps = int(seq.step.max())
+  M = np.zeros((n_steps, len(nets)))
+  for c, net in enumerate(nets):
+    n_row = (S_all[snets.index(int(net))] >= cut).sum(axis=1)
+    g = seq[seq.original_network_idx == net].sort_values('step')
+    for r, node in enumerate(g.node):
+      nj = n_row[int(node)]
+      M[r, c] = 0 if nj == 0 else (1 if nj >= SPLIT else 2)
+  cmap = ListedColormap(['white', '#ff7f0e', '#262626'])
+  ax.pcolormesh(M, cmap=cmap, vmin=0, vmax=2, edgecolors='#dddddd',
+                linewidth=0.4)
+  ax.invert_yaxis()
+  ax.set_yticks(np.arange(n_steps) + 0.5)
+  ax.set_yticklabels([str(k + 1) for k in range(n_steps)], fontsize=13)
+  ax.set_xticks([])
+  ax.set_ylabel('Greedy step')
+  ax.set_xlabel('Networks')
+  for side in ['top', 'right', 'left', 'bottom']:
+    ax.spines[side].set_visible(False)
+  frac = [(M == v).mean() for v in (1, 2, 0)]
+  print(f'grid: P {frac[0]:.2f}, D {frac[1]:.2f}, U {frac[2]:.2f} of picks; '
+        f'first pick P in {(M[0] == 1).mean()*100:.0f}% of networks')
 
 
 def draw_rule_panel(ax, v2_csv, recipe):
@@ -157,11 +202,24 @@ def main():
   p.add_argument('--rule-v2-csv', type=str, default=None)
   p.add_argument('--rule-curve-csvs', type=str, nargs=3, default=None,
                  help='rule prefix accuracies per noise level, drawn in a to c')
+  p.add_argument('--rule-seq-csv', type=str, default=None,
+                 help='greedy pick order at the highest noise level, drawn as panel d')
+  p.add_argument('--seq-s-file', type=str, default=None)
+  p.add_argument('--seq-b-file', type=str, default=None)
   p.add_argument('--rule-name', type=str, default='greedy-mahalanobis')
   p.add_argument('--out-dir', type=str, required=True)
   args = p.parse_args()
 
-  if args.rule_v2_csv:
+  if args.rule_seq_csv:
+    fig = plt.figure(figsize=(15.2, 10.2))
+    gs = fig.add_gridspec(2, 3, height_ratios=[1.0, 0.55], hspace=0.42,
+                          wspace=0.14, bottom=0.17)
+    axes = [fig.add_subplot(gs[0, k]) for k in range(3)]
+    for ax in axes[1:]:
+      ax.sharey(axes[0])
+      plt.setp(ax.get_yticklabels(), visible=False)
+    ax_d = fig.add_subplot(gs[1, :])
+  elif args.rule_v2_csv:
     fig = plt.figure(figsize=(15.2, 11.6))
     gs = fig.add_gridspec(2, 3, hspace=0.34, wspace=0.14)
     axes = [fig.add_subplot(gs[0, k]) for k in range(3)]
@@ -202,7 +260,18 @@ def main():
   bg_proxy = plt.Line2D([], [], color=BG_COLOR, lw=1.3, label='other heuristics')
   if rule_handle is not None:
     handles = handles + [rule_handle]
-  if ax_d is not None:
+  if args.rule_seq_csv:
+    draw_seq_grid(ax_d, args.rule_seq_csv, args.seq_s_file, args.seq_b_file)
+    from matplotlib.patches import Patch
+    grid_handles = [Patch(fc='#ff7f0e', label='promiscuous added'),
+                    Patch(fc='#262626', label='dormant added'),
+                    Patch(fc='white', ec='#bbbbbb', label='unresponsive added')]
+    fig.legend(handles=handles + [bg_proxy] + grid_handles, loc='lower center',
+               frameon=False, fontsize=16, ncol=4, bbox_to_anchor=(0.5, 0.01),
+               columnspacing=1.3)
+    ax_d.text(-0.045, 1.08, 'd', transform=ax_d.transAxes,
+              fontsize=27, fontweight='bold', color='#222222')
+  elif ax_d is not None:
     draw_rule_panel(ax_d, args.rule_v2_csv, args.rule_name)
     fig.legend(handles=handles + [bg_proxy], loc='center', frameon=False,
                fontsize=18, ncol=2, bbox_to_anchor=(0.67, 0.26),
