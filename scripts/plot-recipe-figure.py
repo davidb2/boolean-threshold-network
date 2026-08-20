@@ -26,7 +26,7 @@ import pandas as pd
 from scipy import stats
 
 GA = '#2ca02c'
-RECIPE = '#9467bd'
+RECIPE = '#e377c2'   # matches the rule panel of the strategies figure
 
 plt.rcParams.update({
   'font.size': 18,
