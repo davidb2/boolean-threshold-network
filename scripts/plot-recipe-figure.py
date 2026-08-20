@@ -54,22 +54,30 @@ def main():
     ev = d[d.panel == 'evolved'].set_index('original_network_idx').accuracy
     rc = d[d.panel == args.recipe].set_index('original_network_idx').accuracy
     j = ev.index.intersection(rc.index)
-    ax.plot([0, 1], [0, 1], color='#bbbbbb', lw=1.2, linestyle=(0, (4, 3)), zorder=1)
+    LO, HI = 0.45, 1.02
+    ax.fill_between([LO, HI], [LO, HI], HI, color=RECIPE, alpha=0.06,
+                    lw=0, zorder=0)
+    ax.plot([LO, HI], [LO, HI], color='#bbbbbb', lw=1.2, linestyle=(0, (4, 3)), zorder=1)
     ax.scatter(ev[j], rc[j], s=34, color=RECIPE, alpha=0.75, lw=0, zorder=3)
     w = stats.wilcoxon(rc[j], ev[j])
     frac = (rc[j] > ev[j]).mean()
     ax.set_xlabel('Evolutionary search accuracy')
-    ax.set_xlim(0.15, 1.02)
-    ax.set_ylim(0.15, 1.02)
+    ax.set_xlim(LO, HI)
+    ax.set_ylim(LO, HI)
     ax.set_aspect('equal')
     ax.set_title(f'$\\varepsilon = {eps}$', fontsize=19)
-    ax.text(0.04, 0.96, f'rule wins {100*frac:.0f}\\%', fontsize=15,
-            transform=ax.transAxes, va='top', color=RECIPE)
-    ax.text(0.04, 0.87, f'{rc[j].mean():.2f} vs {ev[j].mean():.2f}', fontsize=15,
-            transform=ax.transAxes, va='top', color='#555555')
+    # the lower right triangle is empty by construction, put the stats there
+    ax.text(0.96, 0.26, f'rule wins {100*frac:.0f}% of networks', fontsize=15,
+            transform=ax.transAxes, va='top', ha='right', color=RECIPE)
+    ax.text(0.96, 0.18, f'rule mean {rc[j].mean():.2f}', fontsize=15,
+            transform=ax.transAxes, va='top', ha='right', color=RECIPE)
+    ax.text(0.96, 0.10, f'search mean {ev[j].mean():.2f}', fontsize=15,
+            transform=ax.transAxes, va='top', ha='right', color='#777777')
     print(f'eps {eps}: rule {rc[j].mean():.3f} vs GA {ev[j].mean():.3f}, '
           f'wins {100*frac:.0f}%, Wilcoxon p={w.pvalue:.1e}, n={len(j)}')
   axes[0].set_ylabel('Greedy rule accuracy')
+  axes[0].text(0.60, 0.62, 'rule better', fontsize=14, color=RECIPE,
+               rotation=45, ha='center', va='bottom', alpha=0.9)
   for ax, letter in zip(axes, 'abc'):
     ax.text(-0.14, 1.05, letter, transform=ax.transAxes,
             fontsize=27, fontweight='bold', color='#222222')

@@ -120,10 +120,12 @@ def panel_a(axes, df):
              for l, c, _ in order]
   handles.append(plt.Line2D([], [], color='#555555', lw=1.2,
                             linestyle=(0, (4, 3)), label='no removal'))
-  axes[0].legend(handles=handles, frameon=True, facecolor='white',
-                 framealpha=1.0, edgecolor='none', fontsize=14,
-                 loc='lower left', handlelength=1.1, borderaxespad=0.2,
-                 labelspacing=0.3)
+  # the legend hides the chance line but the data points paint over it
+  leg = axes[0].legend(handles=handles, frameon=True, facecolor='white',
+                       framealpha=1.0, edgecolor='none', fontsize=14,
+                       loc='lower left', handlelength=1.1, borderaxespad=0.2,
+                       labelspacing=0.3)
+  leg.set_zorder(1.5)
 
 
 def panel_b(ax, df, three_class=None):
@@ -215,9 +217,8 @@ def panel_d(ax, df):
   ax.set_xticklabels(['$\\varepsilon = 0$', '$\\varepsilon = 0.5$', '$\\varepsilon = 1$'])
   ax.set_ylabel('Cost of one\ndormant removal')
   ax.set_ylim(0, 0.105)
-  ax.legend(frameon=True, facecolor='white', framealpha=1.0, edgecolor='none',
-            fontsize=14, loc='upper left', bbox_to_anchor=(0.28, 1.06),
-            handlelength=1.1)
+  ax.legend(frameon=False, fontsize=14, loc='upper left',
+            bbox_to_anchor=(0.28, 1.06), handlelength=1.1)
 
 
 
