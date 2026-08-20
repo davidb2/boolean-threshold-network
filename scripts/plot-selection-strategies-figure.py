@@ -134,7 +134,7 @@ def draw_rule_panel(ax, v2_csv, recipe):
   ax.set_aspect('equal')
   ax.set_xlabel('Evolutionary search accuracy')
   ax.set_ylabel('Set level rule accuracy')
-  ax.set_title('$\\varepsilon = 1$, $m = 8$, held out trials', fontsize=19)
+  ax.set_title('$\\varepsilon = 1$, $m = 8$, fresh trials', fontsize=19)
   ax.text(0.60, 0.62, 'rule better', fontsize=14, color=RULE_C,
           rotation=45, ha='center', va='bottom')
   ax.text(0.96, 0.26, f'rule wins {100*frac:.0f}% of networks', fontsize=15,
