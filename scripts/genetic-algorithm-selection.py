@@ -24,7 +24,8 @@ NUM_GENERATIONS = 30
 POPULATION_SIZE = 100
 PATIENCE  = 101     # stop a feature-size run if best accuracy doesn't improve for this many generations
 MIN_DELTA = 1e-3   # minimum improvement to reset the patience counter
-SELECTION_TEMPERATURE = 0.1   # lower = sharper selection pressure; 1.0 = original exp(accuracy)
+SELECTION_TEMPERATURE = 0.1
+REEVALUATE_ELITES = False   # lower = sharper selection pressure; 1.0 = original exp(accuracy)
 NUM_FITNESS_TRIALS = 1        # RF evaluations per individual fitness call (reduces noise)
 # DATA_FILE: Final[str] = 'data/drug-v1211d-N500/derived/states-1765502180766.csv'
 # DATA_FILE: Final[str] = 'data/drug-v1211d-N500-2drugs/derived/states-1765513688975.csv'
@@ -116,6 +117,15 @@ class Population:
     # Elitism: carry top 10% of individuals forward unchanged
     n_elites = max(1, self.population_size // 10)
     elites = sorted(self.individuals, key=lambda ind: ind.accuracy, reverse=True)[:n_elites]
+
+    if REEVALUATE_ELITES:
+      # rescore elites every generation so a lucky evaluation cannot sit
+      # at the top of the population forever
+      accs = pool.starmap(get_score, (
+        (e.features, self.original_network_idx, self.particular_states_df)
+        for e in elites))
+      elites = [Individual(features=e.features, accuracy=a)
+                for e, a in zip(elites, accs)]
 
     n_breed = self.population_size - n_elites
     crossover_amount = n_breed // 2
@@ -258,6 +268,10 @@ def main(args: argparse.Namespace):
   if done_path.exists():
     return None
 
+  global NUM_FITNESS_TRIALS, REEVALUATE_ELITES
+  NUM_FITNESS_TRIALS = args.fitness_splits
+  REEVALUATE_ELITES = args.reevaluate_elites
+
   states_df = pd.read_csv(args.states_file, index_col=0)
   states_df = states_df.reset_index().rename(columns={"drug_name": "Drug"})
 
@@ -293,6 +307,10 @@ def parse_args() -> argparse.Namespace:
                       help='multiprocessing pool size (default: os.cpu_count()); reduce if OOM')
   parser.add_argument('--no-early-stop', action='store_true',
                       help='run the full generation budget; never stop on a perfect noisy fitness')
+  parser.add_argument('--fitness-splits', type=int, default=NUM_FITNESS_TRIALS,
+                      help='splits averaged per fitness evaluation; more splits, less noise')
+  parser.add_argument('--reevaluate-elites', action='store_true',
+                      help='rescore elites each generation instead of caching their fitness')
   args = parser.parse_args()
   return args
 
