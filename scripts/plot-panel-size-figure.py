@@ -82,6 +82,8 @@ def main():
   p.add_argument('--eps-labels', type=str, nargs=3, required=True)
   p.add_argument('--s-file', type=str, default=None,
                  help='per shock deviations at the highest noise level, for panel d')
+  p.add_argument('--ga-rescored-csvs', type=str, nargs=3, default=None,
+                 help='final panels rescored on fresh splits, used for panel a')
   p.add_argument('--out-dir', type=str, required=True)
   args = p.parse_args()
 
@@ -94,6 +96,8 @@ def main():
       B=b['B'], bnets=[int(x) for x in b['networks']],
       ga_c=GA_C[i], rnd_c=RND_C[i],
     )
+    if args.ga_rescored_csvs:
+      d['ga_acc'] = pd.read_csv(args.ga_rescored_csvs[i])
     d['cut'] = antimode(d['B'])
     cohorts.append(d)
 
@@ -106,7 +110,12 @@ def main():
   axes = np.array([ax_a, ax_b, ax_c])
 
   for d in cohorts:
-    ga = d['ga'].rename(columns={'best_accuracy': 'accuracy'})
+    # panel a prefers the rescored accuracies, where the search's panels
+    # are re-evaluated on fresh splits instead of reporting the best
+    # score met during optimization
+    ga = d.get('ga_acc')
+    if ga is None:
+      ga = d['ga'].rename(columns={'best_accuracy': 'accuracy'})
     acc_line(ax_a, ga, 'accuracy', d['ga_c'], f'evolved, $\\varepsilon = {d["eps"]}$')
     acc_line(ax_a, d['rnd'], 'accuracy', d['rnd_c'], f'random, $\\varepsilon = {d["eps"]}$', ls=(0, (4, 2)))
   ax_a.axhline(CHANCE, color='#cccccc', lw=1.0, linestyle=(0, (3, 3)))
