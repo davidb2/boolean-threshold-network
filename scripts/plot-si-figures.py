@@ -163,26 +163,26 @@ def si_bdist(sens_dir, out_dir):
   save(fig, out_dir, 'si-bdist')
 
 
-def si_convergence(sweep_dir, ga_csv_99, ga_csv_50, out_dir):
-  fig, ax = plt.subplots(figsize=(6.4, 4.2))
-  cmap = plt.get_cmap('Blues')
-  for i, rho in enumerate(RHOS):
-    if rho == '0.99':
-      path = ga_csv_99
-    elif rho == '0.5':
-      path = ga_csv_50
-    else:
-      path = f'{sweep_dir}/rho{rho}/ga-results/combined-full.csv'
-    ga = pd.read_csv(path)
-    ga = ga[ga.max_num_features == 8]
-    m = ga.groupby('generation')['best_accuracy'].mean()
-    ax.plot(m.index.to_numpy(), m.to_numpy(),
-            color=cmap(0.35 + 0.6 * i / (len(RHOS) - 1)), lw=1.5)
-  sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(0.5, 0.995))
-  fig.colorbar(sm, ax=ax, label='$\\varepsilon$', shrink=0.85)
+GA_GREENS = ['#14571a', '#2ca02c', '#98df8a']
+
+
+def si_convergence(agg_csv, out_dir):
+  d = pd.read_csv(agg_csv)
+  fig, ax = plt.subplots(figsize=(6.8, 4.4))
+  for i, (eps, g) in enumerate(sorted(d.groupby('eps'))):
+    g = g.sort_values('generation')
+    lbl = ('$\\varepsilon = %g$' % eps)
+    ax.plot(g.generation, g.best, color=GA_GREENS[i], lw=2.0, label=lbl)
+    ax.plot(g.generation, g.avg, color=GA_GREENS[i], lw=1.6,
+            linestyle=(0, (4, 2)))
+  ax.plot([], [], color='#777777', lw=2.0, label='best')
+  ax.plot([], [], color='#777777', lw=1.6, linestyle=(0, (4, 2)),
+          label='population average')
   ax.set_xlabel('Generation')
-  ax.set_ylabel('Best panel accuracy ($m = 8$)')
-  ax.set_ylim(0.5, 1.02)
+  ax.set_ylabel('Fitness ($m = 8$)')
+  ax.set_ylim(0.1, 1.02)
+  ax.legend(frameon=False, fontsize=11, loc='lower right',
+            handlelength=1.6, labelspacing=0.3)
   save(fig, out_dir, 'si-convergence')
 
 
@@ -192,13 +192,14 @@ def main():
   p.add_argument('--sweep-dir', type=str, required=True)
   p.add_argument('--ga-csv-99', type=str, required=True)
   p.add_argument('--ga-csv-50', type=str, required=True)
+  p.add_argument('--convergence-agg-csv', type=str, required=True)
   p.add_argument('--out-dir', type=str, required=True)
   args = p.parse_args()
   si_activity(args.sensitivity_dir, args.out_dir)
   si_redundancy(args.sensitivity_dir, args.out_dir)
   si_qk(args.out_dir)
   si_bdist(args.sensitivity_dir, args.out_dir)
-  si_convergence(args.sweep_dir, args.ga_csv_99, args.ga_csv_50, args.out_dir)
+  si_convergence(args.convergence_agg_csv, args.out_dir)
 
 
 if __name__ == '__main__':
