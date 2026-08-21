@@ -135,10 +135,8 @@ def si_qk(out_dir):
 def si_bdist(sens_dir, out_dir):
   '''Sensitivity distributions at four noise levels, on a linear count scale.
 
-  The frozen spike at S = 0 holds about a quarter of all nodes and is
-  clipped so the rest of the distribution is visible; its true height is
-  printed above each panel. Linear counts make the dip between the frozen
-  population and the second mode legible, which a logarithmic scale flattens.
+  Shown at true scale, so the frozen spike at S = 0, about a quarter of
+  all nodes, towers over the rest of the distribution.
   '''
   shown = ['1.0', '0.9', '0.75', '0.5']  # eps = 0, 0.2, 0.5, 1
   fig, axes = plt.subplots(1, len(shown), figsize=(15.0, 3.9),
@@ -152,14 +150,7 @@ def si_bdist(sens_dir, out_dir):
     ax.axvline(cut, color='#e8a000', lw=1.6, linestyle=(0, (4, 2)))
     ax.set_title(f'$\\varepsilon = {2 * (1 - float(rho)):g}$', fontsize=17)
     ax.set_xlabel('$S$', fontsize=16)
-    ceiling = counts[2:].max() * 1.45
-    ax.set_ylim(0, ceiling)
-    if counts[0] > ceiling:  # only annotate a spike that is actually clipped
-      ax.annotate(f'{counts[0] / 1000:.0f}k, off scale',
-                  xy=(edges[1], ceiling * 0.99),
-                  xytext=(edges[1] + 0.06, ceiling * 0.86), fontsize=13,
-                  color='#555555',
-                  arrowprops=dict(arrowstyle='->', color='#555555', lw=1.0))
+
   axes[0].set_ylabel('Nodes')
   save(fig, out_dir, 'si-bdist')
 
