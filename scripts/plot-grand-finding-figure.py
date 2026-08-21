@@ -33,6 +33,7 @@ Usage:
     --out-dir plots/fig-grand
 '''
 import argparse
+ABL_PREFIX = 'ablation-k8-deep'
 import pathlib
 
 import matplotlib
@@ -87,12 +88,13 @@ def load_random_acc(random_dir):
 def load_deep(deep_dir, rho, min_baseline):
   '''Valid deep ablation rows for one rho, cohorts labeled and unit-keyed.'''
   frames = []
-  for batch, name in [('b1', f'ablation-k8-deep-rho{rho}.csv'),
-                      ('b2', f'ablation-k8-deep-rho{rho}-b2.csv'),
-                      ('b3', f'ablation-k8-deep-rho{rho}-b3.csv'),
-                      ('b4', f'ablation-k8-deep-rho{rho}-b4.csv')]:
+  for batch, name in [('b1', f'{ABL_PREFIX}-rho{rho}.csv'),
+                      ('b2', f'{ABL_PREFIX}-rho{rho}-b2.csv'),
+                      ('b3', f'{ABL_PREFIX}-rho{rho}-b3.csv'),
+                      ('b4', f'{ABL_PREFIX}-rho{rho}-b4.csv'),
+                      ('b5', f'{ABL_PREFIX}-rho{rho}-b5.csv')]:
     path = pathlib.Path(deep_dir) / name
-    if not path.exists():
+    if not path.exists() or path.stat().st_size < 1000:
       continue
     d = pd.read_csv(path)
     mb = d.groupby('original_network_idx')['baseline_acc'].first().mean()
@@ -184,6 +186,7 @@ def main():
   p = argparse.ArgumentParser()
   p.add_argument('--sensitivity-dir', type=str, required=True)
   p.add_argument('--deep-dir', type=str, required=True)
+  p.add_argument('--ablation-prefix', type=str, default='ablation-k8-deep')
   p.add_argument('--sweep-dir', type=str, required=True)
   p.add_argument('--ga-csv-99', type=str, required=True)
   p.add_argument('--ga-csv-50', type=str, required=True)
@@ -192,6 +195,8 @@ def main():
   p.add_argument('--min-baseline', type=float, default=0.7)
   p.add_argument('--out-dir', type=str, required=True)
   args = p.parse_args()
+  global ABL_PREFIX
+  ABL_PREFIX = args.ablation_prefix
 
   df, deep, slopes = collect(args)
 

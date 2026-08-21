@@ -29,6 +29,7 @@ Usage:
 import argparse
 import pathlib
 import re
+ABL_PREFIX = 'ablation-k8-deep'
 
 import matplotlib
 matplotlib.use('Agg')
@@ -65,9 +66,12 @@ def antimode(B, lo=0.05, hi=0.40):
 
 def load_all(deep_dir):
   frames = []
-  for p in sorted(pathlib.Path(deep_dir).glob('ablation-k8-deep-rho*.csv')):
-    m = re.match(r'ablation-k8-deep-rho([\d.]+)(?:-(b\d))?\.csv', p.name)
+  for p in sorted(pathlib.Path(deep_dir).glob(ABL_PREFIX + '-rho*.csv')):
+    m = re.match(ABL_PREFIX + r'-rho([\d.]+)(?:-(b\d))?\.csv', p.name)
     rho, batch = float(m.group(1)), (m.group(2) or 'b1')
+    if p.stat().st_size < 1000:
+      print(f'  skipping {p.name}: empty or truncated')
+      continue
     d = pd.read_csv(p)
     if d.groupby('original_network_idx')['baseline_acc'].first().mean() < 0.7:
       print(f'  skipping {p.name}: baseline below guard')
@@ -249,7 +253,7 @@ def three_class_premium(deep_dir, sens_dir):
     cut = antimode(B)
     n = (S >= cut).sum(axis=2)
     best = None
-    for f in sorted(pathlib.Path(deep_dir).glob('ablation-k8-deep-rho*.csv')):
+    for f in sorted(pathlib.Path(deep_dir).glob(ABL_PREFIX + '-rho*.csv')):
       d = pd.read_csv(f)
       d = d[d.m_removed == 1]
       if not len(d):
@@ -288,11 +292,14 @@ def three_class_premium(deep_dir, sens_dir):
 def main():
   p = argparse.ArgumentParser()
   p.add_argument('--deep-dir', type=str, required=True)
+  p.add_argument('--ablation-prefix', type=str, default='ablation-k8-deep')
   p.add_argument('--sensitivity-dir', type=str, default=None,
                  help='enables the corrected three class premium in panel b')
   p.add_argument('--out-dir', type=str, required=True)
   args = p.parse_args()
 
+  global ABL_PREFIX
+  ABL_PREFIX = args.ablation_prefix
   df = load_all(args.deep_dir)
   print(f'{df.cohort.nunique()} cohorts, {df.unit.nunique()} units, {len(df)} subsets')
 
