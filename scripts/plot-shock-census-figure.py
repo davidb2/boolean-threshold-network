@@ -248,7 +248,7 @@ def main():
   cb.ax.tick_params(labelsize=11)
 
   # c: fingerprint distances
-  cols = [('within', 'control to\ncontrol'), ('dist', 'shock to\nnearest control'),
+  cols = [('within', 'control to\nnearest\ncontrol'), ('dist', 'shock to\nnearest\ncontrol'),
           ('dnull', 'shuffled\nnull')]
   for j, (k, lab) in enumerate(cols):
     v = R[k].dropna()
