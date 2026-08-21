@@ -248,8 +248,9 @@ def main():
   args = p.parse_args()
 
   if args.rule_seq_csvs:
-    fig = plt.figure(figsize=(15.2, 13.6))
-    gs = fig.add_gridspec(2, 3, height_ratios=[1.0, 1.35], hspace=0.52,
+    fig = plt.figure(figsize=(17.4, 13.6))
+    gs = fig.add_gridspec(2, 4, height_ratios=[1.0, 1.35],
+                          width_ratios=[1, 1, 1, 0.42], hspace=0.52,
                           wspace=0.14, bottom=0.05)
     axes = [fig.add_subplot(gs[0, k]) for k in range(3)]
     for ax in axes[1:]:
@@ -260,16 +261,24 @@ def main():
     ax_hold = fig.add_subplot(gs[1, :2])
     hold = ax_hold.get_position()
     ax_hold.remove()
+    ax_hold2 = fig.add_subplot(gs[1, 2])
+    hold2 = ax_hold2.get_position()
+    ax_hold2.remove()
+    ax_hold3 = fig.add_subplot(gs[1, 3])
+    hold3 = ax_hold3.get_position()
+    ax_hold3.remove()
     fw, fh = fig.get_size_inches()
     h = hold.width * fw * (8 / 50) / fh
     gap = 0.42 / fh
-    ex0 = hold.x0 + hold.width + 0.045 * (3 / 2) / 2
     ax_ds, ax_es = [], []
     for i in range(3):
       y1 = hold.y1 - i * (h + gap)
       ax_ds.append(fig.add_axes([hold.x0, y1 - h, hold.width, h]))
-      ax_es.append(fig.add_axes([hold.x0 + hold.width + 0.045,
-                                 y1 - h, hold.width / 2 - 0.045, h]))
+      ax_es.append(fig.add_axes([hold2.x0 + 0.010, y1 - h,
+                                 hold2.width - 0.010, h]))
+    # panel f spans the vertical extent of the whole band stack
+    ax_f = fig.add_axes([hold3.x0 + 0.022, hold.y1 - 3 * h - 2 * gap,
+                         hold3.width - 0.022, 3 * h + 2 * gap])
   elif args.rule_v2_csv:
     fig = plt.figure(figsize=(15.2, 11.6))
     gs = fig.add_gridspec(2, 3, hspace=0.34, wspace=0.14)
@@ -312,30 +321,52 @@ def main():
   if rule_handle is not None:
     handles = handles + [rule_handle]
   if args.rule_seq_csvs:
+    comp = []
     for i, (axd, axe) in enumerate(zip(ax_ds, ax_es)):
       M = seq_class_matrix(args.rule_seq_csvs[i], args.seq_s_files[i],
                            args.seq_b_files[i])
       draw_seq_grid(axd, M, xlabel=(i == 2), ylabel=(i == 1),
                     tag=f'eps={args.eps_labels[i]}')
       draw_seq_bars(axe, M, xlabel=(i == 2))
-      axe.text(1.10, 0.5, f'$\\varepsilon = {args.eps_labels[i]}$',
-               transform=axe.transAxes, fontsize=19, va='center', ha='left')
+      axd.text(0.0, 1.14, f'$\\varepsilon = {args.eps_labels[i]}$',
+               transform=axd.transAxes, fontsize=19, va='center', ha='left')
+      comp.append([(M == v).sum(axis=0).mean() for v in (1, 2, 0)])
+    xs = np.arange(3)
+    cP, cD, cU = (np.array([c[k] for c in comp]) for k in range(3))
+    ax_f.bar(xs, cP, color='#ff7f0e', width=0.62)
+    ax_f.bar(xs, cD, bottom=cP, color='#262626', width=0.62)
+    ax_f.bar(xs, cU, bottom=cP + cD, color='white', edgecolor='#bbbbbb',
+             linewidth=0.8, width=0.62)
+    ax_f.set_xticks(xs)
+    ax_f.set_xticklabels([str(e) for e in args.eps_labels])
+    ax_f.set_xlim(-0.55, 2.55)
+    ax_f.set_ylim(0, 8)
+    ax_f.set_yticks([0, 2, 4, 6, 8])
+    ax_f.tick_params(labelsize=15)
+    ax_f.set_xlabel('Noise $\\varepsilon$', fontsize=16)
+    ax_f.set_ylabel('Average members per panel', fontsize=16)
+    for e_, row in zip(args.eps_labels, comp):
+      print(f'composition eps={e_}: P {row[0]:.2f}, D {row[1]:.2f}, '
+            f'U {row[2]:.2f} of 8')
     from matplotlib.patches import Patch
     grid_handles = [Patch(fc='#ff7f0e', label='promiscuous added'),
                     Patch(fc='#262626', label='dormant added'),
                     Patch(fc='white', ec='#bbbbbb', label='unresponsive added')]
     band_top = ax_ds[0].get_position().y1
     band_bot = ax_ds[-1].get_position().y0
+    cx = 0.5 * (axes[0].get_position().x0 + axes[2].get_position().x1)
     fig.legend(handles=handles + [bg_proxy], loc='center', frameon=False,
-               fontsize=16, ncol=3, bbox_to_anchor=(0.5, band_top + 0.90 / fh),
+               fontsize=16, ncol=3, bbox_to_anchor=(cx, band_top + 0.90 / fh),
                columnspacing=1.6)
     fig.legend(handles=grid_handles, loc='center', frameon=False,
-               fontsize=16, ncol=3, bbox_to_anchor=(0.5, band_bot - 0.90 / fh),
+               fontsize=16, ncol=3, bbox_to_anchor=(cx, band_bot - 0.90 / fh),
                columnspacing=1.6)
-    ax_ds[0].text(-0.105, 1.10, 'd', transform=ax_ds[0].transAxes,
+    ax_ds[0].text(-0.105, 1.14, 'd', transform=ax_ds[0].transAxes,
                   fontsize=27, fontweight='bold', color='#222222')
-    ax_es[0].text(-0.10, 1.10, 'e', transform=ax_es[0].transAxes,
+    ax_es[0].text(-0.115, 1.14, 'e', transform=ax_es[0].transAxes,
                   fontsize=27, fontweight='bold', color='#222222')
+    ax_f.text(-0.42, 1.032, 'f', transform=ax_f.transAxes,
+              fontsize=27, fontweight='bold', color='#222222')
   elif ax_d is not None:
     draw_rule_panel(ax_d, args.rule_v2_csv, args.rule_name)
     fig.legend(handles=handles + [bg_proxy], loc='center', frameon=False,
