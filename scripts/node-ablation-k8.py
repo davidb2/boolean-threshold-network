@@ -51,6 +51,12 @@ DATASETS = {
 def load_ga_subsets(ga_csv, k):
   '''network idx -> node indices for the final-generation best size-k set.'''
   ga = pd.read_csv(ga_csv)
+  # concatenated logs can carry stray header rows from requeued tasks
+  for col in ('original_network_idx', 'max_num_features', 'generation'):
+    ga[col] = pd.to_numeric(ga[col], errors='coerce')
+  ga = ga.dropna(subset=['original_network_idx', 'max_num_features',
+                         'generation']).astype(
+    {'original_network_idx': int, 'max_num_features': int, 'generation': int})
   ga = ga[ga['max_num_features'] == k]
   final_idx = ga.groupby('original_network_idx')['generation'].idxmax()
   out = {}

@@ -19,6 +19,9 @@ def main():
     return
 
   combined = pd.concat((pd.read_csv(p) for p in csvs), ignore_index=True)
+  # drop stray header rows left by interleaved or requeued writers
+  combined = combined[combined['original_network_idx'].astype(str)
+                      != 'original_network_idx']
   out = args.directory / 'combined-full.csv'
   combined.to_csv(out, index=False)
   print(f'Combined {len(csvs)} files ({len(combined)} rows) → {out}')
