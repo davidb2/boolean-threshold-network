@@ -155,7 +155,8 @@ def si_bdist(sens_dir, out_dir):
     ceiling = counts[2:].max() * 1.45
     ax.set_ylim(0, ceiling)
     if counts[0] > ceiling:  # only annotate a spike that is actually clipped
-      ax.annotate(f'{counts[0] / 1000:.0f}k', xy=(edges[1], ceiling * 0.99),
+      ax.annotate(f'{counts[0] / 1000:.0f}k, off scale',
+                  xy=(edges[1], ceiling * 0.99),
                   xytext=(edges[1] + 0.06, ceiling * 0.86), fontsize=13,
                   color='#555555',
                   arrowprops=dict(arrowstyle='->', color='#555555', lw=1.0))

@@ -230,7 +230,8 @@ def main():
   ax_a.set_ylim(0, 1.02)
   ax_a.plot([], [], color=ORDERED, label='ordered network')
   ax_a.plot([], [], color=MARGINAL, label='marginal network')
-  ax_a.legend(frameon=False, fontsize=13, loc='lower left', handlelength=1.2)
+  ax_a.legend(frameon=False, fontsize=13, loc='lower left', handlelength=1.2,
+              bbox_to_anchor=(0.0, -0.04))
 
   # b: tile map
   M = T[['control'] + DRUGS].to_numpy(dtype=float)
@@ -258,8 +259,6 @@ def main():
   ax_c.set_xticklabels([lab for _, lab in cols], fontsize=13)
   ax_c.set_ylabel('Fingerprint distance')
   ax_c.set_ylim(0, 0.56)
-  ax_c.text(0.03, 0.965, 'every shocked attractor is new', transform=ax_c.transAxes,
-            fontsize=13, color='#666666', va='top')
 
   # d: node set decomposition
   cols = [('dS', 'frozen\ncore'), ('dU', 'non frozen\nnodes'), ('dUn', 'non frozen\nnull')]
