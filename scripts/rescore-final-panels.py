@@ -74,6 +74,12 @@ def main():
   NUM_TRIALS = args.num_trials
 
   ga = pd.read_csv(args.ga_csv)
+  # concatenated logs can carry stray header rows from requeued tasks
+  for col in ('original_network_idx', 'max_num_features', 'generation'):
+    ga[col] = pd.to_numeric(ga[col], errors='coerce')
+  ga = ga.dropna(subset=['original_network_idx', 'max_num_features',
+                         'generation']).astype(
+    {'original_network_idx': int, 'max_num_features': int, 'generation': int})
   ga = ga[ga.max_num_features.isin(args.sizes)]
   fin = ga.loc[ga.groupby(['original_network_idx',
                            'max_num_features'])['generation'].idxmax()]
