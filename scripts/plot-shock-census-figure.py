@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 '''Shock census figure (SI): shocks rebuild the attractor landscape, yet the
-control fingerprint still anchors it.
+control fingerprint still pins it.
 
   a  largest basin share, control versus the mean over that network's ten
      shocks, one line per network (paired slopegraph)
@@ -11,10 +11,10 @@ control fingerprint still anchors it.
      the spacing between control attractors
   d  the same distance restricted to node sets: the frozen core of the
      control landscape, the non frozen nodes, and the matched null for the
-     non frozen nodes (the test that anchoring is not frozen bookkeeping)
+     non frozen nodes (the test that pinning is not frozen bookkeeping)
   e  same initial condition memory: how much better the control basin
      label predicts the shocked destination than the largest basin rule
-  f  anchor nodes per network: nodes frozen in every shocked attractor
+  f  pinned nodes per network: nodes frozen in every shocked attractor
      whose value still differs across attractors or shocks
 
 Every exact control cycle is destroyed by every shock (key survival zero),
@@ -243,7 +243,7 @@ def main():
   ax_b.set_ylabel('Network (sorted)')
   ax_b.set_yticks([])
   cb = plt.colorbar(im, ax=ax_b, fraction=0.040, pad=0.02)
-  cb.ax.set_title('recurrent', fontsize=11, pad=6)
+  cb.ax.set_title('fraction of ICs\nthat recur', fontsize=11, pad=6)
   cb.ax.tick_params(labelsize=11)
 
   # c: fingerprint distances
@@ -295,7 +295,7 @@ def main():
   ax_f.set_yticks([0, 5, 10, 100])
   ax_f.set_yticklabels(['0', '5', '10', '100'])
   ax_f.set_xlabel('Network (sorted)')
-  ax_f.set_ylabel('Anchor nodes')
+  ax_f.set_ylabel('Pinned nodes')
   ax_f.set_xticks([])
   ax_f.legend(frameon=False, fontsize=13, loc='upper right', handlelength=1.1)
 
