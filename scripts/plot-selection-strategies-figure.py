@@ -144,7 +144,7 @@ def seq_class_matrix(seq_csv, s_file, b_file):
   return M
 
 
-def draw_seq_grid(ax, M):
+def draw_seq_grid(ax, M, xlabel=True, ylabel=True, tag=''):
   '''Which class the worst pair rule adds at each greedy step, per network.
   Columns are sorted by their number of promiscuous picks, most to least.'''
   from matplotlib.colors import ListedColormap
@@ -159,16 +159,20 @@ def draw_seq_grid(ax, M):
   ax.set_yticks(np.arange(M.shape[0]) + 0.5)
   ax.set_yticklabels([str(k + 1) for k in range(M.shape[0])], fontsize=13)
   ax.set_xticks([])
-  ax.set_ylabel('Greedy step')
-  ax.set_xlabel('Networks, sorted by promiscuous picks')
+  if ylabel:
+    ax.set_ylabel('Greedy step')
+  if xlabel:
+    ax.set_xlabel('Networks, sorted by promiscuous picks')
   for side in ['top', 'right', 'left', 'bottom']:
     ax.spines[side].set_visible(False)
   frac = [(M == v).mean() for v in (1, 2, 0)]
-  print(f'grid: P {frac[0]:.2f}, D {frac[1]:.2f}, U {frac[2]:.2f} of picks; '
-        f'first pick P in {(M[0] == 1).mean()*100:.0f}% of networks')
+  print(f'grid {tag}: P {frac[0]:.2f}, D {frac[1]:.2f}, U {frac[2]:.2f} of picks; '
+        f'first pick P in {(M[0] == 1).mean()*100:.0f}% of networks; '
+        f'P share step1 {(M[0] == 1).mean():.2f} step8 {(M[-1] == 1).mean():.2f}; '
+        f'U picks {(M == 0).sum():.0f}/400')
 
 
-def draw_seq_bars(ax, M):
+def draw_seq_bars(ax, M, xlabel=True):
   '''Stacked proportions of the classes added at each greedy step, with
   the step on the vertical axis to mirror the grid.'''
   steps = np.arange(1, M.shape[0] + 1)
@@ -184,9 +188,12 @@ def draw_seq_bars(ax, M):
   ax.set_yticks(steps)
   ax.set_yticklabels([str(k) for k in steps])
   ax.tick_params(labelsize=15, length=0)
-  ax.set_xlabel('Proportion of networks', fontsize=16)
   ax.set_xlim(0, 1)
   ax.set_xticks([0, 0.5, 1])
+  if xlabel:
+    ax.set_xlabel('Proportion of networks', fontsize=16)
+  else:
+    ax.tick_params(labelbottom=False)
   ax.spines['left'].set_visible(False)
 
 
@@ -232,31 +239,37 @@ def main():
   p.add_argument('--rule-v2-csv', type=str, default=None)
   p.add_argument('--rule-curve-csvs', type=str, nargs=3, default=None,
                  help='rule prefix accuracies per noise level, drawn in a to c')
-  p.add_argument('--rule-seq-csv', type=str, default=None,
-                 help='greedy pick order at the highest noise level, drawn as panel d')
-  p.add_argument('--seq-s-file', type=str, default=None)
-  p.add_argument('--seq-b-file', type=str, default=None)
+  p.add_argument('--rule-seq-csvs', type=str, nargs=3, default=None,
+                 help='greedy pick orders per noise level, drawn as stacked panel d')
+  p.add_argument('--seq-s-files', type=str, nargs=3, default=None)
+  p.add_argument('--seq-b-files', type=str, nargs=3, default=None)
   p.add_argument('--rule-name', type=str, default='greedy-mahalanobis')
   p.add_argument('--out-dir', type=str, required=True)
   args = p.parse_args()
 
-  if args.rule_seq_csv:
-    fig = plt.figure(figsize=(15.2, 10.4))
-    gs = fig.add_gridspec(2, 3, height_ratios=[1.0, 0.42], hspace=0.78,
-                          wspace=0.14, bottom=0.10)
+  if args.rule_seq_csvs:
+    fig = plt.figure(figsize=(15.2, 13.6))
+    gs = fig.add_gridspec(2, 3, height_ratios=[1.0, 1.35], hspace=0.52,
+                          wspace=0.14, bottom=0.05)
     axes = [fig.add_subplot(gs[0, k]) for k in range(3)]
     for ax in axes[1:]:
       ax.sharey(axes[0])
       plt.setp(ax.get_yticklabels(), visible=False)
-    ax_d = fig.add_subplot(gs[1, :2])
-    ax_e = fig.add_subplot(gs[1, 2])
-    # size the grid box to exactly square cells (8 rows x 50 columns) and
-    # give the bars the same vertical extent so bar k lines up with row k
-    pd_, pe_ = ax_d.get_position(), ax_e.get_position()
+    # the lower gridspec row only reserves the region; the three bands are
+    # placed manually inside it with exactly square grid cells
+    ax_hold = fig.add_subplot(gs[1, :2])
+    hold = ax_hold.get_position()
+    ax_hold.remove()
     fw, fh = fig.get_size_inches()
-    h = pd_.width * fw * (8 / 50) / fh
-    ax_d.set_position([pd_.x0, pd_.y1 - h, pd_.width, h])
-    ax_e.set_position([pe_.x0 + 0.045, pd_.y1 - h, pe_.width - 0.045, h])
+    h = hold.width * fw * (8 / 50) / fh
+    gap = 0.42 / fh
+    ex0 = hold.x0 + hold.width + 0.045 * (3 / 2) / 2
+    ax_ds, ax_es = [], []
+    for i in range(3):
+      y1 = hold.y1 - i * (h + gap)
+      ax_ds.append(fig.add_axes([hold.x0, y1 - h, hold.width, h]))
+      ax_es.append(fig.add_axes([hold.x0 + hold.width + 0.045,
+                                 y1 - h, hold.width / 2 - 0.045, h]))
   elif args.rule_v2_csv:
     fig = plt.figure(figsize=(15.2, 11.6))
     gs = fig.add_gridspec(2, 3, hspace=0.34, wspace=0.14)
@@ -298,26 +311,31 @@ def main():
   bg_proxy = plt.Line2D([], [], color=BG_COLOR, lw=1.3, label='other heuristics')
   if rule_handle is not None:
     handles = handles + [rule_handle]
-  if args.rule_seq_csv:
-    M = seq_class_matrix(args.rule_seq_csv, args.seq_s_file, args.seq_b_file)
-    draw_seq_grid(ax_d, M)
-    draw_seq_bars(ax_e, M)
+  if args.rule_seq_csvs:
+    for i, (axd, axe) in enumerate(zip(ax_ds, ax_es)):
+      M = seq_class_matrix(args.rule_seq_csvs[i], args.seq_s_files[i],
+                           args.seq_b_files[i])
+      draw_seq_grid(axd, M, xlabel=(i == 2), ylabel=(i == 1),
+                    tag=f'eps={args.eps_labels[i]}')
+      draw_seq_bars(axe, M, xlabel=(i == 2))
+      axe.text(1.10, 0.5, f'$\\varepsilon = {args.eps_labels[i]}$',
+               transform=axe.transAxes, fontsize=19, va='center', ha='left')
     from matplotlib.patches import Patch
     grid_handles = [Patch(fc='#ff7f0e', label='promiscuous added'),
                     Patch(fc='#262626', label='dormant added'),
                     Patch(fc='white', ec='#bbbbbb', label='unresponsive added')]
-    band_top = ax_d.get_position().y1
-    band_bot = ax_d.get_position().y0
+    band_top = ax_ds[0].get_position().y1
+    band_bot = ax_ds[-1].get_position().y0
     fig.legend(handles=handles + [bg_proxy], loc='center', frameon=False,
-               fontsize=16, ncol=3, bbox_to_anchor=(0.5, band_top + 0.085),
+               fontsize=16, ncol=3, bbox_to_anchor=(0.5, band_top + 0.90 / fh),
                columnspacing=1.6)
     fig.legend(handles=grid_handles, loc='center', frameon=False,
-               fontsize=16, ncol=3, bbox_to_anchor=(0.5, band_bot - 0.085),
+               fontsize=16, ncol=3, bbox_to_anchor=(0.5, band_bot - 0.90 / fh),
                columnspacing=1.6)
-    ax_d.text(-0.105, 1.06, 'd', transform=ax_d.transAxes,
-              fontsize=27, fontweight='bold', color='#222222')
-    ax_e.text(-0.10, 1.06, 'e', transform=ax_e.transAxes,
-              fontsize=27, fontweight='bold', color='#222222')
+    ax_ds[0].text(-0.105, 1.10, 'd', transform=ax_ds[0].transAxes,
+                  fontsize=27, fontweight='bold', color='#222222')
+    ax_es[0].text(-0.10, 1.10, 'e', transform=ax_es[0].transAxes,
+                  fontsize=27, fontweight='bold', color='#222222')
   elif ax_d is not None:
     draw_rule_panel(ax_d, args.rule_v2_csv, args.rule_name)
     fig.legend(handles=handles + [bg_proxy], loc='center', frameon=False,
