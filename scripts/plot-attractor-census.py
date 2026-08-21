@@ -84,14 +84,15 @@ def main():
     ax_a.plot(tgrid, frac, color=gamma_color(g, gammas, args.gamma_c),
               lw=1.8, label=f'{g:.1f}')
   ax_a.axvline(args.t_experiment, color='#666666', lw=1.0, ls='--')
-  ax_a.text(args.t_experiment * 1.3, 0.12, f'$T = {args.t_experiment}$',
-            fontsize=14, color='#666666', ha='left')
+  ax_a.text(args.t_experiment, 1.045, '$T$', fontsize=15, color='#666666',
+            ha='center')
   ax_a.set_xscale('log')
   ax_a.set_xlabel('Time $t$')
   ax_a.set_ylabel('Fraction of ICs on attractor')
   ax_a.set_ylim(0, 1.02)
-  ax_a.legend(title='$\\gamma$', fontsize=13, title_fontsize=14,
-              loc='lower right', ncol=2, frameon=False)
+  ax_a.legend(title='Degree exponent, $\\gamma$', fontsize=11.5, title_fontsize=12,
+              loc='lower right', ncol=2, frameon=False, borderaxespad=0.1,
+              columnspacing=1.0, handlelength=1.4)
 
   # b to d: summaries vs gamma with 95 percent CIs over networks
   def per_network(g, fn):
