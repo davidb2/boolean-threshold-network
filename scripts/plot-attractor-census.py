@@ -122,7 +122,7 @@ def main():
 
   for ax, stat, label, log in [
       (ax_b, med_period, 'Cycle length', True),
-      (ax_c, n_att, 'Attractors per network', True),
+      (ax_c, n_att, 'Attractors sampled per network', True),
       (ax_d, max_basin, 'Largest basin share', False)]:
     m, e = quartile_series(stat)
     ax.errorbar(gammas, m, yerr=e, color='#0f3560', lw=1.8,
@@ -137,8 +137,6 @@ def main():
               ha='right', transform=ax.transAxes)
     if ax is ax_c:
       ax.axhline(n_ics, color='#999999', lw=1.0, ls='--')
-      ax.text(max(gammas), n_ics * 0.60, 'IC budget', fontsize=14,
-              color='#777777', ha='right')
     if log:
       ax.set_yscale('log')
     ax.axvline(args.gamma_c, color='#666666', lw=1.0, ls=':')
@@ -147,8 +145,9 @@ def main():
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
 
-  ax_d.text(args.gamma_c, 1.02, '$\\gamma_c$', fontsize=16,
-            color='#666666', ha='center', transform=ax_d.get_xaxis_transform())
+  for ax_g in (ax_b, ax_d):
+    ax_g.text(args.gamma_c, 1.02, '$\\gamma_c$', fontsize=16,
+              color='#666666', ha='center', transform=ax_g.get_xaxis_transform())
   for ax, letter in zip(axes, 'abcd'):
     ax.text(-0.20, 1.04, letter, transform=ax.transAxes,
             fontsize=22, fontweight='bold', color='#222222')
