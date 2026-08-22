@@ -109,6 +109,8 @@ def panel_a(axes, df):
       x = g.m_removed + off + rng.uniform(-0.09, 0.09, len(g))
       ax.scatter(x, g.acc, s=7, color=color, alpha=0.25, lw=0, zorder=2)
       mm = g.groupby('m_removed')['acc'].agg(['mean', 'sem'])
+      print(f'panel a: eps={eps:g} {cls}: base={base:.3f} ' +
+            ' '.join(f'm{int(k)}:{v:.3f}' for k, v in mm['mean'].items()))
       ax.errorbar(mm.index + off, mm['mean'], yerr=1.96 * mm['sem'],
                   fmt='_', color=color, markersize=16, markeredgewidth=3.0,
                   capsize=0, elinewidth=1.6, zorder=4)
@@ -214,6 +216,8 @@ def panel_d(ax, df):
     vals = [res[e][f'c{s}'].mean() for e in [0.0, 0.5, 1.0]]
     errs = [1.96 * res[e][f'c{s}'].sem() for e in [0.0, 0.5, 1.0]]
     x = xs + (j - 0.5) * width
+    print(f'panel d: {labels[s].replace(chr(10), " ")}: ' +
+          ' '.join(f'eps{e:g}:{v:.4f}' for e, v in zip([0.0, 0.5, 1.0], vals)))
     # every CI bar is white with a black outline so thicknesses match and
     # the bars stay readable on the black fill
     ax.bar(x, vals, width * 0.92, color='#ffffff' if s == 0 else INSENS,
@@ -225,9 +229,9 @@ def panel_d(ax, df):
   ax.set_xticks(xs)
   ax.set_xticklabels(['$\\varepsilon = 0$', '$\\varepsilon = 0.5$', '$\\varepsilon = 1$'])
   ax.set_ylabel('Cost of one\ndormant removal')
-  ax.set_ylim(0, 0.105)
+  ax.set_ylim(0, 0.135)
   ax.legend(frameon=False, fontsize=14, loc='upper left',
-            bbox_to_anchor=(0.28, 1.06), handlelength=1.1)
+            bbox_to_anchor=(0.24, 1.04), handlelength=1.1)
 
 
 
@@ -275,8 +279,15 @@ def three_class_premium(deep_dir, sens_dir):
     d['cls'] = [('unresponsive' if n[bnets.index(int(net)), nd] == 0 else
                  'promiscuous' if n[bnets.index(int(net)), nd] >= 6 else 'dormant')
                 for net, nd in zip(d.original_network_idx, d.node)]
-    per = (d.groupby(['original_network_idx', 'cls'])['acc_drop'].mean()
-             .unstack('cls').dropna(subset=['promiscuous', 'dormant']))
+    per_all = (d.groupby(['original_network_idx', 'cls'])['acc_drop'].mean()
+                 .unstack('cls'))
+    if 'unresponsive' in per_all.columns:
+      pu = per_all.dropna(subset=['dormant', 'unresponsive'])
+      if len(pu):
+        g2 = (pu['dormant'] - pu['unresponsive']).to_numpy()
+        print(f'  eps {eps:4}: dorm-unresp gap {g2.mean():+.4f} n={len(g2)}; '
+              f'unresp cost {pu["unresponsive"].mean():.4f}')
+    per = per_all.dropna(subset=['promiscuous', 'dormant'])
     gap = (per['promiscuous'] - per['dormant']).to_numpy()
     m = float(gap.mean())
     se = float(gap.std(ddof=1) / np.sqrt(len(gap)))

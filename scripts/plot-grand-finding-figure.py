@@ -85,6 +85,11 @@ def load_random_acc(random_dir):
   return df.groupby('original_network_idx')['accuracy'].mean()
 
 
+# b1 class labels are only valid where the sweep states were never
+# regenerated; everywhere else the b_file cohort does not match the panels
+VALID_B1 = {'1.0', '0.99', '0.5'}
+
+
 def load_deep(deep_dir, rho, min_baseline):
   '''Valid deep ablation rows for one rho, cohorts labeled and unit-keyed.'''
   frames = []
@@ -95,6 +100,8 @@ def load_deep(deep_dir, rho, min_baseline):
                       ('b5', f'{ABL_PREFIX}-rho{rho}-b5.csv')]:
     path = pathlib.Path(deep_dir) / name
     if not path.exists() or path.stat().st_size < 1000:
+      continue
+    if batch == 'b1' and rho not in VALID_B1:
       continue
     d = pd.read_csv(path)
     mb = d.groupby('original_network_idx')['baseline_acc'].first().mean()
@@ -201,7 +208,7 @@ def main():
   df, deep, slopes = collect(args)
 
   fig = plt.figure(figsize=(15.6, 11.0))
-  gs = fig.add_gridspec(2, 6, hspace=0.38, wspace=2.4)
+  gs = fig.add_gridspec(2, 6, hspace=0.38, wspace=3.1)
   ax_a = fig.add_subplot(gs[0, 0:3])
   ax_b = fig.add_subplot(gs[0, 3:6])
   ax_c = fig.add_subplot(gs[1, 0:2])
@@ -225,6 +232,10 @@ def main():
 
   line(ax_c, deep, 'drop_s', SENS, 'remove one promiscuous')
   line(ax_c, deep, 'drop_i', INSENS, 'remove one dormant')
+  for noise in sorted(deep.noise.unique()):
+    g = deep[deep.noise == noise]
+    print(f'panel c: eps={noise:g} drop_prom={g.drop_s.mean():.4f} '
+          f'drop_dorm={g.drop_i.mean():.4f} n={len(g)}')
   ax_c.set_ylabel('Accuracy drop')
   ax_c.set_ylim(0, 0.19)
   ax_c.legend(frameon=True, facecolor='white', framealpha=1.0, edgecolor='none',
@@ -245,6 +256,8 @@ def main():
       bi = rng.choice(di, len(di)).mean()
       boot.append(bi / (bs + bi))
     lo, hi = np.percentile(boot, [2.5, 97.5])
+    print(f'panel d: eps={noise:g} dormant_share={shares[-1]:.3f} '
+          f'CI=[{lo:.3f}, {hi:.3f}]')
     xs.append(noise); los.append(lo); his.append(hi)
   ax_d.fill_between(xs, los, his, color=INSENS, alpha=0.20, lw=0)
   ax_d.plot(xs, shares, color=INSENS, lw=2.0, marker='o', markersize=4.5)
@@ -261,6 +274,8 @@ def main():
                       color=color, alpha=0.18, lw=0)
     ax_e.plot(m.index, m.to_numpy(), color=color, lw=2.0, marker='o',
               markersize=4.5, label=f'$\\varepsilon = {2 * (1 - float(rho_s)):g}$')
+    print(f'panel e: rho={rho_s} slopes=' +
+          ' '.join(f'{k}:{v:.4f}' for k, v in m.items()))
   ax_e.axhline(0, color='#bbbbbb', lw=1.0, linestyle=(0, (3, 3)))
   ax_e.set_xlabel('Members removed')
   ax_e.set_ylabel('Extra penalty per\npromiscuous removed')
