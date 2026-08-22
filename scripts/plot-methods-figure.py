@@ -298,52 +298,54 @@ def panel_a_apps(out_dir):
 # panel a (right): network + threshold rule inset
 # ---------------------------------------------------------------------------
 def panel_a(out_dir):
-  fig, (axn, axr) = plt.subplots(
-    1, 2, figsize=(8.4, 3.7), gridspec_kw={'width_ratios': [1.05, 1.0]},
-  )
-  axn.set_xlim(-0.04, 1.02)
-  axn.set_ylim(-0.03, 1.0)
-  axn.set_aspect('equal')
-  axn.axis('off')
-  draw_network(axn, focal_ring=8)
-  leg_y = 0.0
-  axn.add_patch(Circle((-0.02, leg_y), 0.020, facecolor=BLUE, edgecolor=BLUE_DARK, lw=1.0))
-  axn.text(0.012, leg_y, 'state 1', fontsize=9.5, color=INK, va='center')
-  axn.add_patch(Circle((0.21, leg_y), 0.020, facecolor='white', edgecolor='#9aa5b1', lw=1.0))
-  axn.text(0.242, leg_y, 'state 0', fontsize=9.5, color=INK, va='center')
-  axn.plot([0.46, 0.525], [leg_y, leg_y], color=POS, lw=2.6, solid_capstyle='round')
-  axn.text(0.55, leg_y, '$w>0$', fontsize=9.5, color=INK, va='center')
-  axn.plot([0.76, 0.825], [leg_y, leg_y], color=NEG, lw=2.6, solid_capstyle='round')
-  axn.text(0.85, leg_y, '$w<0$', fontsize=9.5, color=INK, va='center')
-
-  axr.set_xlim(0, 1)
-  axr.set_ylim(0, 1)
+  """The threshold mechanism alone: input states through signed weighted
+  edges into the update rule. Active nodes are black, inactive white, and
+  edge thickness follows the weight magnitude."""
+  fig, axr = plt.subplots(figsize=(6.2, 4.1))
+  axr.set_xlim(0, 1.35)
+  axr.set_ylim(-0.10, 1.0)
+  axr.set_aspect('equal')
   axr.axis('off')
-  ins = [(0.80, 1, 0.9), (0.54, 0, 0.7), (0.28, 1, -0.4)]
+  ins = [(0.86, 1, 0.9), (0.62, 0, 0.2), (0.38, 1, -0.7), (0.14, 0, -0.3)]
   for y, state, w in ins:
     axr.add_patch(Circle((0.08, y), 0.045,
-                  facecolor=BLUE if state else 'white',
-                  edgecolor=BLUE_DARK if state else '#9aa5b1', lw=1.4))
-    x_end, y_end = 0.315, 0.54 + (y - 0.54) * 0.22
+                  facecolor='#1a1a1a' if state else 'white',
+                  edgecolor='#000000' if state else '#9aa5b1', lw=1.4))
+    x_end, y_end = 0.405, 0.50 + (y - 0.50) * 0.22
     arrow = FancyArrowPatch(
       (0.13, y), (x_end, y_end), arrowstyle='-|>',
-      mutation_scale=10, lw=0.7 + 2.4 * abs(w), color=edge_color(w),
+      mutation_scale=10, lw=0.6 + 3.4 * abs(w), color=edge_color(w),
       shrinkA=3, shrinkB=2,
     )
     axr.add_patch(arrow)
-    axr.text((0.13 + x_end) / 2 - 0.01, (y + y_end) / 2 + 0.055, f'${w:+.1f}$',
+    axr.text((0.13 + x_end) / 2 - 0.035, (y + y_end) / 2 + 0.075, f'${w:+.1f}$',
              fontsize=10.5, color=MUTED, ha='center')
-  axr.add_patch(FancyBboxPatch((0.33, 0.42), 0.35, 0.24,
+  axr.add_patch(FancyBboxPatch((0.43, 0.36), 0.50, 0.28,
                 boxstyle='round,pad=0.02,rounding_size=0.03',
                 facecolor=TILE_BG, edgecolor=INK, lw=1.1))
-  axr.text(0.505, 0.54, '$\\sum_i w_{ij}\\,\\sigma_i(t) > 0$ ?',
+  axr.text(0.68, 0.50, '$\\sum_i w_{ij}\\,\\sigma_i(t) > 0$ ?',
            fontsize=11, ha='center', va='center', color=INK)
-  arrow = FancyArrowPatch((0.70, 0.54), (0.79, 0.54), arrowstyle='-|>', mutation_scale=11, lw=1.4, color=INK)
+  arrow = FancyArrowPatch((0.955, 0.50), (1.055, 0.50), arrowstyle='-|>',
+                          mutation_scale=11, lw=1.4, color=INK)
   axr.add_patch(arrow)
-  axr.add_patch(Circle((0.86, 0.54), 0.05, facecolor=BLUE, edgecolor=BLUE_DARK, lw=1.4))
-  axr.text(0.86, 0.40, '$\\sigma_j(t+1)$', fontsize=11, ha='center', color=INK)
-  axr.text(0.03, 0.945, 'inputs at time $t$', fontsize=10.5, color=MUTED, ha='left')
-  save(fig, out_dir, 'fig1a-network-and-rule')
+  axr.add_patch(Circle((1.13, 0.50), 0.05, facecolor='#1a1a1a',
+                       edgecolor='#000000', lw=1.4))
+  axr.text(1.13, 0.36, '$\\sigma_j(t+1)$', fontsize=11, ha='center', color=INK)
+  axr.text(0.03, 0.965, 'inputs at time $t$', fontsize=10.5, color=MUTED, ha='left')
+  leg_y = -0.045
+  axr.add_patch(Circle((0.05, leg_y), 0.020, facecolor='#1a1a1a',
+                       edgecolor='#000000', lw=1.0, clip_on=False))
+  axr.text(0.082, leg_y, 'active', fontsize=9.5, color=INK, va='center')
+  axr.add_patch(Circle((0.26, leg_y), 0.020, facecolor='white',
+                       edgecolor='#9aa5b1', lw=1.0, clip_on=False))
+  axr.text(0.292, leg_y, 'inactive', fontsize=9.5, color=INK, va='center')
+  axr.plot([0.62, 0.685], [leg_y, leg_y], color=POS, lw=2.6,
+           solid_capstyle='round', clip_on=False)
+  axr.text(0.71, leg_y, '$w>0$', fontsize=9.5, color=INK, va='center')
+  axr.plot([0.97, 1.035], [leg_y, leg_y], color=NEG, lw=2.6,
+           solid_capstyle='round', clip_on=False)
+  axr.text(1.06, leg_y, '$w<0$', fontsize=9.5, color=INK, va='center')
+  save(fig, out_dir, 'fig1b-rule')
 
 
 # ---------------------------------------------------------------------------

@@ -158,6 +158,10 @@ def coverage(sens_dir, tag, ga_csv, seed=101, draws=DRAWS):
       continue
     ks = [int(n[i, j]) for j in dorm]
     u, jc = union_jaccard([A[i, j] for j in dorm])
+    obs_sets = [tuple(A[i, j]) for j in dorm]
+    n_pairs = len(dorm) * (len(dorm) - 1) // 2
+    ident_obs = sum(obs_sets[a] == obs_sets[b]
+                    for a in range(len(dorm)) for b in range(a + 1, len(dorm)))
     # the pool excludes the panel itself, so the null draws other nodes
     other = np.setdiff1d(np.arange(A.shape[1]), nodes)
     pool = {k: other[n[i, other] == k] for k in set(ks)}
@@ -170,7 +174,7 @@ def coverage(sens_dir, tag, ga_csv, seed=101, draws=DRAWS):
     dpool = other[(n[i, other] >= 1) & (n[i, other] <= SPLIT - 1)]
     w = A[i, dpool].sum(axis=0).astype(float) if len(dpool) else np.ones(NDRUG)
     w = w / w.sum() if w.sum() > 0 else np.full(NDRUG, 1 / NDRUG)
-    su, sj, pu, pj = [], [], [], []
+    su, sj, pu, pj, pi = [], [], [], [], []
     for _ in range(draws):
       sets = np.zeros((len(ks), NDRUG), bool)
       for r, k in enumerate(ks):
@@ -178,10 +182,15 @@ def coverage(sens_dir, tag, ga_csv, seed=101, draws=DRAWS):
       a, b = union_jaccard(sets)
       su.append(a)
       sj.append(b)
-      a, b = union_jaccard([A[i, rng.choice(pool[k])] for k in ks])
+      draw = [A[i, rng.choice(pool[k])] for k in ks]
+      a, b = union_jaccard(draw)
       pu.append(a)
       pj.append(b)
+      dsets = [tuple(x) for x in draw]
+      pi.append(sum(dsets[q] == dsets[r]
+                    for q in range(len(dsets)) for r in range(q + 1, len(dsets))))
     rows.append(dict(net=net, D=len(dorm), union=u, jac=jc,
+                     n_pairs=n_pairs, ident=ident_obs, ident_pool=np.mean(pi),
                      union_shock=np.mean(su), jac_shock=np.mean(sj),
                      union_pool=np.mean(pu), jac_pool=np.mean(pj)))
     null_u['shock'] += su
@@ -347,6 +356,9 @@ def main():
     print(f'eps {e}: union   obs {c.union.mean():.4f}  '
           f'shock null {c.union_shock.mean():.4f} (p={pu[0]:.3g})  '
           f'pool null {c.union_pool.mean():.4f} (p={pu[1]:.3g})')
+    io, ip_, npair = c.ident.sum(), c.ident_pool.sum(), c.n_pairs.sum()
+    print(f'eps {e}: identical pairs obs {100 * io / npair:.1f}%  '
+          f'pool null {100 * ip_ / npair:.1f}%  ({io:.0f}/{npair} pairs)')
     print(f'eps {e}: jaccard obs {c.jac.mean():.4f}  '
           f'shock null {c.jac_shock.mean():.4f} (p={ps[0]:.3g})  '
           f'pool null {c.jac_pool.mean():.4f} (p={ps[1]:.3g})')
