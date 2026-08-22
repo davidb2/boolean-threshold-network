@@ -33,10 +33,14 @@ FILES = [('a', 'fig1a-domains.png'), ('b', 'fig1b-rule.png'),
 # Where each panel letter goes, as an offset in inches from the top left
 # corner of the panel. Panels whose corner is free carry the letter
 # inside; the panels whose top row starts with a node or a title carry it
-# just outside, in the gutter, so nothing has to be reserved above.
-LETTERS = {'a': ('in', 0.03, 0.02), 'b': ('out', 0.40, 0.00),
-           'c': ('out', 0.40, 0.10), 'd': ('in', 0.00, 0.05),
-           'e': ('out', 0.40, 0.00), 'f': ('out', 0.40, 0.05)}
+# just outside, in the gutter, so nothing has to be reserved above. The
+# offsets are anchored at the top of the text box, and a letter with no
+# ascender, a, c, or e, has its ink 0.073 in lower than one with an
+# ascender, so those 3 are lifted by that much to line up with the top of
+# the drawing beside them.
+LETTERS = {'a': ('in', 0.03, -0.062), 'b': ('out', 0.40, 0.00),
+           'c': ('out', 0.40, -0.062), 'd': ('in', 0.00, 0.05),
+           'e': ('out', 0.40, -0.062), 'f': ('out', 0.40, 0.05)}
 
 
 def trim(im):
