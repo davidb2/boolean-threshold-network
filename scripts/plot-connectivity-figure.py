@@ -118,8 +118,10 @@ def panel_c(ax, conns, ga_panels):
   ax.set_xlabel('Degree')
   ax.set_ylabel('Cumulative fraction')
   ax.set_ylim(0, 1.02)
-  ax.legend(frameon=False, fontsize=14, loc='lower right',
-            bbox_to_anchor=(1.03, 0.02))
+  # up and to the right of the rising in-degree curves, over the flat
+  # saturated stretch where nothing is drawn
+  ax.legend(frameon=False, fontsize=12, loc='center right',
+            bbox_to_anchor=(1.03, 0.55))
 
 
 def antimode(B, lo=0.05, hi=0.40):
