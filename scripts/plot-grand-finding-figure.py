@@ -126,10 +126,17 @@ def unit_slope(g):
 
 def collect(args):
   rows, deep_rows, slope_rows = [], [], []
+  # per cohort antimode estimates fluctuate more than the cutoff drifts
+  # with noise, so the sweep panels share one pooled cutoff; the conclusions
+  # do not depend on its exact placement
+  raw_cuts = [antimode(np.load(f'{args.sensitivity_dir}/B-rho{r}.npz')['B'])
+              for r in RHOS]
+  cut = float(np.median(raw_cuts))
+  print(f'pooled cutoff {cut:.3f} from per level antimodes '
+        + ' '.join(f'{c:.3f}' for c in raw_cuts))
   for rho in RHOS:
     b = np.load(f'{args.sensitivity_dir}/B-rho{rho}.npz')
     B, bnets = b['B'], [int(x) for x in b['networks']]
-    cut = antimode(B)
     if rho == '0.99':
       ga_csv, rnd_dir = args.ga_csv_99, args.random_dir_99
     elif rho == '0.5':

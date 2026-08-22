@@ -361,7 +361,15 @@ def main():
     # they classify, and an arrow runs from each leaf to its row
     plt.close(fig)
     groups = panel_groups(S[si], nodes, B[bi], cut)
-    maxc = max(len(g) for g in groups)
+    # genuinely unresponsive members barely move and render as blank disks,
+    # so the unresponsive row shows two synthetic profiles whose wedges all
+    # stay below the cutoff; one dormant example is dropped to make room
+    syn_u = [np.array([0.90, 0.60, 0.80, 0.50, 0.95, 0.70, 0.55, 0.85, 0.65, 0.75]) * cut,
+             np.array([0.95, 0.10, 0.0, 0.55, 0.10, 0.85, 0.0, 0.30, 0.70, 0.10]) * cut]
+    row_vals = [[S[si][:, n] for n in groups[0]],
+                [S[si][:, n] for n in groups[1][:-1]],
+                syn_u]
+    maxc = max(len(v) for v in row_vals)
     fig = plt.figure(figsize=(13.6, 5.4))
 
     # ---- panel f first, so the rows fix the geometry ----
@@ -369,11 +377,11 @@ def main():
                            bottom=0.06, wspace=0.08, hspace=0.28)
     row_info = [(cmap_s, None), (cmap_i, DORMANT_BG), (cmap_i, None)]
     ymids = []
-    for gi, (g, (cm, bg)) in enumerate(zip(groups, row_info)):
+    for gi, (vals_row, (cm, bg)) in enumerate(zip(row_vals, row_info)):
       ymid = None
-      for k, node in enumerate(g):
+      for k, vals in enumerate(vals_row):
         ax = fig.add_subplot(gs2[gi, k], projection='polar')
-        draw_disk(ax, S[si][:, node], vmax, cm, ring=True, bg=bg, cutoff=cut)
+        draw_disk(ax, vals, vmax, cm, ring=True, bg=bg, cutoff=cut)
         pos = ax.get_position()
         ymid = 0.5 * (pos.y0 + pos.y1)
       ymids.append(ymid)
@@ -444,7 +452,7 @@ def main():
     fig.savefig(out_dir / f'{name}.svg', bbox_inches='tight')
     fig.savefig(out_dir / f'{name}.png', bbox_inches='tight', dpi=300)
     print(f'wrote {out_dir}/{name}.svg + .png (aligned tree + rows, network {net}, '
-          f'{len(groups[0])}P/{len(groups[1])}D/{len(groups[2])}U)')
+          f'{len(row_vals[0])}P/{len(row_vals[1])}D/{len(row_vals[2])}U synthetic)')
     return
 
   eff = []
