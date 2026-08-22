@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 '''Supplementary figures.
 
-  si-activity      control-run activity vs shock sensitivity B
+  si-activity      control-run activity vs shock sensitivity B, eps 0/0.5/1
   si-redundancy    within-panel information: marginal entropy and pairwise MI
   si-qk            simulation check of the single-node sensitivity q(K)
   si-bdist         sensitivity distributions and antimode cutoffs across noise
@@ -51,8 +51,8 @@ def antimode(B, lo=0.05, hi=0.40):
 
 
 def si_activity(sens_dir, out_dir):
-  fig, axes = plt.subplots(1, 2, figsize=(9.6, 4.0))
-  for ax, rho in zip(axes, ['0.99', '0.5']):
+  fig, axes = plt.subplots(1, 3, figsize=(13.6, 4.0), sharey=True)
+  for ax, rho in zip(axes, ['1.0', '0.75', '0.5']):
     a = np.load(f'{sens_dir}/activity-rho{rho}.npz')
     act, anets = a['activity'], [int(x) for x in a['networks']]
     b = np.load(f'{sens_dir}/B-rho{rho}.npz')
@@ -62,9 +62,9 @@ def si_activity(sens_dir, out_dir):
                    mincnt=1, bins='log')
     r = np.corrcoef(A.ravel(), B.ravel())[0, 1]
     ax.set_xlabel('Control state variance')
-    ax.set_ylabel('Sensitivity, $S$')
     ax.set_title(f'$\\varepsilon = {2 * (1 - float(rho)):g}$, $r = {r:.2f}$', fontsize=19)
-  fig.colorbar(hb, ax=axes, label='nodes (log scale)', shrink=0.85)
+  axes[0].set_ylabel('Sensitivity, $S$')
+  fig.colorbar(hb, ax=axes, label='Number of nodes', shrink=0.85)
   save(fig, out_dir, 'si-activity')
 
 
@@ -76,11 +76,11 @@ def si_redundancy(sens_dir, out_dir):
           ('mean_mi', 'Mean pairwise\nMI (bits)'),
           ('max_mi', 'Largest pairwise\nMI (bits)')]
   fig, axes = plt.subplots(1, 3, figsize=(13.6, 4.4))
-  fig.subplots_adjust(wspace=0.42, top=0.78)
+  fig.subplots_adjust(wspace=0.42, bottom=0.24)
   for ax, (col, ylab) in zip(axes, cols):
     for gi, (group, color, label) in enumerate(groups):
       xs, ms, ss = [], [], []
-      for xi, rho in enumerate(['0.99', '0.5']):
+      for xi, rho in enumerate(['1.0', '0.75', '0.5']):
         df = pd.read_csv(f'{sens_dir}/redundancy-rho{rho}.csv')
         df['group'] = df['panel'].str.replace(r'-\d+$', '', regex=True)
         per_net = df[df.group == group].groupby('network')[col].mean()
@@ -89,11 +89,12 @@ def si_redundancy(sens_dir, out_dir):
         ss.append(1.96 * per_net.sem())
       ax.bar(xs, ms, width=0.21, color=color, label=label, zorder=3)
       ax.errorbar(xs, ms, yerr=ss, fmt='none', ecolor='#333333', lw=1.0, capsize=2.5, zorder=4)
-    ax.set_xticks([0, 1])
-    ax.set_xticklabels(['$\\varepsilon = 0.02$', '$\\varepsilon = 1$'])
+    ax.set_xticks([0, 1, 2])
+    ax.set_xticklabels(['$\\varepsilon = 0$', '$\\varepsilon = 0.5$',
+                        '$\\varepsilon = 1$'])
     ax.set_ylabel(ylab)
-  axes[1].legend(frameon=False, fontsize=16, loc='lower center',
-                 bbox_to_anchor=(0.5, 1.02), ncol=3, columnspacing=1.2)
+  axes[1].legend(frameon=False, fontsize=16, loc='upper center',
+                 bbox_to_anchor=(0.5, -0.22), ncol=3, columnspacing=1.2)
   for ax, letter in zip(axes, 'abc'):
     ax.text(-0.24, 1.05, letter, transform=ax.transAxes, fontsize=24,
             fontweight='bold', color='#222222')
@@ -138,8 +139,8 @@ def si_bdist(sens_dir, out_dir):
   Shown at true scale, so the frozen spike at S = 0, about a quarter of
   all nodes, towers over the rest of the distribution.
   '''
-  shown = ['1.0', '0.9', '0.75', '0.5']  # eps = 0, 0.2, 0.5, 1
-  fig, axes = plt.subplots(1, len(shown), figsize=(15.0, 3.9),
+  shown = ['1.0', '0.75', '0.5']  # eps = 0, 0.5, 1
+  fig, axes = plt.subplots(1, len(shown), figsize=(11.4, 3.9),
                            sharex=True, sharey=True)
   for ax, rho in zip(axes, shown):
     b = np.load(f'{sens_dir}/B-rho{rho}.npz')

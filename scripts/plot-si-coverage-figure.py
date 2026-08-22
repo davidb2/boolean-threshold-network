@@ -82,6 +82,8 @@ IND = '#ff7f0e'      # promiscuous
 DOR = '#000000'      # dormant
 UNR = '#c7c7c7'      # unresponsive
 MID = '#7f7f7f'      # the dormant pool null
+EVO = '#2ca02c'      # anything belonging to the evolved panels
+CTL = '#7f7f7f'      # nulls and controls
 SPLIT = 6            # answering this many shocks or more makes a node promiscuous
 K = 8
 NDRUG = 10
@@ -316,10 +318,10 @@ def main():
   # b: coverage against both nulls at the highest noise level
   c, nu = covs[2], nulls[2]
   bins = np.arange(0.5, NDRUG + 1.5, 1)
-  ax_b.hist(c.union, bins=bins, color=DOR, alpha=0.85, density=True,
+  ax_b.hist(c.union, bins=bins, color=EVO, alpha=0.85, density=True,
             label=f'evolved panels ($n = {len(c)}$)')
-  for vals, col, lab in [(nu['shock'], UNR, 'matched shock null'),
-                         (nu['pool'], MID, 'dormant pool null')]:
+  for vals, col, lab in [(nu['shock'], CTL, 'matched shock null'),
+                         (nu['pool'], DOR, 'dormant pool null')]:
     h, _ = np.histogram(vals, bins=bins, density=True)
     ax_b.step(np.arange(1, NDRUG + 1), h, where='mid', color=col, lw=3, label=lab)
   ax_b.set_xlim(1.5, 10.5)
@@ -340,9 +342,9 @@ def main():
 
   # c: overlap against both nulls at every noise level
   width, xs = 0.26, np.arange(3)
-  for j, (key, col, lab) in enumerate([('jac', DOR, 'evolved panels'),
-                                       ('jac_shock', UNR, 'matched shock null'),
-                                       ('jac_pool', MID, 'dormant pool null')]):
+  for j, (key, col, lab) in enumerate([('jac', EVO, 'evolved panels'),
+                                       ('jac_shock', CTL, 'matched shock null'),
+                                       ('jac_pool', DOR, 'dormant pool null')]):
     v = [c[key].mean() for c in covs]
     e = [c[key].sem() for c in covs]
     ax_c.bar(xs + (j - 1) * width, v, width * 0.92, yerr=e, color=col,
@@ -350,8 +352,6 @@ def main():
              error_kw=dict(ecolor='#222222', lw=1.2, capsize=3))
   for x, c, e in zip(xs, covs, args.eps_labels):
     ps = wilcox(c.jac, c.jac_shock), wilcox(c.jac, c.jac_pool)
-    ax_c.text(x - width / 2, 0.300, stars(ps[0]), ha='center', fontsize=12)
-    ax_c.text(x + width / 2, 0.320, stars(ps[1]), ha='center', fontsize=12)
     pu = wilcox(c.union, c.union_shock), wilcox(c.union, c.union_pool)
     print(f'eps {e}: union   obs {c.union.mean():.4f}  '
           f'shock null {c.union_shock.mean():.4f} (p={pu[0]:.3g})  '
@@ -383,8 +383,8 @@ def main():
           f'(SE {o.std(ddof=1)/np.sqrt(len(o)):.4f}, t={to.statistic:.2f}, '
           f'p={to.pvalue:.3g}); positive control {ct.mean():+.4f} '
           f'(t={tc.statistic:.2f}, p={tc.pvalue:.3g})')
-  for j, (vals, col, lab) in enumerate([(obs_all, DOR, 'evolved dormant members'),
-                                        (ctl_all, IND, 'positive control')]):
+  for j, (vals, col, lab) in enumerate([(obs_all, EVO, 'evolved dormant members'),
+                                        (ctl_all, CTL, 'positive control')]):
     m = [v.mean() for v in vals]
     e = [1.96 * v.std(ddof=1) / np.sqrt(len(v)) for v in vals]
     ax_d.bar(xs + (j - 0.5) * width, m, width * 0.9, yerr=e, color=col,
@@ -397,8 +397,8 @@ def main():
   ax_d.set_xticks(xs)
   ax_d.set_xticklabels([f'$\\varepsilon = {e}$' for e in args.eps_labels])
   ax_d.set_ylabel('Specialisation index\n(confusable $-$ other pairs)')
-  ax_d.set_ylim(-0.05, 0.245)
-  ax_d.legend(frameon=False, fontsize=12.5, loc='upper left', handlelength=1.1,
+  ax_d.set_ylim(-0.085, 0.335)
+  ax_d.legend(frameon=False, fontsize=12.5, loc='upper right', handlelength=1.1,
               labelspacing=0.3, borderpad=0.1)
 
   for ax, letter in zip([ax_a, ax_b, ax_c, ax_d], 'abcd'):

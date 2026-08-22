@@ -162,7 +162,9 @@ def main():
   ax_a.set_xlabel('Sensitivity, $S$')
   ax_a.set_ylabel('Shapley value')
   ax_a.set_title('$\\varepsilon = 1$', fontsize=19)
-  ax_a.legend(frameon=False, fontsize=14, loc='upper left', handletextpad=0.2)
+  ax_a.legend(frameon=True, facecolor='white', framealpha=1.0, edgecolor='none',
+              fontsize=14, loc='upper left', bbox_to_anchor=(0.0, 1.06),
+              handletextpad=0.2)
 
   # b: mean Shapley by class across noise
   for lab, sub, col in [('promiscuous', R[R.sens], SENS), ('dormant', R[~R.sens], INSENS)]:
@@ -178,7 +180,8 @@ def main():
   ax_b.set_ylim(0, None)
   ax_b.set_xlabel('Noise, $\\varepsilon$')
   ax_b.set_ylabel('Mean Shapley value')
-  ax_b.legend(frameon=False, fontsize=14, loc='center left')
+  ax_b.legend(frameon=False, fontsize=14, loc='lower left',
+              bbox_to_anchor=(0.02, 0.04))
 
   # c: how often an dormant member outranks the panel median promiscuous member
   def frac_beat(g):
@@ -213,13 +216,16 @@ def main():
   ax_d.set_xlabel('Sensitivity, $S$ (below cutoff only)')
   ax_d.set_ylabel('Density')
   ax_d.set_title('$\\varepsilon = 1$', fontsize=19)
-  ax_d.legend(frameon=False, fontsize=14, loc='upper left')
+  ax_d.legend(frameon=True, facecolor='white', framealpha=1.0, edgecolor='none',
+              fontsize=14, loc='upper right')
   print(f'recruitment: median S selected {np.median(sel):.3f} vs available '
         f'{np.median(avail):.3f} (cutoff {cut:.3f})')
 
   for ax, letter in zip([ax_a, ax_b, ax_c, ax_d], 'abcd'):
-    ax.text(-0.19, 1.06, letter, transform=ax.transAxes,
-            fontsize=30, fontweight='bold', color='#222222')
+    # c sits further left so it clears its 2 line y axis label
+    ax.text(-0.26 if letter == 'c' else -0.19, 1.06, letter,
+            transform=ax.transAxes, fontsize=30, fontweight='bold',
+            color='#222222')
 
   out = pathlib.Path(args.out_dir)
   out.mkdir(parents=True, exist_ok=True)

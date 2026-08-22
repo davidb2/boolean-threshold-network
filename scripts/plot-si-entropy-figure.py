@@ -125,10 +125,11 @@ def composition(sens_dir, tag, ga_csv, rng):
 def stacked(ax, comp, title=None, legend=False):
   ys = np.arange(len(comp))
   left = np.zeros(len(comp))
-  for cls, col in [('promiscuous', IND), ('dormant', DOR), ('unresponsive', UNR)]:
+  for cls, col in [('promiscuous', IND), ('dormant', DOR),
+                   ('unresponsive', 'white')]:
     v = comp[cls].to_numpy()
     ax.barh(ys, v, left=left, color=col, height=0.62,
-            edgecolor='white', linewidth=1.2, label=cls if legend else None)
+            edgecolor='#000000', linewidth=0.8, label=cls if legend else None)
     for y, (l, w) in enumerate(zip(left, v)):
       if w > 0.55:
         ax.text(l + w / 2, y, f'{w:.1f}', ha='center', va='center', fontsize=13,
@@ -203,7 +204,8 @@ def main():
   # d: the same across noise, evolved against the heuristic
   width = 0.26
   xs = np.arange(3)
-  for j, (lab, col) in enumerate([('evolved', DOR), ('highest sensitivity', IND),
+  for j, (lab, col) in enumerate([('evolved', '#2ca02c'),
+                                  ('highest sensitivity', IND),
                                   ('random', UNR)]):
     vals = []
     for tag, ga in zip(args.tags, args.ga_csvs):
@@ -216,7 +218,7 @@ def main():
   ax_d.set_xticks(xs)
   ax_d.set_xticklabels([f'$\\varepsilon = {e}$' for e in args.eps_labels])
   ax_d.set_ylabel('Dormant members\nper panel')
-  ax_d.set_ylim(0, 4.1)
+  ax_d.set_ylim(0, 4.7)
   ax_d.legend(frameon=False, fontsize=12.5, loc='upper left', ncol=1,
               handlelength=1.1, labelspacing=0.3)
 

@@ -214,13 +214,17 @@ def main():
 
   df, deep, slopes = collect(args)
 
+  # the 2 rows carry their own column spacing, so the 3 lower panels can
+  # be pushed apart without squeezing the 2 upper ones
   fig = plt.figure(figsize=(15.6, 11.0))
-  gs = fig.add_gridspec(2, 6, hspace=0.38, wspace=3.1)
-  ax_a = fig.add_subplot(gs[0, 0:3])
-  ax_b = fig.add_subplot(gs[0, 3:6])
-  ax_c = fig.add_subplot(gs[1, 0:2])
-  ax_d = fig.add_subplot(gs[1, 2:4])
-  ax_e = fig.add_subplot(gs[1, 4:6])
+  outer = fig.add_gridspec(2, 1, hspace=0.38)
+  top = outer[0].subgridspec(1, 2, wspace=0.34)
+  bot = outer[1].subgridspec(1, 3, wspace=0.95)
+  ax_a = fig.add_subplot(top[0, 0])
+  ax_b = fig.add_subplot(top[0, 1])
+  ax_c = fig.add_subplot(bot[0, 0])
+  ax_d = fig.add_subplot(bot[0, 1])
+  ax_e = fig.add_subplot(bot[0, 2])
   noise_axes = [ax_a, ax_b, ax_c, ax_d]
 
   line(ax_a, df, 'ga_acc', GA, 'evolved panel')
@@ -229,7 +233,8 @@ def main():
   ax_a.text(0.011, CHANCE + 0.03, 'chance', fontsize=19, color='#999999')
   ax_a.set_ylabel('Classification accuracy')
   ax_a.set_ylim(0, 1.02)
-  ax_a.legend(frameon=False, fontsize=22, loc='center left')
+  ax_a.legend(frameon=False, fontsize=22, loc='center left',
+              bbox_to_anchor=(0.0, 0.64))
 
   line(ax_b, df, 'n_sens', GA, 'evolved panel')
   line(ax_b, df, 'expect', GRAY, 'random expectation')
@@ -246,7 +251,7 @@ def main():
   ax_c.set_ylabel('Accuracy drop')
   ax_c.set_ylim(0, 0.19)
   ax_c.legend(frameon=True, facecolor='white', framealpha=1.0, edgecolor='none',
-              fontsize=17, loc='upper right', bbox_to_anchor=(1.02, 1.12),
+              fontsize=16, loc='upper right', bbox_to_anchor=(1.42, 1.12),
               handlelength=1.0, borderaxespad=0.0)
 
   rng = np.random.default_rng(7)
@@ -285,6 +290,9 @@ def main():
           ' '.join(f'{k}:{v:.4f}' for k, v in m.items()))
   ax_e.axhline(0, color='#bbbbbb', lw=1.0, linestyle=(0, (3, 3)))
   ax_e.set_xlabel('Members removed')
+  # nudged left, since a centered label under the rightmost panel loses
+  # its last glyph to the tight bounding box
+  ax_e.xaxis.set_label_coords(0.40, -0.135)
   ax_e.set_ylabel('Extra penalty per\npromiscuous removed')
   ax_e.set_xticks(range(1, 8))
   ax_e.legend(frameon=False, fontsize=18, loc='upper right', handlelength=1.0, borderaxespad=0.1)

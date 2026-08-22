@@ -32,7 +32,8 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-RHO_COLORS = {'0.5': '#14571a', '0.99': '#2ca02c', '1.0': '#98df8a'}
+# darker green = lower noise, matching the main figures
+RHO_COLORS = {'1.0': '#14571a', '0.75': '#2ca02c', '0.5': '#98df8a'}
 GRAY = '#7f7f7f'
 R_MAX = 10
 
@@ -61,7 +62,7 @@ def ecdf(ax, values, **kw):
 
 def panel_a(ax, topo):
   order = [('random', 'random', GRAY)] + [
-    (f'rho{r}', f'$\\rho = {r}$', RHO_COLORS[r]) for r in ['0.5', '0.99', '1.0']]
+    (f'rho{r}', f'$\\rho = {r}$', RHO_COLORS[r]) for r in ['1.0', '0.75', '0.5']]
   rng = np.random.default_rng(3)
   for i, (key, label, color) in enumerate(order):
     if key == 'random':
@@ -72,7 +73,8 @@ def panel_a(ax, topo):
     ax.plot(x, vals, 'o', color=color, markersize=3.6, alpha=0.55, markeredgewidth=0)
     ax.hlines(np.mean(vals), i - 0.24, i + 0.24, color=color, lw=2.4, zorder=5)
   ax.set_xticks(range(4))
-  ax.set_xticklabels(['random', '$\\varepsilon{=}1$', '$\\varepsilon{=}0.02$', '$\\varepsilon{=}0$'])
+  ax.set_xticklabels(['random', '$\\varepsilon{=}0$', '$\\varepsilon{=}0.5$',
+                      '$\\varepsilon{=}1$'])
   ax.set_ylabel('Mean distance\nbetween panel members')
   ax.set_ylim(1.85, 2.62)
 
@@ -84,7 +86,7 @@ def panel_b(ax, topo):
   lo, hi = np.percentile(rnd, [2.5, 97.5], axis=0)
   ax.fill_between(rs, lo, hi, color=GRAY, alpha=0.30, lw=0,
                   label='random panels (95%)')
-  for r in ['0.5', '0.99', '1.0']:
+  for r in ['1.0', '0.75', '0.5']:
     m = topo[topo.rho == f'rho{r}'][cols].mean(axis=0)
     ax.plot(rs, m, color=RHO_COLORS[r], lw=1.8, label=f'$\\varepsilon = {2 * (1 - float(r)):g}$')
   ax.set_xlabel('Hops upstream to nearest member, $r$')
@@ -94,22 +96,30 @@ def panel_b(ax, topo):
   ax.legend(frameon=False, fontsize=14, loc='lower right')
 
 
-def panel_c(ax, conn, ga_panels):
-  nets = list(conn['networks'])
-  for deg, ls, lab in [(conn['in_deg'], '-', 'in-degree'), (conn['out_deg'], (0, (4, 2)), 'out-degree')]:
-    members = []
+def panel_c(ax, conns, ga_panels):
+  for key, ls, lab in [('in_deg', '-', 'in-degree'),
+                       ('out_deg', (0, (4, 2)), 'out-degree')]:
+    members, background = [], []
     for rho, panels in ga_panels.items():
+      conn = conns[rho]
+      deg = conn[key]
+      nets = list(conn['networks'])
       for net, nodes in panels.items():
         members += list(deg[nets.index(net), nodes])
-    ecdf(ax, np.array(members, dtype=float) + 1, color='#2ca02c', lw=1.9,
+      background.append(deg.ravel().astype(float))
+    ecdf(ax, np.array(members, dtype=float), color='#2ca02c', lw=1.9,
          linestyle=ls, label=f'members, {lab}')
-    ecdf(ax, deg.ravel().astype(float) + 1, color=GRAY, lw=1.5, linestyle=ls,
+    ecdf(ax, np.concatenate(background), color=GRAY, lw=1.5, linestyle=ls,
          label=f'all nodes, {lab}')
+  # a log axis cuts the degree 0 nodes; the curves at degree 1 already
+  # carry their cumulative weight
   ax.set_xscale('log')
-  ax.set_xlabel('Degree $+ 1$')
+  ax.set_xlim(left=0.9)
+  ax.set_xlabel('Degree')
   ax.set_ylabel('Cumulative fraction')
   ax.set_ylim(0, 1.02)
-  ax.legend(frameon=False, fontsize=14, loc='lower right')
+  ax.legend(frameon=False, fontsize=14, loc='lower right',
+            bbox_to_anchor=(1.03, 0.02))
 
 
 def antimode(B, lo=0.05, hi=0.40):
@@ -120,13 +130,14 @@ def antimode(B, lo=0.05, hi=0.40):
   return float(ce[w][np.argmin(s[w])])
 
 
-def drug_coverage(conn, ga_panels, sens_dir, n_rand=200, seed=21):
-  nets = list(conn['networks'])
-  dist = conn['dist_from_targets'].astype(float)
-  dist[dist < 0] = np.inf
+def drug_coverage(conns, ga_panels, sens_dir, n_rand=200, seed=21):
   rng = np.random.default_rng(seed)
   rows = []
   for rho, panels in ga_panels.items():
+    conn = conns[rho]
+    nets = list(conn['networks'])
+    dist = conn['dist_from_targets'].astype(float)
+    dist[dist < 0] = np.inf
     b = np.load(f'{sens_dir}/B-rho{rho}.npz')
     B, bnets = b['B'], [int(x) for x in b['networks']]
     cut = antimode(B)
@@ -162,7 +173,7 @@ GROUPS = [('evolved', '#2ca02c', 'evolved'),
 
 
 def panel_cd(ax, cov, col, ylabel):
-  rhos = ['0.5', '0.99', '1.0']
+  rhos = ['1.0', '0.75', '0.5']
   width = 0.24
   for gi, (group, color, label) in enumerate(GROUPS):
     xs, ms, ss = [], [], []
@@ -171,6 +182,8 @@ def panel_cd(ax, cov, col, ylabel):
       xs.append(xi + (gi - 1) * width)
       ms.append(vals.mean())
       ss.append(1.96 * vals.sem())
+    print(f'{col} {group}: ' + ' '.join(
+        f'rho{r}={m:.3f}' for r, m in zip(rhos, ms)))
     ax.bar(xs, ms, width=width * 0.88, color=color, label=label, zorder=3)
     ax.errorbar(xs, ms, yerr=ss, fmt='none', ecolor='#333333', lw=1.1, capsize=2.5, zorder=4)
   ax.set_xticks(range(len(rhos)))
@@ -181,7 +194,6 @@ def panel_cd(ax, cov, col, ylabel):
 def panel_c_shock(ax, cov):
   panel_cd(ax, cov, 'mean_d', 'Panel-to-shock distance\n(mean over shocks, hops)')
   ax.set_ylim(0, 1.9)
-  ax.legend(frameon=False, fontsize=13, loc='upper center', ncol=1)
 
 
 def panel_d_shock(ax, cov):
@@ -192,26 +204,46 @@ def panel_d_shock(ax, cov):
 def main():
   p = argparse.ArgumentParser()
   p.add_argument('--panel-topology', type=str, required=True)
-  p.add_argument('--connectivity', type=str, required=True)
+  p.add_argument('--connectivity', type=str, nargs='+', required=True,
+                 help='rho=path pairs of connectivity array npz files')
   p.add_argument('--sensitivity-dir', type=str, required=True)
   p.add_argument('--ga', type=str, nargs='+', required=True)
   p.add_argument('--out-dir', type=str, required=True)
   args = p.parse_args()
 
   topo = pd.read_csv(args.panel_topology)
-  conn = np.load(args.connectivity)
+  conns = {}
+  for spec in args.connectivity:
+    label, path = spec.split('=', 1)
+    conns[label.replace('rho', '')] = np.load(path)
   ga_panels = {}
   for spec in args.ga:
     label, path = spec.split('=', 1)
     ga_panels[label.replace('rho', '')] = load_panels(path)
+  for rho, panels in ga_panels.items():
+    # cohort sanity: panels paired with a matching B array carry a clear
+    # excess of promiscuous members; a mismatch collapses toward chance
+    b = np.load(f'{args.sensitivity_dir}/B-rho{rho}.npz')
+    B, bnets = b['B'], [int(x) for x in b['networks']]
+    cut = antimode(B)
+    ns = [int((B[bnets.index(n), nodes] > cut).sum())
+          for n, nodes in panels.items()]
+    print(f'psens sanity rho={rho}: mean promiscuous per panel '
+          f'{np.mean(ns):.2f} (expect about 5 to 7 when cohorts match)')
 
-  cov = drug_coverage(conn, ga_panels, args.sensitivity_dir)
+  cov = drug_coverage(conns, ga_panels, args.sensitivity_dir)
   fig, axes = plt.subplots(2, 2, figsize=(10.6, 8.0))
   fig.subplots_adjust(hspace=0.38, wspace=0.32)
   panel_a(axes[0, 0], topo)
-  panel_c(axes[0, 1], conn, ga_panels)
+  panel_c(axes[0, 1], conns, ga_panels)
   panel_c_shock(axes[1, 0], cov)
   panel_d_shock(axes[1, 1], cov)
+  # one flat legend for the 2 bar panels, spread below them
+  from matplotlib.patches import Patch
+  handles = [Patch(facecolor=c, label=l) for _, c, l in GROUPS]
+  fig.legend(handles=handles, frameon=False, fontsize=14, ncol=3,
+             loc='upper center', bbox_to_anchor=(0.5, 0.045),
+             columnspacing=1.6, handlelength=1.3)
   for ax, letter in zip(axes.ravel(), 'abcd'):
     ax.text(-0.16, 1.06, letter, transform=ax.transAxes,
             fontsize=23, fontweight='bold', color='#222222')
