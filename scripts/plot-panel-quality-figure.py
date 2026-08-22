@@ -84,7 +84,8 @@ def main():
     s = red[red.panel == k]
     ax_b.scatter(s.v_diag, s.accuracy, s=26, color=COLOR[k], alpha=0.65,
                  lw=0, label=LABEL[k])
-  rho = stats.spearmanr(red.v_diag, red.accuracy)
+  shown = red[red.panel.isin(ORDER)]
+  rho = stats.spearmanr(shown.v_diag, shown.accuracy)
   ax_b.set_xscale('log')
   ax_b.set_xlabel('Single trial discriminability, pooled variance\n(tenth percentile over shock pairs)')
   ax_b.set_ylabel('Classification accuracy')
