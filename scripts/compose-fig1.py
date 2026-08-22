@@ -2,11 +2,15 @@
 """Compose Figure 1 into one image.
 
 Row 1: a (application domains, BioRender) on the left, with b (the
-threshold rule) over c (one shock in detail) on the right, sized so the
-right column matches the height of a.
-Row 2: d (control vs shocked dynamics) beside e (the inference task).
-Panel letters sit above each panel, so no panel content rises past its
-letter.
+threshold rule) over c (one shock in detail) on the right, and the weight
+colorbar standing between b and c.
+Row 2: d (control and 2 shocked copies) on the left, with e (what noise
+does to the initial condition) over f (the inference task) on the right.
+Each right column is sized so that its 2 panels, plus the letter band
+between them, match the height of the panel beside them. Panel letters
+sit above each panel, so no panel content rises past its letter, and
+panels are cropped to their content first so the letters sit at the top
+of the drawing rather than above an exported margin.
 
 Usage:
   python scripts/compose-fig1.py --pics-dir <paper>/pics/fig1
@@ -22,6 +26,10 @@ from PIL import Image
 
 INK = '#222222'
 
+FILES = [('a', 'fig1a-domains.png'), ('b', 'fig1b-rule.png'),
+         ('c', 'fig1c-shock-closeup.png'), ('d', 'fig1d-dynamics.png'),
+         ('e', 'fig1e-noise.png'), ('f', 'fig1f-inference.png')]
+
 
 def trim(im):
   """Crop a panel to its visible content, so a letter placed above the
@@ -32,16 +40,21 @@ def trim(im):
   return im.crop(box) if box else im
 
 
+def column_width(ar_left, ar_top, ar_bot, span_in, band):
+  """Width in inches of a right column of 2 stacked panels whose total
+  height, including the letter band between them, matches the height of
+  the panel of aspect ar_left that fills the rest of the span."""
+  return ((span_in / ar_left - band)
+          / (1 / ar_top + 1 / ar_bot + 1 / ar_left))
+
+
 def main():
   p = argparse.ArgumentParser()
   p.add_argument('--pics-dir', required=True)
   args = p.parse_args()
   d = pathlib.Path(args.pics_dir)
 
-  ims = {k: trim(Image.open(d / f)) for k, f in [
-      ('a', 'fig1a-domains.png'), ('b', 'fig1b-rule.png'),
-      ('c', 'fig1c-shock-closeup.png'), ('d', 'fig1b-dynamics.png'),
-      ('e', 'fig1d-inference.png')]}
+  ims = {k: trim(Image.open(d / f)) for k, f in FILES}
   ar = {k: im.size[0] / im.size[1] for k, im in ims.items()}
 
   W = 12.0                      # figure width in inches
@@ -49,50 +62,41 @@ def main():
   LETTER_BAND = 0.20            # inches reserved above each panel
   CB = 0.80                     # inches reserved for the shared colorbar
 
-  span = 1 - 2 * M - GX - CB / W
   gy = GY * W
-  # row 1: a on the left, b stacked over c on the right. The column width
-  # is set so that b, its letter band, and c together match the height of
-  # a, which fixes every size in the row.
   band = LETTER_BAND + gy
-  u = (span * W / ar['a'] - band) / (1 / ar['b'] + 1 / ar['c'] + 1 / ar['a'])
-  wr = u / W
-  wa = span - wr
-  ha = wa * W / ar['a']
-  hb, hc = u / ar['b'], u / ar['c']
-  h1 = ha
-  # row 2: no colorbar to leave room for, so it runs to the right margin
-  full = 1 - 2 * M - GX
-  wd, we = full * 0.30, full * 0.70
-  hd = wd * W / ar['d']
-  he = we * W / ar['e']
-  h2 = max(hd, he)
+  span1 = 1 - 2 * M - GX - CB / W
+  span2 = 1 - 2 * M - GX
 
-  H = h1 + h2 + 2 * LETTER_BAND + gy + 0.45
+  u1 = column_width(ar['a'], ar['b'], ar['c'], span1 * W, band)
+  wr1, wa = u1 / W, span1 - u1 / W
+  ha, hb, hc = wa * W / ar['a'], u1 / ar['b'], u1 / ar['c']
+
+  u2 = column_width(ar['d'], ar['e'], ar['f'], span2 * W, band)
+  wr2, wd = u2 / W, span2 - u2 / W
+  hd, he, hf = wd * W / ar['d'], u2 / ar['e'], u2 / ar['f']
+
+  H = ha + hd + 2 * LETTER_BAND + gy + 0.45
   fig = plt.figure(figsize=(W, H))
 
-  def put(key, x, y_top_in, w_frac, h_in, letter_x=None):
-    im = ims[key]
+  def put(key, x, y_top_in, w_frac, h_in):
     h_frac = h_in / H
-    y = 1 - (y_top_in + h_in) / H
-    ax = fig.add_axes([x, y, w_frac, h_frac])
-    ax.imshow(im)
+    ax = fig.add_axes([x, 1 - (y_top_in + h_in) / H, w_frac, h_frac])
+    ax.imshow(ims[key])
     ax.axis('off')
-    lx = letter_x if letter_x is not None else x
-    fig.text(lx, 1 - (y_top_in - 0.06) / H, key, fontsize=26,
+    fig.text(x, 1 - (y_top_in - 0.06) / H, key, fontsize=26,
              fontweight='bold', family='sans-serif', color=INK,
              ha='left', va='bottom')
 
   # panels in a row hang from the same top line, so their letters align
-  y0 = LETTER_BAND + 0.30
-  put('a', M, y0, wa, ha)
-  put('b', M + wa + GX, y0, wr, hb)
-  put('c', M + wa + GX, y0 + hb + band, wr, hc)
+  y1 = LETTER_BAND + 0.30
+  put('a', M, y1, wa, ha)
+  put('b', M + wa + GX, y1, wr1, hb)
+  put('c', M + wa + GX, y1 + hb + band, wr1, hc)
 
-  # one colorbar for the weight shading in b and c, standing on the right
-  # between them
-  cbh, cbx, cbw = 1.9, M + wa + GX + wr + 0.12 / W, 0.20 / W
-  cby = y0 + hb + band / 2
+  # one colorbar for the weight shading in b and c, on the right beside them
+  cbh, cbw = 1.9, 0.20 / W
+  cbx = M + wa + GX + wr1 + 0.02 / W
+  cby = y1 + hb * 0.72
   cax = fig.add_axes([cbx, 1 - (cby + cbh / 2) / H, cbw, cbh / H])
   cax.imshow(np.linspace(1, 0, 256).reshape(-1, 1), cmap='gray_r',
              aspect='auto', vmin=0, vmax=1)
@@ -101,17 +105,17 @@ def main():
   for sp in cax.spines.values():
     sp.set_linewidth(0.8)
     sp.set_color('#111111')
-  tx = cbx + cbw + 0.05 / W
   for lab, yy in [('1', cby - cbh / 2), ('0', cby + cbh / 2)]:
-    fig.text(tx, 1 - yy / H, lab, fontsize=11, color=INK, ha='left',
-             va='center', family='serif')
+    fig.text(cbx + cbw + 0.05 / W, 1 - yy / H, lab, fontsize=11, color=INK,
+             ha='left', va='center', family='serif')
   fig.text(cbx + cbw + 0.42 / W, 1 - cby / H, 'Connection strength',
            fontsize=11.5, color=INK, ha='center', va='center', rotation=90,
            family='serif')
 
-  y0 += h1 + gy + LETTER_BAND
-  put('d', M, y0, wd, hd)
-  put('e', M + wd + GX, y0, we, he)
+  y2 = y1 + ha + gy + LETTER_BAND
+  put('d', M, y2, wd, hd)
+  put('e', M + wd + GX, y2, wr2, he)
+  put('f', M + wd + GX, y2 + he + band, wr2, hf)
 
   fig.savefig(d / 'fig1.png', dpi=300)
   fig.savefig(d / 'fig1.svg')

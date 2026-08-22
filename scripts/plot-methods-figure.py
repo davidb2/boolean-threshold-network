@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-'''Figure 1: methodology schematic (horizontal layout, five panel files).
+'''Figure 1: methodology schematic, one file per panel.
 
-  fig1a-applications      three application vignettes (row)
-  fig1a-network-and-rule  the general model: network + threshold update
-  fig1b-dynamics          Boolean dynamics over time, control vs shocked
-  fig1c-shock-closeup     one concrete shock: outgoing weights before/after
-  fig1d-inference         the identification problem
+  fig1b-rule           the threshold update rule
+  fig1c-shock-closeup  one shock: the outgoing weights of a target node
+  fig1d-dynamics       a control trajectory and 2 shocked copies of it
+  fig1e-noise          what noise does to the initial condition
+  fig1f-inference      the reporter panel and the 3 alternatives
 
-Color code: blue edges = positive weights, red edges = negative weights,
-thickness = |w|. Amber = the shock/perturbation. Node fill = state.
-Panels b and d use a real miniature simulation of the exact model.
+Panel a is a BioRender export and is not drawn here. Node states are
+black when active and white when inactive, weights are shaded from white
+at magnitude 0 to black at magnitude 1, amber marks shock 1 and pink
+shock 2. Panels d to f run the exact update rule on a real network of 10
+nodes, picked by a seed search for one readable example.
 
 Usage:
   python scripts/plot-methods-figure.py --out-dir plots/fig1
@@ -22,13 +24,16 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.transforms as mtransforms
 import numpy as np
-from matplotlib.patches import Circle, FancyArrowPatch, FancyBboxPatch, Rectangle
+from matplotlib.patches import (Circle, FancyArrowPatch, FancyBboxPatch,
+                                Rectangle, Wedge)
 
 BLUE = '#1c5cab'        # state 1 fill
 BLUE_DARK = '#0f3560'
 POS = '#3987e5'         # positive weight
 NEG = '#e34948'         # negative weight
-AMBER = '#e8a000'       # shock accent
+AMBER = '#e8a000'       # shock accent, shock 1
+PINK = '#e0559b'        # shock 2
+CREAM = '#f6efdb'       # control slice of the wheel
 OFF = '#eef1f6'         # state 0 raster cell
 INK = '#333333'
 MUTED = '#777777'
@@ -47,40 +52,82 @@ plt.rcParams.update({
 # ---------------------------------------------------------------------------
 # miniature simulation of the exact model
 # ---------------------------------------------------------------------------
-def simulate(n=100, gamma=1.4, num_shocks=3, targets_per_shock=5, steps=40, rho=0.98, seed=3):
+def run(W, ic, steps):
+  """The exact update rule: a node turns on when its weighted input is
+  positive, off when it is negative, and holds when the sum is zero."""
+  s = np.asarray(ic).copy()
+  T = [s.copy()]
+  for _ in range(steps):
+    h = s @ W
+    s = np.where(h > 0, 1, np.where(h < 0, 0, s)).astype(np.int8)
+    T.append(s.copy())
+  return np.array(T).T
+
+
+def small_network(n=10, num_shocks=2, targets_per_shock=2, steps=24, seed=0):
+  """A real network of n nodes with its shocked copies. Each node sends 2
+  to 4 edges with weights drawn uniformly on minus one to one, and a shock
+  redraws every outgoing weight of its targets to plus or minus one."""
   rng = np.random.default_rng(seed)
-  ks = np.arange(1, n + 1, dtype=np.float64)
-  pk = ks ** (-gamma) / (ks ** (-gamma)).sum()
   W = np.zeros((n, n))
   for i in range(n):
-    k = min(rng.choice(ks.astype(int), p=pk), n)
-    tgts = rng.choice(n, size=k, replace=False)
+    k = int(rng.integers(2, 5))
+    tgts = rng.choice([j for j in range(n) if j != i], size=k, replace=False)
     W[i, tgts] = rng.uniform(-1, 1, size=k)
-
-  Ws = [W]
-  shock_targets = []
+  Ws, targets = [W], []
   for _ in range(num_shocks):
     Wq = W.copy()
     tg = rng.choice(n, size=targets_per_shock, replace=False)
     for u in tg:
       mask = W[u] != 0
-      Wq[u, mask] = rng.choice([-1.0, 1.0], size=mask.sum())
+      Wq[u, mask] = rng.choice([-1.0, 1.0], size=int(mask.sum()))
     Ws.append(Wq)
-    shock_targets.append(tg)
+    targets.append(tg)
+  ic = (rng.random(n) < 0.5).astype(np.int8)
+  return Ws, ic, targets, [run(Wq, ic, steps) for Wq in Ws]
 
-  base = (rng.random(n) < 0.5).astype(np.int8)
-  ic = np.where(rng.random(n) < rho, base, 1 - base).astype(np.int8)
 
-  trajs = []
-  for Wq in Ws:
-    s = ic.copy()
-    T = [s.copy()]
-    for _ in range(steps):
-      h = s @ Wq
-      s = np.where(h > 0, 1, np.where(h < 0, 0, s)).astype(np.int8)
-      T.append(s.copy())
-    trajs.append(np.array(T).T)
-  return trajs, shock_targets
+def small_sim(t_max=14, n_copies=7, eps=0.30, m=4, n_snap=7, true_shock=2,
+              steps=24, seed_max=6000):
+  """Search seeds for one clear example: both shocked copies drift away
+  from the control at a readable rate, they differ from each other, and
+  the control itself keeps moving over the window that is drawn."""
+  for seed in range(seed_max):
+    Ws, ic, targets, trajs = small_network(steps=steps, seed=seed)
+    c, s1, s2 = [t[:, :t_max] for t in trajs]
+    d1, d2 = (s1 != c).mean(), (s2 != c).mean()
+    if not (0.13 < d1 < 0.42 and 0.13 < d2 < 0.42):
+      continue
+    if (s1 != s2).mean() < 0.12 or c.std(axis=1).mean() < 0.16:
+      continue
+    # the control must still be moving late in the window, so the picture
+    # is not a frozen state repeated across the strip
+    late = c[:, t_max // 2:]
+    if sum((late[:, t] != late[:, t + 1]).any()
+           for t in range(late.shape[1] - 1)) < 2:
+      continue
+    if (s1[:, -1] != c[:, -1]).sum() < 2 or (s2[:, -1] != c[:, -1]).sum() < 2:
+      continue
+    rng = np.random.default_rng(seed + 991)
+    noisy = np.stack([np.where(rng.random(len(ic)) < eps / 2, 1 - ic, ic)
+                      for _ in range(n_copies)], axis=1).astype(np.int8)
+    flips = (noisy != ic[:, None]).sum(axis=0)
+    if flips.min() < 1 or flips.max() > 3:
+      continue
+    # one noisy trial of the true shock, read at the most informative window
+    trial = run(Ws[true_shock], noisy[:, 0], steps)
+    best = max(range(steps - n_snap), key=lambda t: np.sort(
+        trial[:, t:t + n_snap].std(axis=1))[-m:].sum())
+    win = trial[:, best:best + n_snap]
+    rep = np.sort(np.argsort(-win.std(axis=1))[:m])
+    if win[rep].std(axis=1).min() == 0:
+      continue
+    print(f'panels d to f: seed {seed}, shock targets {targets}, '
+          f'drift {d1:.2f} and {d2:.2f}, noise flips {list(flips)}, '
+          f'reporters {list(rep)} from step {best}')
+    return dict(trajs=trajs, ic=ic, noisy=noisy, observed=win[rep],
+                targets=targets, seed=seed)
+  raise SystemExit('no seed met the criteria')
 
 
 # ---------------------------------------------------------------------------
@@ -135,6 +182,18 @@ def draw_network(ax, node_r=0.052, target=None, dim=False, focal_ring=None):
                  lw=1.0, ls=(0, (2, 2)), zorder=6))
 
 
+def squiggle(ax, x0, x1, y, amp=0.85, cycles=1.75, lw=2.4, color=INK):
+  """A wavy arrow, drawn as a windowed sine that lands flat, with a short
+  straight head so the point stays sharp."""
+  t = np.linspace(0, 1, 240)
+  x = x0 + (x1 - 0.85 - x0) * t
+  yy = y + amp * np.sin(np.pi * t) * np.sin(2 * np.pi * cycles * t)
+  ax.plot(x, yy, color=color, lw=lw, solid_capstyle='round', zorder=3)
+  ax.add_patch(FancyArrowPatch((x1 - 0.88, y), (x1, y), arrowstyle='-|>',
+               mutation_scale=16, lw=lw, color=color, shrinkA=0, shrinkB=0,
+               joinstyle='miter', capstyle='butt', zorder=3))
+
+
 def bolt(ax, x, y, scale=1.0, color=AMBER):
   pts = np.array([
     [0.35, 1.00], [0.75, 1.00], [0.50, 0.58], [0.80, 0.58],
@@ -151,47 +210,6 @@ def save(fig, out_dir, name):
   fig.savefig(out_dir / f'{name}.png', bbox_inches='tight', dpi=300)
   print(f'wrote {out_dir}/{name}.svg + .png')
   plt.close(fig)
-
-
-# ---------------------------------------------------------------------------
-# chunky state strips (nodes x time) with visible grid
-# ---------------------------------------------------------------------------
-def draw_strip(ax, states, diff=None, cell=1.0):
-  n_rows, n_cols = states.shape
-  for r in range(n_rows):
-    for c in range(n_cols):
-      on = states[r, c] == 1
-      face = BLUE if on else OFF
-      ec = 'white'
-      ax.add_patch(Rectangle((c * cell, (n_rows - 1 - r) * cell), cell, cell,
-                   facecolor=face, edgecolor=ec, linewidth=1.1, zorder=2))
-      if diff is not None and diff[r, c]:
-        ax.add_patch(Rectangle((c * cell + 0.14, (n_rows - 1 - r) * cell + 0.14),
-                     cell - 0.28, cell - 0.28,
-                     facecolor='none', edgecolor=AMBER, linewidth=1.7, zorder=3))
-  ax.set_xlim(-0.3, n_cols * cell + 0.3)
-  ax.set_ylim(-0.3, n_rows * cell + 0.3)
-  ax.set_aspect('equal')
-  ax.axis('off')
-
-
-def pick_display_nodes(trajs, shock_idx=1, n_show=12, t_max=16, seed=5):
-  rng = np.random.default_rng(seed)
-  ctl = trajs[0][:, :t_max]
-  shk = trajs[shock_idx][:, :t_max]
-  diverge = (ctl != shk).mean(axis=1)
-  osc = ctl.std(axis=1)
-  strong = np.argsort(-diverge)[:20]
-  lively = np.argsort(-osc)[:30]
-  static = np.where(osc == 0)[0]
-  chosen = []
-  chosen += list(rng.choice(strong, 5, replace=False))
-  chosen += [n for n in rng.choice(lively, 10, replace=False) if n not in chosen][:4]
-  chosen += [n for n in rng.choice(static, 5, replace=False) if n not in chosen][:3]
-  chosen = np.array(chosen[:n_show])
-  first_div = np.argmax(np.concatenate([ctl[chosen] != shk[chosen],
-                        np.ones((len(chosen), 1), bool)], axis=1), axis=1)
-  return chosen[np.argsort(first_div)]
 
 
 # ---------------------------------------------------------------------------
@@ -297,7 +315,7 @@ def panel_a_apps(out_dir):
 
 
 # ---------------------------------------------------------------------------
-# panel a (right): network + threshold rule inset
+# panel b: the threshold update rule
 # ---------------------------------------------------------------------------
 def signed_arc(ax, p0, p1, mag, sign, rad=0.0, lw=3.2, bar=0.030, head=15):
   """A gently arched edge in one flat color for stem, head, and border.
@@ -331,7 +349,7 @@ def signed_arc(ax, p0, p1, mag, sign, rad=0.0, lw=3.2, bar=0.030, head=15):
             color=fc, lw=lw + 2.2, solid_capstyle='butt', zorder=3)
 
 
-def panel_a(out_dir):
+def panel_b_rule(out_dir):
   """The threshold mechanism alone. Input states are black (active) or
   white (inactive); edges are identical in size, shaded by weight
   magnitude, with a bar head for repression. Arrows hover on an invisible
@@ -355,7 +373,7 @@ def panel_a(out_dir):
     c = np.array([0.075, y])
     axr.add_patch(Circle(c, r_node,
                   facecolor='#1a1a1a' if state else 'white',
-                  edgecolor='#000000' if state else '#9aa5b1', lw=1.4))
+                  edgecolor='#000000', lw=1.4))
     theta = np.deg2rad(146 + 17 * i)
     p1 = box_c + r_field * np.array([np.cos(theta), np.sin(theta)])
     u = p1 - c
@@ -390,42 +408,122 @@ def panel_a(out_dir):
   for y, state, label in [(0.205, 1, 'active'), (0.095, 0, 'inactive')]:
     axr.add_patch(Circle((0.90, y), r_node,
                   facecolor='#1a1a1a' if state else 'white',
-                  edgecolor='#000000' if state else '#9aa5b1', lw=1.4))
+                  edgecolor='#000000', lw=1.4))
     axr.text(0.955, y, label, fontsize=11, color=INK, va='center', ha='left')
   save(fig, out_dir, 'fig1b-rule')
 
 
 # ---------------------------------------------------------------------------
-# panel b: Boolean dynamics over time, control vs shocked
+# panels d to f: real dynamics, noise, and the inference task
 # ---------------------------------------------------------------------------
-def panel_b(out_dir, trajs, shock_idx=1, t_max=22):
-  nodes = pick_display_nodes(trajs, shock_idx=shock_idx, n_show=10, t_max=t_max)
-  ctl = trajs[0][nodes, :t_max]
-  shk = trajs[shock_idx][nodes, :t_max]
-  diff = shk != ctl
-
-  fig, axes = plt.subplots(2, 1, figsize=(4.4, 4.6))
-  fig.subplots_adjust(hspace=0.30)
-  draw_strip(axes[0], ctl)
-  draw_strip(axes[1], shk, diff=diff)
-  axes[0].set_title('control network', fontsize=13, color=INK, pad=8)
-  axes[1].set_title('shocked network, same initial state', fontsize=13, color=AMBER, pad=8)
-  for ax, states in [(axes[0], ctl), (axes[1], shk)]:
-    n_rows, n_cols = states.shape
-    ax.text(-1.0, n_rows / 2, 'nodes', fontsize=11, color=INK,
-            rotation=90, ha='center', va='center')
-  n_rows, n_cols = shk.shape
-  axes[1].annotate('', xy=(n_cols * 0.35, -1.7), xytext=(0, -1.7),
-                   arrowprops=dict(arrowstyle='-|>', lw=1.3, color=INK), annotation_clip=False)
-  axes[1].text(n_cols * 0.38, -1.7, 'time', fontsize=11, color=INK, va='center')
-  bolt(axes[1], 12.2, n_rows + 1.35, scale=1.15)
-  save(fig, out_dir, 'fig1b-dynamics')
+def circle_cells(ax, states, x0, y0, cell=1.0, ref=None, edge='#000000',
+                 r=0.36, lw=0.7):
+  """A block of node states as circles, filled for active and open for
+  inactive. Where a state differs from the reference block, a thin
+  diagonal runs through the circle in the opposite color."""
+  n_rows, n_cols = states.shape
+  for i in range(n_rows):
+    for j in range(n_cols):
+      cx = x0 + (j + 0.5) * cell
+      cy = y0 + (n_rows - 1 - i + 0.5) * cell
+      on = states[i, j] == 1
+      ax.add_patch(Circle((cx, cy), r * cell,
+                   facecolor='#1a1a1a' if on else 'white',
+                   edgecolor=edge, lw=lw, zorder=2))
+      if ref is not None and states[i, j] != ref[i, j]:
+        d = 0.66 * r * cell
+        ax.plot([cx - d, cx + d], [cy - d, cy + d],
+                color='white' if on else '#1a1a1a', lw=lw + 0.2,
+                solid_capstyle='round', zorder=3)
 
 
+def time_arrow(ax, x0, x1, y, label='time', fontsize=11, lw=1.3):
+  ax.add_patch(FancyArrowPatch((x0, y), (x1, y), arrowstyle='-|>',
+               mutation_scale=12, lw=lw, color=INK, shrinkA=0, shrinkB=0,
+               joinstyle='miter', capstyle='butt'))
+  ax.text(x1 + 0.4, y, label, fontsize=fontsize, color=INK, va='center')
+
+
+def panel_d(out_dir, sim, t_max=14):
+  """One control trajectory and 2 shocked copies of it, all from the same
+  initial condition, for a real network of 10 nodes."""
+  ctl, s1, s2 = [t[:, :t_max] for t in sim['trajs']]
+  n_rows = ctl.shape[0]
+  fig, ax = plt.subplots(figsize=(3.3, 8.0))
+  gap = 3.0
+  rows = [('control', INK, '#000000', ctl, None),
+          ('shock 1', AMBER, AMBER, s1, ctl),
+          ('shock 2', PINK, PINK, s2, ctl)]
+  for k, (label, tc, ec, states, ref) in enumerate(rows):
+    y0 = (len(rows) - 1 - k) * (n_rows + gap)
+    circle_cells(ax, states, 0.0, y0, ref=ref, edge=ec)
+    ax.text(0.0, y0 + n_rows + 0.55, label, fontsize=13, color=tc,
+            ha='left', va='bottom')
+  time_arrow(ax, 0.0, t_max * 0.42, -2.1)
+  ax.text(-1.5, (len(rows) * (n_rows + gap) - gap) / 2, 'nodes', fontsize=11,
+          color=INK, rotation=90, ha='center', va='center')
+  ax.set_xlim(-2.2, t_max + 0.4)
+  ax.set_ylim(-3.1, len(rows) * (n_rows + gap) - gap + 1.9)
+  ax.set_aspect('equal')
+  ax.axis('off')
+  save(fig, out_dir, 'fig1d-dynamics')
+
+
+def panel_e(out_dir, sim, n_copies=7, spacing=2.85):
+  """What noise does to the initial condition: the same starting state,
+  then noisy copies of it, with a diagonal on every node that flipped."""
+  ic = sim['ic'].reshape(-1, 1)
+  copies = sim['noisy'][:, :n_copies]
+  n_rows = ic.shape[0]
+  fig, ax = plt.subplots(figsize=(8.4, 4.0))
+  circle_cells(ax, ic, 0.0, 0.0, edge='#000000', lw=1.0)
+  x_first = 5.6
+  squiggle(ax, 1.5, x_first - 0.55, n_rows / 2)
+  for k in range(n_copies):
+    circle_cells(ax, copies[:, k:k + 1], x_first + k * spacing, 0.0,
+                 ref=ic, edge='#000000', lw=1.0)
+  ax.set_xlim(-0.4, x_first + (n_copies - 1) * spacing + 1.4)
+  ax.set_ylim(-0.5, n_rows + 0.5)
+  ax.set_aspect('equal')
+  ax.axis('off')
+  save(fig, out_dir, 'fig1e-noise')
+
+
+def panel_f(out_dir, sim, n_snap=7):
+  """The inference task: a small reporter panel watched for a few steps in
+  one noisy trial, and 3 alternatives to decide between."""
+  obs = sim['observed'][:, :n_snap]
+  m = obs.shape[0]
+  fig, ax = plt.subplots(figsize=(8.6, 3.2))
+  circle_cells(ax, obs, 0.0, 0.0, edge='#000000', lw=1.0)
+  ax.text(0.0, m + 0.7, f'Reporter panel consisting of {m} members',
+          fontsize=13, color=INK, ha='left', va='bottom')
+  time_arrow(ax, 0.0, n_snap * 0.5, -1.5)
+
+  x_ar = n_snap + 1.1
+  ax.add_patch(FancyArrowPatch((x_ar, m / 2), (x_ar + 3.0, m / 2),
+               arrowstyle='-|>', mutation_scale=26, lw=3.0, color=INK,
+               shrinkA=0, shrinkB=0, joinstyle='miter', capstyle='butt'))
+
+  cx, cy, R = x_ar + 6.6, m / 2, 3.1
+  for k, color in enumerate([CREAM, AMBER, PINK]):
+    ax.add_patch(Wedge((cx, cy), R, 90 + 120 * k, 210 + 120 * k,
+                 facecolor=color, edgecolor='#111111', lw=1.0, zorder=2))
+  ax.add_patch(Circle((cx, cy), 0.42 * R, facecolor='white',
+                      edgecolor='#111111', lw=1.0, zorder=3))
+  ax.text(cx, cy, '?', fontsize=34, color=INK, ha='center', va='center',
+          zorder=4)
+  ax.set_xlim(-0.4, cx + R + 0.5)
+  ax.set_ylim(min(-2.1, cy - R - 0.4), max(m + 1.7, cy + R + 0.4))
+  ax.set_aspect('equal')
+  ax.axis('off')
+  save(fig, out_dir, 'fig1f-inference')
+
+
 # ---------------------------------------------------------------------------
-# panel c: one concrete shock, outgoing weights before and after
+# panel c: one shock, the outgoing weights of a target node
 # ---------------------------------------------------------------------------
-def out_star(ax, c, weights, r_field=0.44, r_node=0.055, gap=0.050,
+def out_star(ax, c, weights, r_field=0.44, r_node=0.072, gap=0.045,
              phase=30.0, lw=3.0, head=17, bar=0.038, ring=INK):
   """One node with its outgoing edges, drawn in the same language as the
   update rule: identical edge length and stem width, gray level carrying
@@ -462,91 +560,31 @@ def panel_c(out_dir):
   ca, cb = np.array([0.50, 0.50]), np.array([1.87, 0.50])
   out_star(ax, ca, before, lw=2.5 * s, head=10 * s, bar=0.048,
            ring='#000000')
-  out_star(ax, cb, after, lw=2.5 * s, head=10 * s, bar=0.048, ring=AMBER)
+  out_star(ax, cb, after, lw=2.5 * s, head=10 * s, bar=0.048, ring='#000000')
 
   # the shock sits centered in the gap between the two stars
   mid = 0.5 * (ca[0] + cb[0])
   half = 0.24
-  bolt(ax, mid, 0.825, scale=1.6)
-  arrow = FancyArrowPatch((mid - half, 0.50), (mid + half, 0.50),
+  bolt(ax, mid, 0.855, scale=1.6)
+  arrow = FancyArrowPatch((mid - half, 0.46), (mid + half, 0.46),
                           arrowstyle='-|>', mutation_scale=26 * s, lw=4.5 * s,
                           color=AMBER, shrinkA=0, shrinkB=0,
                           joinstyle='miter', capstyle='butt')
   ax.add_patch(arrow)
-  ax.text(mid, 0.575, 'shock', fontsize=13 * s, color=AMBER, ha='center')
+  ax.text(mid, 0.585, 'shock', fontsize=13 * s, color=AMBER, ha='center')
   save(fig, out_dir, 'fig1c-shock-closeup')
-
-
-# ---------------------------------------------------------------------------
-# panel d: the identification problem
-# ---------------------------------------------------------------------------
-def panel_d(out_dir, trajs, m=5, t0=28, t_max=40, true_shock=2, seed=12):
-  rng = np.random.default_rng(seed)
-  reporters = rng.choice(trajs[0].shape[0], size=m, replace=False)
-  obs = trajs[true_shock][reporters, t0:t_max]
-
-  fig, ax = plt.subplots(figsize=(9.6, 3.0))
-  ax.set_xlim(0, 3.4)
-  ax.set_ylim(0, 1)
-  ax.set_aspect('equal')
-  ax.axis('off')
-
-  cell = 0.09
-  x0, y0 = 0.12, 0.30
-  n_rows, n_cols = obs.shape
-  for r in range(n_rows):
-    for c in range(n_cols):
-      on = obs[r, c] == 1
-      ax.add_patch(Rectangle((x0 + c * cell, y0 + (n_rows - 1 - r) * cell), cell, cell,
-                   facecolor=BLUE if on else OFF, edgecolor='white', linewidth=1.0, zorder=2))
-  ax.text(x0 + n_cols * cell / 2, 0.86, f'$m={m}$ reporters observed',
-          fontsize=12, ha='center', color=INK)
-  ax.text(x0 + n_cols * cell / 2, 0.175, 'one noisy trial, late times',
-          fontsize=10.5, ha='center', color=MUTED)
-
-  bx = x0 + n_cols * cell + 0.16
-  arrow = FancyArrowPatch((bx, 0.53), (bx + 0.22, 0.53), arrowstyle='-|>',
-                          mutation_scale=13, lw=1.6, color=INK)
-  ax.add_patch(arrow)
-  ax.add_patch(FancyBboxPatch((bx + 0.26, 0.38), 0.62, 0.30,
-               boxstyle='round,pad=0.02,rounding_size=0.04',
-               facecolor=TILE_BG, edgecolor=INK, lw=1.2))
-  ax.text(bx + 0.57, 0.565, 'classifier', fontsize=12.5, ha='center', color=INK)
-  ax.text(bx + 0.57, 0.45, 'which shock?', fontsize=10.5, ha='center', color=MUTED)
-  arrow = FancyArrowPatch((bx + 0.92, 0.53), (bx + 1.14, 0.53), arrowstyle='-|>',
-                          mutation_scale=13, lw=1.6, color=INK)
-  ax.add_patch(arrow)
-
-  options = ['control', 'shock 1', 'shock 2', 'shock 3']
-  ys = [0.82, 0.62, 0.42, 0.22]
-  for lab, y in zip(options, ys):
-    chosen = lab == f'shock {true_shock}'
-    ax.text(
-      bx + 1.20, y, lab, fontsize=11.5,
-      color='white' if chosen else MUTED,
-      fontweight='bold' if chosen else 'normal',
-      bbox=dict(
-        boxstyle='round,pad=0.30',
-        facecolor=AMBER if chosen else '#f0f2f5',
-        edgecolor=AMBER if chosen else '#d5d9df',
-        lw=1.0,
-      ),
-      ha='left', va='center',
-    )
-  save(fig, out_dir, 'fig1d-inference')
 
 
 def main():
   p = argparse.ArgumentParser()
   p.add_argument('--out-dir', type=str, required=True)
   args = p.parse_args()
-  trajs, shock_targets = simulate()
-  print('shock targets:', shock_targets)
-  panel_a_apps(args.out_dir)
-  panel_a(args.out_dir)
-  panel_b(args.out_dir, trajs)
+  panel_b_rule(args.out_dir)
   panel_c(args.out_dir)
-  panel_d(args.out_dir, trajs)
+  sim = small_sim()
+  panel_d(args.out_dir, sim)
+  panel_e(args.out_dir, sim)
+  panel_f(args.out_dir, sim)
 
 
 if __name__ == '__main__':
