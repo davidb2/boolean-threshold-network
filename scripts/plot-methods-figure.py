@@ -297,20 +297,17 @@ def panel_a_apps(out_dir):
 # ---------------------------------------------------------------------------
 # panel a (right): network + threshold rule inset
 # ---------------------------------------------------------------------------
-def signed_arc(ax, center, r_node, p1, mag, sign, rad=0.0, lw=3.2):
-  """A gently arched edge in the networkx style, one flat color for stem,
-  head, and border. The stem starts flush on the source node's rim, the
-  head is a sharp triangle for positive weights and a perpendicular bar
-  for negative ones, and every edge has the same stem width and head size."""
-  c = np.asarray(center, float)
+def signed_arc(ax, p0, p1, mag, sign, rad=0.0, lw=3.2):
+  """A gently arched edge in one flat color for stem, head, and border.
+  The head is a sharp triangle for positive weights and a perpendicular
+  bar for negative ones; every edge has the same stem width and head
+  size, and the gray level carries the weight magnitude."""
+  p0 = np.asarray(p0, float)
   p1 = np.asarray(p1, float)
-  chord = p1 - c
-  u = chord / np.hypot(*chord)
-  p0 = c + u * r_node
   fc = (1 - mag, 1 - mag, 1 - mag)
   if sign >= 0:
     arrow = FancyArrowPatch(p0, p1, connectionstyle=f'arc3,rad={rad}',
-                            arrowstyle='-|>', mutation_scale=19, lw=lw,
+                            arrowstyle='-|>', mutation_scale=16, lw=lw,
                             facecolor=fc, edgecolor=fc, shrinkA=0, shrinkB=0,
                             capstyle='butt', joinstyle='miter', zorder=3)
     ax.add_patch(arrow)
@@ -319,7 +316,6 @@ def signed_arc(ax, center, r_node, p1, mag, sign, rad=0.0, lw=3.2):
                             arrowstyle='-', lw=lw, facecolor=fc, edgecolor=fc,
                             shrinkA=0, shrinkB=0, capstyle='butt', zorder=3)
     ax.add_patch(arrow)
-    # the repressing bar sits perpendicular to the arc's end tangent
     d = p1 - p0
     L = np.hypot(*d)
     n = np.array([-d[1], d[0]]) / L
@@ -327,39 +323,45 @@ def signed_arc(ax, center, r_node, p1, mag, sign, rad=0.0, lw=3.2):
     t = p1 - ctrl
     t = t / np.hypot(*t)
     nt = np.array([-t[1], t[0]])
-    b = 0.042
+    b = 0.036
     ax.plot([p1[0] - b * nt[0], p1[0] + b * nt[0]],
             [p1[1] - b * nt[1], p1[1] + b * nt[1]],
-            color=fc, lw=lw + 2.6, solid_capstyle='butt', zorder=3)
+            color=fc, lw=lw + 2.4, solid_capstyle='butt', zorder=3)
 
 
 def panel_a(out_dir):
   """The threshold mechanism alone. Input states are black (active) or
-  white (inactive); every edge has the same size and its gray level gives
-  the weight magnitude, with a bar head for repression. The rule box holds
-  a threshold gauge whose needle has just crossed the dashed threshold."""
+  white (inactive); edges are identical in size, shaded by weight
+  magnitude, with a bar head for repression. Arrows hover on an invisible
+  buffer around the box and around each node, and the gauge needle sits
+  just past the dashed threshold, so the target node activates."""
   fig, axr = plt.subplots(figsize=(6.4, 5.0))
   axr.set_xlim(0, 1.35)
-  axr.set_ylim(-0.20, 1.06)
+  axr.set_ylim(-0.22, 1.06)
   axr.set_aspect('equal')
   axr.axis('off')
 
-  ins = [(0.96, 1, 0.95), (0.807, 0, 0.30), (0.653, 1, -0.75),
-         (0.50, 1, 0.55), (0.347, 0, -0.25), (0.193, 0, 0.40),
-         (0.04, 1, -0.85)]
-  r_node = 0.042
-  for y, state, w in ins:
-    axr.add_patch(Circle((0.075, y), r_node,
+  # active weights sum to +0.15, so the needle sits just past threshold
+  ins = [(0.92, 1, 0.85), (0.70, 0, -0.45), (0.48, 1, -0.50),
+         (0.26, 0, 0.30), (0.04, 1, -0.20)]
+  r_node, gap_node = 0.042, 0.020
+  box_c = np.array([0.665, 0.48])
+  r_field = 0.27
+  # tips sit at evenly spaced angles on the field circle, so the arrows
+  # rest on the buffer without touching one another
+  for i, (y, state, w) in enumerate(ins):
+    c = np.array([0.075, y])
+    axr.add_patch(Circle(c, r_node,
                   facecolor='#1a1a1a' if state else 'white',
                   edgecolor='#000000' if state else '#9aa5b1', lw=1.4))
-    y_end = 0.48 + (y - 0.50) * 0.228
-    rad = -0.22 * (y - 0.50)
-    signed_arc(axr, (0.075, y), r_node, (0.462, y_end), abs(w), np.sign(w),
-               rad=rad)
+    theta = np.deg2rad(126 + 27 * i)
+    p1 = box_c + r_field * np.array([np.cos(theta), np.sin(theta)])
+    u = p1 - c
+    u = u / np.hypot(*u)
+    p0 = c + u * (r_node + gap_node)
+    rad = -0.20 * (y - 0.50)
+    signed_arc(axr, p0, p1, abs(w), np.sign(w), rad=rad)
 
-  # the rule box hugs the threshold gauge: a semicircle with the flat side
-  # down, a dashed line at 90 degrees for the threshold, and a needle just
-  # past it, so the target node activates
   axr.add_patch(FancyBboxPatch((0.49, 0.36), 0.35, 0.24,
                 boxstyle='round,pad=0.02,rounding_size=0.03',
                 facecolor=TILE_BG, edgecolor=INK, lw=1.1))
@@ -375,8 +377,8 @@ def panel_a(out_dir):
   axr.add_patch(Circle((cx, cy), 0.015, facecolor='#c1272d',
                        edgecolor='none', zorder=7))
 
-  out_arrow = FancyArrowPatch((0.885, 0.48), (1.055, 0.48), arrowstyle='-|>',
-                              mutation_scale=26, lw=3.2, facecolor='#1a1a1a',
+  out_arrow = FancyArrowPatch((0.885, 0.48), (1.045, 0.48), arrowstyle='-|>',
+                              mutation_scale=16, lw=3.2, facecolor='#1a1a1a',
                               edgecolor='#1a1a1a', shrinkA=0, shrinkB=0,
                               capstyle='butt', joinstyle='miter', zorder=3)
   axr.add_patch(out_arrow)
@@ -385,8 +387,8 @@ def panel_a(out_dir):
   axr.text(0.03, 1.035, 'inputs at time $t$', fontsize=10.5, color=MUTED,
            ha='left')
 
-  # magnitude colorbar, the only key the panel carries
-  leg_y = -0.13
+  # magnitude colorbar
+  leg_y = -0.15
   cb_x0, cb_x1, cb_y0, cb_y1 = 0.47, 0.86, leg_y - 0.024, leg_y + 0.024
   grad = np.linspace(0, 1, 256).reshape(1, -1)
   axr.imshow(grad, extent=[cb_x0, cb_x1, cb_y0, cb_y1], cmap='gray_r',
@@ -397,7 +399,7 @@ def panel_a(out_dir):
            ha='right')
   axr.text(cb_x1 + 0.018, leg_y, '1', fontsize=10, color=INK, va='center',
            ha='left')
-  axr.text((cb_x0 + cb_x1) / 2, leg_y + 0.058, '$|w|$', fontsize=10.5,
+  axr.text((cb_x0 + cb_x1) / 2, leg_y + 0.06, 'Strength', fontsize=10.5,
            color=INK, ha='center', va='bottom')
   axr.set_aspect('equal')
   save(fig, out_dir, 'fig1b-rule')
