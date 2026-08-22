@@ -434,21 +434,21 @@ def panel_b(out_dir, trajs, shock_idx=1, t_max=16):
 # ---------------------------------------------------------------------------
 # panel c: one concrete shock, outgoing weights before and after
 # ---------------------------------------------------------------------------
-def out_fan(ax, c, weights, r_field=0.44, r_node=0.055, gap=0.050,
-            spread=50.0, lw=3.0):
+def out_star(ax, c, weights, r_field=0.44, r_node=0.055, gap=0.050,
+             phase=30.0, lw=3.0, ring=INK):
   """One node with its outgoing edges, drawn in the same language as the
   update rule: identical edge length and stem width, gray level carrying
-  the magnitude, pointed head for activation and a bar for repression,
-  each edge bowed away from the fan and standing off the node."""
+  the magnitude, pointed head for activation and a bar for repression.
+  The edges leave in every direction, evenly spaced around the node, and
+  each one stands off the perimeter on the same gap."""
   c = np.asarray(c, float)
   n = len(weights)
   for i, w in enumerate(weights):
-    f = ((n - 1) / 2 - i) / ((n - 1) / 2)      # +1 top edge, -1 bottom edge
-    th = np.deg2rad(spread * f)
+    th = np.deg2rad(phase + 360.0 * i / n)
     u = np.array([np.cos(th), np.sin(th)])
     signed_arc(ax, c + (r_node + gap) * u, c + r_field * u, abs(w),
-               np.sign(w), rad=0.14 * f, lw=lw, bar=0.038, head=17)
-  ax.add_patch(Circle(c, r_node, facecolor='#1a1a1a', edgecolor=AMBER,
+               np.sign(w), rad=0.12, lw=lw, bar=0.038, head=17)
+  ax.add_patch(Circle(c, r_node, facecolor='#1a1a1a', edgecolor=ring,
                       lw=2.0, zorder=5))
 
 
@@ -456,26 +456,29 @@ def panel_c(out_dir):
   """The shock, close up. The same active node twice, with the same six
   outgoing edges: mixed signs and magnitudes before, all of magnitude one
   after, some of them with their sign switched."""
-  fig, ax = plt.subplots(figsize=(9.6, 3.3))
-  ax.set_xlim(0.16, 2.74)
-  ax.set_ylim(0.09, 0.98)
+  fig, ax = plt.subplots(figsize=(9.6, 3.4))
+  ax.set_xlim(0.0, 2.80)
+  ax.set_ylim(0.0, 1.00)
   ax.set_aspect('equal')
   ax.axis('off')
 
   before = [0.85, -0.30, 0.45, -0.65, 0.15, -0.55]
   after = [1.0, 1.0, -1.0, -1.0, -1.0, 1.0]
 
-  out_fan(ax, (0.30, 0.50), before)
-  out_fan(ax, (2.20, 0.50), after)
-  ax.text(0.30, 0.88, 'before', fontsize=13, ha='center', color=INK)
-  ax.text(2.20, 0.88, 'after', fontsize=13, ha='center', color=AMBER)
+  ca, cb = np.array([0.50, 0.50]), np.array([2.30, 0.50])
+  out_star(ax, ca, before, ring='#000000')
+  out_star(ax, cb, after, ring=AMBER)
 
-  bolt(ax, 1.25, 0.735, scale=1.25)
-  arrow = FancyArrowPatch((0.90, 0.50), (1.60, 0.50), arrowstyle='-|>',
-                          mutation_scale=16, lw=2.0, color=AMBER,
-                          shrinkA=0, shrinkB=0)
+  # the shock sits centered in the gap between the two stars
+  mid = 0.5 * (ca[0] + cb[0])
+  half = 0.35
+  bolt(ax, mid, 0.755, scale=1.35)
+  arrow = FancyArrowPatch((mid - half, 0.50), (mid + half, 0.50),
+                          arrowstyle='-|>', mutation_scale=26, lw=4.5,
+                          color=AMBER, shrinkA=0, shrinkB=0,
+                          joinstyle='miter', capstyle='butt')
   ax.add_patch(arrow)
-  ax.text(1.25, 0.575, 'shock', fontsize=13, color=AMBER, ha='center')
+  ax.text(mid, 0.585, 'shock', fontsize=13, color=AMBER, ha='center')
   save(fig, out_dir, 'fig1c-shock-closeup')
 
 
