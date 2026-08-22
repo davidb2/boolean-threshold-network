@@ -360,14 +360,30 @@ def main():
     # combined class figure: the tree's leaves line up with the disk rows
     # they classify, and an arrow runs from each leaf to its row
     plt.close(fig)
+    # the example rows show 3 promiscuous and 3 dormant members, so when no
+    # network is forced the panel is the most accurate one carrying at least
+    # 3 of each class
+    if args.network is None:
+      best = None
+      for n in panels:
+        if n not in snets or n not in base.index:
+          continue
+        g = panel_groups(S[snets.index(n)], panels[n], B[bnets.index(n)], cut)
+        if len(g[0]) >= 3 and len(g[1]) >= 3:
+          if best is None or base[n] > base[best]:
+            best = n
+      if best is not None:
+        net = best
+        nodes = panels[net]
+        si, bi = snets.index(net), bnets.index(net)
     groups = panel_groups(S[si], nodes, B[bi], cut)
     # genuinely unresponsive members barely move and render as blank disks,
     # so the unresponsive row shows two synthetic profiles whose wedges all
-    # stay below the cutoff; one dormant example is dropped to make room
+    # stay below the cutoff
     syn_u = [np.array([0.90, 0.60, 0.80, 0.50, 0.95, 0.70, 0.55, 0.85, 0.65, 0.75]) * cut,
              np.array([0.95, 0.10, 0.0, 0.55, 0.10, 0.85, 0.0, 0.30, 0.70, 0.10]) * cut]
-    row_vals = [[S[si][:, n] for n in groups[0]],
-                [S[si][:, n] for n in groups[1][:-1]],
+    row_vals = [[S[si][:, n] for n in groups[0][:3]],
+                [S[si][:, n] for n in groups[1][:3]],
                 syn_u]
     maxc = max(len(v) for v in row_vals)
     fig = plt.figure(figsize=(13.6, 5.4))
