@@ -307,7 +307,7 @@ def signed_arc(ax, p0, p1, mag, sign, rad=0.0, lw=3.2):
   fc = (1 - mag, 1 - mag, 1 - mag)
   if sign >= 0:
     arrow = FancyArrowPatch(p0, p1, connectionstyle=f'arc3,rad={rad}',
-                            arrowstyle='-|>', mutation_scale=16, lw=lw,
+                            arrowstyle='-|>', mutation_scale=15, lw=lw,
                             facecolor=fc, edgecolor=fc, shrinkA=0, shrinkB=0,
                             capstyle='butt', joinstyle='miter', zorder=3)
     ax.add_patch(arrow)
@@ -323,10 +323,10 @@ def signed_arc(ax, p0, p1, mag, sign, rad=0.0, lw=3.2):
     t = p1 - ctrl
     t = t / np.hypot(*t)
     nt = np.array([-t[1], t[0]])
-    b = 0.036
+    b = 0.030
     ax.plot([p1[0] - b * nt[0], p1[0] + b * nt[0]],
             [p1[1] - b * nt[1], p1[1] + b * nt[1]],
-            color=fc, lw=lw + 2.4, solid_capstyle='butt', zorder=3)
+            color=fc, lw=lw + 2.2, solid_capstyle='butt', zorder=3)
 
 
 def panel_a(out_dir):
@@ -354,7 +354,7 @@ def panel_a(out_dir):
     axr.add_patch(Circle(c, r_node,
                   facecolor='#1a1a1a' if state else 'white',
                   edgecolor='#000000' if state else '#9aa5b1', lw=1.4))
-    theta = np.deg2rad(126 + 27 * i)
+    theta = np.deg2rad(146 + 17 * i)
     p1 = box_c + r_field * np.array([np.cos(theta), np.sin(theta)])
     u = p1 - c
     u = u / np.hypot(*u)
@@ -384,9 +384,6 @@ def panel_a(out_dir):
   axr.add_patch(out_arrow)
   axr.add_patch(Circle((1.11, 0.48), 0.05, facecolor='#1a1a1a',
                        edgecolor='#000000', lw=1.4))
-  axr.text(0.03, 1.035, 'inputs at time $t$', fontsize=10.5, color=MUTED,
-           ha='left')
-
   # magnitude colorbar
   leg_y = -0.15
   cb_x0, cb_x1, cb_y0, cb_y1 = 0.47, 0.86, leg_y - 0.024, leg_y + 0.024
