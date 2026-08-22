@@ -210,7 +210,7 @@ def main():
   print(f'attractor survival: {survival_hits} of {survival_tests} tests')
 
   fig = plt.figure(figsize=(15.6, 10.2))
-  gs = fig.add_gridspec(2, 3, hspace=0.42, wspace=0.50)
+  gs = fig.add_gridspec(2, 3, hspace=0.42, wspace=0.62)
   ax_a = fig.add_subplot(gs[0, 0])
   ax_b = fig.add_subplot(gs[0, 1])
   ax_c = fig.add_subplot(gs[0, 2])
@@ -244,7 +244,7 @@ def main():
   ax_b.set_ylabel('Network (sorted)')
   ax_b.set_yticks([])
   cb = plt.colorbar(im, ax=ax_b, fraction=0.040, pad=0.02)
-  cb.ax.set_title('fraction of ICs\nthat recur', fontsize=11, pad=6)
+  cb.set_label('Fraction of ICs that recur', fontsize=11)
   cb.ax.tick_params(labelsize=11)
 
   # c: fingerprint distances

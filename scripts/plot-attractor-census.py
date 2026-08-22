@@ -81,8 +81,16 @@ def main():
     ic = ics[g]
     tr = np.where(ic.converged, ic.transient, np.inf)
     frac = np.searchsorted(np.sort(tr), tgrid, side='right') / len(tr)
+    # the paper's ensemble gets a dot at the experiment horizon, repeated
+    # on its legend icon, so the working curve is easy to find
+    ref = abs(g - 1.8) < 1e-9
+    idx = int(np.searchsorted(tgrid, args.t_experiment))
     ax_a.plot(tgrid, frac, color=gamma_color(g, gammas, args.gamma_c),
-              lw=1.8, label=f'{g:.1f}')
+              lw=1.8, label=f'{g:.1f}',
+              marker='o' if ref else None,
+              markevery=[min(idx, len(tgrid) - 1)] if ref else None,
+              markersize=6.5, markeredgecolor='white', markeredgewidth=1.1,
+              zorder=6 if ref else 2)
   ax_a.axvline(args.t_experiment, color='#666666', lw=1.0, ls='--')
   ax_a.text(args.t_experiment, 1.045, '$T$', fontsize=15, color='#666666',
             ha='center')
@@ -149,8 +157,10 @@ def main():
     ax_g.text(args.gamma_c, 1.02, '$\\gamma_c$', fontsize=16,
               color='#666666', ha='center', transform=ax_g.get_xaxis_transform())
   for ax, letter in zip(axes, 'abcd'):
-    ax.text(-0.20, 1.04, letter, transform=ax.transAxes,
-            fontsize=22, fontweight='bold', color='#222222')
+    # c sits further left so it clears its y axis label
+    ax.text(-0.27 if letter == 'c' else -0.20, 1.04, letter,
+            transform=ax.transAxes, fontsize=22, fontweight='bold',
+            color='#222222')
 
   fig.tight_layout()
   out_dir = pathlib.Path(args.out_dir)

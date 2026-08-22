@@ -259,10 +259,6 @@ def example_panel(sens_dir, tag, ga_csv, cov):
   return net, dorm, S[i, dorm], A[i, dorm], cut
 
 
-def stars(p):
-  return '***' if p < 1e-3 else '**' if p < 1e-2 else '*' if p < 0.05 else 'n.s.'
-
-
 def main():
   p = argparse.ArgumentParser()
   p.add_argument('--sensitivity-dir', required=True)
@@ -332,11 +328,10 @@ def main():
   ax_b.set_title(f'$\\varepsilon = {args.eps_labels[2]}$', fontsize=17)
   ax_b.legend(frameon=False, fontsize=12.5, loc='upper left', handlelength=1.2,
               labelspacing=0.32, borderpad=0.1)
-  ps = wilcox(c.union, c.union_shock), wilcox(c.union, c.union_pool)
   ax_b.text(0.97, 0.98,
             f'mean {c.union.mean():.2f}\n'
-            f'{c.union_shock.mean():.2f}  ({stars(ps[0])})\n'
-            f'{c.union_pool.mean():.2f}  ({stars(ps[1])})',
+            f'{c.union_shock.mean():.2f}\n'
+            f'{c.union_pool.mean():.2f}',
             transform=ax_b.transAxes, fontsize=12.5, va='top', ha='right',
             linespacing=1.65)
 

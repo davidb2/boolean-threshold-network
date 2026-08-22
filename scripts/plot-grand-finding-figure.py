@@ -295,7 +295,9 @@ def main():
   ax_e.xaxis.set_label_coords(0.40, -0.135)
   ax_e.set_ylabel('Extra penalty per\npromiscuous removed')
   ax_e.set_xticks(range(1, 8))
-  ax_e.legend(frameon=False, fontsize=18, loc='upper right', handlelength=1.0, borderaxespad=0.1)
+  ax_e.legend(frameon=False, fontsize=18, loc='upper right',
+              bbox_to_anchor=(1.06, 1.09), handlelength=1.0,
+              borderaxespad=0.1)
 
   for ax in noise_axes:
     ax.set_xscale('log')

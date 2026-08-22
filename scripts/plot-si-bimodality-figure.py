@@ -101,7 +101,7 @@ def main():
   bins = np.linspace(0, max(s_ex.max(), 0.6), 61)
   froz, actv = s_ex[a_ex < FROZEN_CUT], s_ex[a_ex >= FROZEN_CUT]
   ax_a.hist([froz, actv], bins=bins, stacked=True, color=[FROZEN_C, ACTIVE_C],
-            label=[f'frozen in control ($a < {FROZEN_CUT}$)', 'active in control'],
+            label=['frozen in control', 'active in control'],
             lw=0)
   anti_ex = antis[ex]
   ax_a.axvline(anti_ex, color='#e8a000', lw=2.0, linestyle=(0, (4, 3)))
@@ -111,7 +111,9 @@ def main():
   ax_a.set_xlabel('Sensitivity, $S$')
   ax_a.set_ylabel('Nodes')
   ax_a.set_title(f'One network ($\\varepsilon = {eps:g}$)', fontsize=19)
-  ax_a.legend(frameon=False, fontsize=13.5, loc='upper right', borderaxespad=0.2)
+  ax_a.legend(frameon=True, facecolor='white', framealpha=1.0,
+              edgecolor='none', fontsize=13.5, loc='upper right',
+              borderaxespad=0.2)
 
   # b: antimode location vs dip depth, all networks
   ax_b.scatter(antis[ok], depths[ok], s=44, color='#222222', alpha=0.75, lw=0)

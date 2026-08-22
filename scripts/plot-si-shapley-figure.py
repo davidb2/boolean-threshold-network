@@ -162,9 +162,11 @@ def main():
   ax_a.set_xlabel('Sensitivity, $S$')
   ax_a.set_ylabel('Shapley value')
   ax_a.set_title('$\\varepsilon = 1$', fontsize=19)
-  ax_a.legend(frameon=True, facecolor='white', framealpha=1.0, edgecolor='none',
-              fontsize=14, loc='upper left', bbox_to_anchor=(0.0, 1.06),
-              handletextpad=0.2)
+  leg = ax_a.legend(frameon=True, facecolor='white', framealpha=1.0,
+                    edgecolor='#999999', fancybox=False, fontsize=14,
+                    loc='lower left', bbox_to_anchor=(0.0, 1.005),
+                    handletextpad=0.2, borderpad=0.5)
+  leg.get_frame().set_linewidth(0.8)
 
   # b: mean Shapley by class across noise
   for lab, sub, col in [('promiscuous', R[R.sens], SENS), ('dormant', R[~R.sens], INSENS)]:

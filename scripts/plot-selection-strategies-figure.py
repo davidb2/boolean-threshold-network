@@ -145,7 +145,7 @@ def seq_class_matrix(seq_csv, s_file, b_file):
 
 
 def draw_seq_grid(ax, M, xlabel=True, ylabel=True, tag=''):
-  '''Which class the worst pair rule adds at each greedy step, per network.
+  '''Which class the spring rule adds at each greedy step, per network.
   Columns are sorted by their number of promiscuous picks, most to least.'''
   from matplotlib.colors import ListedColormap
   T = np.where(M == 1, 0, np.where(M == 2, 1, 2))
@@ -304,7 +304,7 @@ def main():
       ax.fill_between(x, mean - 1.96 * sem, mean + 1.96 * sem,
                       color=RULE_C, alpha=0.16, lw=0, zorder=10)
       rule_handle, = ax.plot(x, mean.to_numpy(), color=RULE_C, lw=2.4,
-                             label='worst pair rule', zorder=11,
+                             label='spring rule', zorder=11,
                              solid_capstyle='round')
     ax.axhline(CHANCE, color='#bbbbbb', lw=1.0, linestyle=(0, (3, 3)), zorder=1)
     ax.set_xscale('log', base=2)

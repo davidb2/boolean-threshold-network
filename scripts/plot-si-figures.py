@@ -150,7 +150,7 @@ def si_bdist(sens_dir, out_dir):
     ax.hist(B, bins=60, range=(0, 0.8), color='#7f7f7f', alpha=0.85)
     ax.axvline(cut, color='#e8a000', lw=1.6, linestyle=(0, (4, 2)))
     ax.set_title(f'$\\varepsilon = {2 * (1 - float(rho)):g}$', fontsize=17)
-    ax.set_xlabel('$S$', fontsize=16)
+    ax.set_xlabel('Sensitivity, $S$', fontsize=16)
 
   axes[0].set_ylabel('Nodes')
   save(fig, out_dir, 'si-bdist')
