@@ -33,7 +33,7 @@ POS = '#3987e5'         # positive weight
 NEG = '#e34948'         # negative weight
 AMBER = '#e8a000'       # shock accent, shock 1
 PINK = '#e0559b'        # shock 2
-CREAM = '#f6efdb'       # control slice of the wheel
+CREAM = '#f6efdb'       # hub of the wheel
 OFF = '#eef1f6'         # state 0 raster cell
 INK = '#333333'
 MUTED = '#777777'
@@ -207,7 +207,7 @@ def save(fig, out_dir, name):
   out_dir = pathlib.Path(out_dir)
   out_dir.mkdir(parents=True, exist_ok=True)
   fig.savefig(out_dir / f'{name}.svg', bbox_inches='tight')
-  fig.savefig(out_dir / f'{name}.png', bbox_inches='tight', dpi=300)
+  fig.savefig(out_dir / f'{name}.png', bbox_inches='tight', dpi=600)
   print(f'wrote {out_dir}/{name}.svg + .png')
   plt.close(fig)
 
@@ -478,7 +478,11 @@ def panel_e(out_dir, sim, n_copies=7, spacing=2.85):
   fig, ax = plt.subplots(figsize=(8.4, 4.0))
   circle_cells(ax, ic, 0.0, 0.0, edge='#000000', lw=1.0)
   x_first = 5.6
-  squiggle(ax, 1.5, x_first - 0.55, n_rows / 2)
+  xs0, xs1 = 1.5, x_first - 0.55
+  squiggle(ax, xs0, xs1, n_rows / 2)
+  for label, y in [('noisy', n_rows / 2 + 1.2), ('copies', n_rows / 2 - 1.5)]:
+    ax.text((xs0 + xs1) / 2, y, label, fontsize=13, color=INK, ha='center',
+            va='baseline')
   for k in range(n_copies):
     circle_cells(ax, copies[:, k:k + 1], x_first + k * spacing, 0.0,
                  ref=ic, edge='#000000', lw=1.0)
@@ -496,7 +500,7 @@ def panel_f(out_dir, sim, n_snap=7):
   m = obs.shape[0]
   fig, ax = plt.subplots(figsize=(8.6, 3.2))
   circle_cells(ax, obs, 0.0, 0.0, edge='#000000', lw=1.0)
-  ax.text(0.0, m + 0.7, f'Reporter panel consisting of {m} members',
+  ax.text(0.0, m + 0.30, f'Reporter panel consisting of {m} members',
           fontsize=13, color=INK, ha='left', va='bottom')
   time_arrow(ax, 0.0, n_snap * 0.5, -1.5)
 
@@ -506,11 +510,11 @@ def panel_f(out_dir, sim, n_snap=7):
                shrinkA=0, shrinkB=0, joinstyle='miter', capstyle='butt'))
 
   cx, cy, R = x_ar + 6.6, m / 2, 3.1
-  for k, color in enumerate([CREAM, AMBER, PINK]):
+  for k, color in enumerate(['#1a1a1a', AMBER, PINK]):
     ax.add_patch(Wedge((cx, cy), R, 90 + 120 * k, 210 + 120 * k,
-                 facecolor=color, edgecolor='#111111', lw=1.0, zorder=2))
-  ax.add_patch(Circle((cx, cy), 0.42 * R, facecolor='white',
-                      edgecolor='#111111', lw=1.0, zorder=3))
+                 facecolor=color, edgecolor='white', lw=2.4, zorder=2))
+  ax.add_patch(Circle((cx, cy), 0.42 * R, facecolor=CREAM,
+                      edgecolor='white', lw=2.4, zorder=3))
   ax.text(cx, cy, '?', fontsize=34, color=INK, ha='center', va='center',
           zorder=4)
   ax.set_xlim(-0.4, cx + R + 0.5)
@@ -552,7 +556,7 @@ def panel_c(out_dir):
   ax.axis('off')
 
   before = [0.85, -0.30, 0.45, -0.65, 0.15, -0.55]
-  after = [1.0, 1.0, -1.0, -1.0, -1.0, 1.0]
+  after = [1.0, 1.0, -1.0, -1.0, 1.0, -1.0]
 
   # the composed figure shows this panel at about half the size it is
   # drawn at, so everything measured in points is drawn twice as large
@@ -560,7 +564,7 @@ def panel_c(out_dir):
   ca, cb = np.array([0.50, 0.50]), np.array([1.87, 0.50])
   out_star(ax, ca, before, lw=2.5 * s, head=10 * s, bar=0.048,
            ring='#000000')
-  out_star(ax, cb, after, lw=2.5 * s, head=10 * s, bar=0.048, ring='#000000')
+  out_star(ax, cb, after, lw=2.5 * s, head=10 * s, bar=0.048, ring=AMBER)
 
   # the shock sits centered in the gap between the two stars
   mid = 0.5 * (ca[0] + cb[0])
