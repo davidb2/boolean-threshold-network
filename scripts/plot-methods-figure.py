@@ -297,54 +297,101 @@ def panel_a_apps(out_dir):
 # ---------------------------------------------------------------------------
 # panel a (right): network + threshold rule inset
 # ---------------------------------------------------------------------------
+def signed_arrow(ax, p0, p1, mag, sign, stem=0.011):
+  """A flat-color arrow with a thin black border. Magnitude sets the fill
+  on a white to black ramp, the head is a sharp triangle for positive
+  weights and a perpendicular bar for negative ones, and every arrow has
+  the same stem width and head size."""
+  p0, p1 = np.asarray(p0, float), np.asarray(p1, float)
+  d = p1 - p0
+  u = d / np.hypot(*d)
+  n = np.array([-u[1], u[0]])
+  fc = (1 - mag, 1 - mag, 1 - mag)
+  if sign >= 0:
+    hl, hw = 0.050, 0.021
+    base = p1 - u * hl
+    pts = [p0 + n * stem, base + n * stem, base + n * hw, p1,
+           base - n * hw, base - n * stem, p0 - n * stem]
+  else:
+    bl, bw = 0.016, 0.031
+    base = p1 - u * bl
+    pts = [p0 + n * stem, base + n * stem, base + n * bw, p1 + n * bw,
+           p1 - n * bw, base - n * bw, base - n * stem, p0 - n * stem]
+  ax.add_patch(plt.Polygon(pts, closed=True, facecolor=fc,
+                           edgecolor='#111111', lw=0.7,
+                           joinstyle='miter', zorder=3))
+
+
 def panel_a(out_dir):
-  """The threshold mechanism alone: input states through signed weighted
-  edges into the update rule. Active nodes are black, inactive white, and
-  edge thickness follows the weight magnitude."""
-  fig, axr = plt.subplots(figsize=(6.2, 4.1))
+  """The threshold mechanism alone. Input states are black (active) or
+  white (inactive); every edge has the same size and its gray level gives
+  the weight magnitude, with a bar head for repression. The rule box holds
+  a threshold gauge whose needle has just crossed the dashed threshold."""
+  fig, axr = plt.subplots(figsize=(6.4, 5.4))
   axr.set_xlim(0, 1.35)
-  axr.set_ylim(-0.10, 1.0)
+  axr.set_ylim(-0.20, 1.06)
   axr.set_aspect('equal')
   axr.axis('off')
-  ins = [(0.86, 1, 0.9), (0.62, 0, 0.2), (0.38, 1, -0.7), (0.14, 0, -0.3)]
+
+  ins = [(0.96, 1, 0.95), (0.845, 0, 0.30), (0.73, 1, -0.75),
+         (0.615, 1, 0.55), (0.50, 0, -0.15), (0.385, 1, 0.10),
+         (0.27, 0, -0.65), (0.155, 1, 0.40), (0.04, 0, -0.85)]
   for y, state, w in ins:
-    axr.add_patch(Circle((0.08, y), 0.045,
+    axr.add_patch(Circle((0.075, y), 0.040,
                   facecolor='#1a1a1a' if state else 'white',
                   edgecolor='#000000' if state else '#9aa5b1', lw=1.4))
-    x_end, y_end = 0.405, 0.50 + (y - 0.50) * 0.22
-    arrow = FancyArrowPatch(
-      (0.13, y), (x_end, y_end), arrowstyle='-|>',
-      mutation_scale=10, lw=0.6 + 3.4 * abs(w), color=edge_color(w),
-      shrinkA=3, shrinkB=2,
-    )
-    axr.add_patch(arrow)
-    axr.text((0.13 + x_end) / 2 - 0.035, (y + y_end) / 2 + 0.075, f'${w:+.1f}$',
-             fontsize=10.5, color=MUTED, ha='center')
-  axr.add_patch(FancyBboxPatch((0.43, 0.36), 0.50, 0.28,
+    y_end = 0.50 + (y - 0.50) * 0.50
+    signed_arrow(axr, (0.122, y), (0.455, y_end), abs(w), np.sign(w))
+
+  # the rule box holds a threshold gauge: a semicircle with the flat side
+  # down, a dashed line at 90 degrees for the threshold, and a needle just
+  # past it, so the target node activates
+  axr.add_patch(FancyBboxPatch((0.475, 0.24), 0.38, 0.52,
                 boxstyle='round,pad=0.02,rounding_size=0.03',
                 facecolor=TILE_BG, edgecolor=INK, lw=1.1))
-  axr.text(0.68, 0.50, '$\\sum_i w_{ij}\\,\\sigma_i(t) > 0$ ?',
-           fontsize=11, ha='center', va='center', color=INK)
-  arrow = FancyArrowPatch((0.955, 0.50), (1.055, 0.50), arrowstyle='-|>',
-                          mutation_scale=11, lw=1.4, color=INK)
-  axr.add_patch(arrow)
+  cx, cy, R = 0.665, 0.41, 0.175
+  from matplotlib.patches import Wedge
+  axr.add_patch(Wedge((cx, cy), R, 0, 180, facecolor='white',
+                      edgecolor=INK, lw=1.3, zorder=4))
+  axr.plot([cx, cx], [cy, cy + R * 0.97], color='#8c8c8c', lw=1.3,
+           linestyle=(0, (3.2, 2.6)), zorder=5)
+  ang = np.deg2rad(66)
+  axr.plot([cx, cx + 0.90 * R * np.cos(ang)], [cy, cy + 0.90 * R * np.sin(ang)],
+           color='#c1272d', lw=2.4, zorder=6, solid_capstyle='butt')
+  axr.add_patch(Circle((cx, cy), 0.016, facecolor='#c1272d',
+                       edgecolor='none', zorder=7))
+
+  signed_arrow(axr, (0.90, 0.50), (1.06, 0.50), 1.0, 1)
   axr.add_patch(Circle((1.13, 0.50), 0.05, facecolor='#1a1a1a',
                        edgecolor='#000000', lw=1.4))
-  axr.text(1.13, 0.36, '$\\sigma_j(t+1)$', fontsize=11, ha='center', color=INK)
-  axr.text(0.03, 0.965, 'inputs at time $t$', fontsize=10.5, color=MUTED, ha='left')
-  leg_y = -0.045
+  axr.text(0.03, 1.035, 'inputs at time $t$', fontsize=10.5, color=MUTED,
+           ha='left')
+
+  leg_y = -0.115
   axr.add_patch(Circle((0.05, leg_y), 0.020, facecolor='#1a1a1a',
                        edgecolor='#000000', lw=1.0, clip_on=False))
   axr.text(0.082, leg_y, 'active', fontsize=9.5, color=INK, va='center')
-  axr.add_patch(Circle((0.26, leg_y), 0.020, facecolor='white',
+  axr.add_patch(Circle((0.245, leg_y), 0.020, facecolor='white',
                        edgecolor='#9aa5b1', lw=1.0, clip_on=False))
-  axr.text(0.292, leg_y, 'inactive', fontsize=9.5, color=INK, va='center')
-  axr.plot([0.62, 0.685], [leg_y, leg_y], color=POS, lw=2.6,
-           solid_capstyle='round', clip_on=False)
-  axr.text(0.71, leg_y, '$w>0$', fontsize=9.5, color=INK, va='center')
-  axr.plot([0.97, 1.035], [leg_y, leg_y], color=NEG, lw=2.6,
-           solid_capstyle='round', clip_on=False)
-  axr.text(1.06, leg_y, '$w<0$', fontsize=9.5, color=INK, va='center')
+  axr.text(0.277, leg_y, 'inactive', fontsize=9.5, color=INK, va='center')
+  signed_arrow(axr, (0.47, leg_y), (0.565, leg_y), 0.55, 1)
+  axr.text(0.59, leg_y, '$w>0$', fontsize=9.5, color=INK, va='center')
+  signed_arrow(axr, (0.72, leg_y), (0.815, leg_y), 0.55, -1)
+  axr.text(0.84, leg_y, '$w<0$', fontsize=9.5, color=INK, va='center')
+
+  # colorbar for the magnitude ramp
+  cb_x0, cb_x1, cb_y0, cb_y1 = 1.02, 1.30, leg_y - 0.022, leg_y + 0.022
+  grad = np.linspace(0, 1, 256).reshape(1, -1)
+  axr.imshow(grad, extent=[cb_x0, cb_x1, cb_y0, cb_y1], cmap='gray_r',
+             aspect='auto', zorder=2, vmin=0, vmax=1)
+  axr.add_patch(plt.Rectangle((cb_x0, cb_y0), cb_x1 - cb_x0, cb_y1 - cb_y0,
+                facecolor='none', edgecolor='#111111', lw=0.8, zorder=3))
+  axr.text(cb_x0 - 0.015, leg_y, '0', fontsize=9, color=INK, va='center',
+           ha='right')
+  axr.text(cb_x1 + 0.015, leg_y, '1', fontsize=9, color=INK, va='center',
+           ha='left')
+  axr.text((cb_x0 + cb_x1) / 2, leg_y + 0.055, '$|w|$', fontsize=9.5,
+           color=INK, ha='center', va='bottom')
   save(fig, out_dir, 'fig1b-rule')
 
 

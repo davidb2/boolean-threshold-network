@@ -32,7 +32,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-RHO_COLORS = {'0.5': '#14571a', '0.9': '#2ca02c', '0.99': '#98df8a'}
+RHO_COLORS = {'0.5': '#14571a', '0.99': '#2ca02c', '1.0': '#98df8a'}
 GRAY = '#7f7f7f'
 R_MAX = 10
 
@@ -61,7 +61,7 @@ def ecdf(ax, values, **kw):
 
 def panel_a(ax, topo):
   order = [('random', 'random', GRAY)] + [
-    (f'rho{r}', f'$\\rho = {r}$', RHO_COLORS[r]) for r in ['0.5', '0.9', '0.99']]
+    (f'rho{r}', f'$\\rho = {r}$', RHO_COLORS[r]) for r in ['0.5', '0.99', '1.0']]
   rng = np.random.default_rng(3)
   for i, (key, label, color) in enumerate(order):
     if key == 'random':
@@ -72,7 +72,7 @@ def panel_a(ax, topo):
     ax.plot(x, vals, 'o', color=color, markersize=3.6, alpha=0.55, markeredgewidth=0)
     ax.hlines(np.mean(vals), i - 0.24, i + 0.24, color=color, lw=2.4, zorder=5)
   ax.set_xticks(range(4))
-  ax.set_xticklabels(['random', '$\\varepsilon{=}1$', '$\\varepsilon{=}0.2$', '$\\varepsilon{=}0.02$'])
+  ax.set_xticklabels(['random', '$\\varepsilon{=}1$', '$\\varepsilon{=}0.02$', '$\\varepsilon{=}0$'])
   ax.set_ylabel('Mean distance\nbetween panel members')
   ax.set_ylim(1.85, 2.62)
 
@@ -84,7 +84,7 @@ def panel_b(ax, topo):
   lo, hi = np.percentile(rnd, [2.5, 97.5], axis=0)
   ax.fill_between(rs, lo, hi, color=GRAY, alpha=0.30, lw=0,
                   label='random panels (95%)')
-  for r in ['0.5', '0.9', '0.99']:
+  for r in ['0.5', '0.99', '1.0']:
     m = topo[topo.rho == f'rho{r}'][cols].mean(axis=0)
     ax.plot(rs, m, color=RHO_COLORS[r], lw=1.8, label=f'$\\varepsilon = {2 * (1 - float(r)):g}$')
   ax.set_xlabel('Hops upstream to nearest member, $r$')
@@ -162,7 +162,7 @@ GROUPS = [('evolved', '#2ca02c', 'evolved'),
 
 
 def panel_cd(ax, cov, col, ylabel):
-  rhos = ['0.5', '0.9', '0.99']
+  rhos = ['0.5', '0.99', '1.0']
   width = 0.24
   for gi, (group, color, label) in enumerate(GROUPS):
     xs, ms, ss = [], [], []
