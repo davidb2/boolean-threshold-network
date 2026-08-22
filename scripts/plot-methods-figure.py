@@ -337,15 +337,15 @@ def panel_a(out_dir):
   magnitude, with a bar head for repression. Arrows hover on an invisible
   buffer around the box and around each node, and the gauge needle sits
   just past the dashed threshold, so the target node activates."""
-  fig, axr = plt.subplots(figsize=(6.4, 5.0))
-  axr.set_xlim(0, 1.35)
-  axr.set_ylim(-0.22, 1.06)
+  fig, axr = plt.subplots(figsize=(6.4, 4.6))
+  axr.set_xlim(0, 1.30)
+  axr.set_ylim(0.02, 0.99)
   axr.set_aspect('equal')
   axr.axis('off')
 
   # active weights sum to +0.15, so the needle sits just past threshold
-  ins = [(0.92, 1, 0.85), (0.70, 0, -0.45), (0.48, 1, -0.50),
-         (0.26, 0, 0.30), (0.04, 1, -0.20)]
+  ins = [(0.865, 1, 0.85), (0.678, 0, -0.45), (0.490, 1, -0.50),
+         (0.303, 0, 0.30), (0.115, 1, -0.20)]
   r_node, gap_node = 0.042, 0.020
   box_c = np.array([0.665, 0.48])
   r_field = 0.27
@@ -386,35 +386,26 @@ def panel_a(out_dir):
   axr.add_patch(out_arrow)
   axr.add_patch(Circle((1.11, 0.48), 0.05, facecolor='#1a1a1a',
                        edgecolor='#000000', lw=1.4))
-  # magnitude colorbar
-  leg_y = -0.15
-  cb_x0, cb_x1, cb_y0, cb_y1 = 0.47, 0.86, leg_y - 0.024, leg_y + 0.024
-  grad = np.linspace(0, 1, 256).reshape(1, -1)
-  axr.imshow(grad, extent=[cb_x0, cb_x1, cb_y0, cb_y1], cmap='gray_r',
-             aspect='auto', zorder=2, vmin=0, vmax=1)
-  axr.add_patch(plt.Rectangle((cb_x0, cb_y0), cb_x1 - cb_x0, cb_y1 - cb_y0,
-                facecolor='none', edgecolor='#111111', lw=0.8, zorder=3))
-  axr.text(cb_x0 - 0.018, leg_y, '0', fontsize=10, color=INK, va='center',
-           ha='right')
-  axr.text(cb_x1 + 0.018, leg_y, '1', fontsize=10, color=INK, va='center',
-           ha='left')
-  axr.text((cb_x0 + cb_x1) / 2, leg_y + 0.06, 'Strength', fontsize=10.5,
-           color=INK, ha='center', va='bottom')
-  axr.set_aspect('equal')
+  # state key, tucked into the empty corner under the output node
+  for y, state, label in [(0.205, 1, 'active'), (0.095, 0, 'inactive')]:
+    axr.add_patch(Circle((0.90, y), r_node,
+                  facecolor='#1a1a1a' if state else 'white',
+                  edgecolor='#000000' if state else '#9aa5b1', lw=1.4))
+    axr.text(0.955, y, label, fontsize=11, color=INK, va='center', ha='left')
   save(fig, out_dir, 'fig1b-rule')
 
 
 # ---------------------------------------------------------------------------
 # panel b: Boolean dynamics over time, control vs shocked
 # ---------------------------------------------------------------------------
-def panel_b(out_dir, trajs, shock_idx=1, t_max=16):
-  nodes = pick_display_nodes(trajs, shock_idx=shock_idx, t_max=t_max)
+def panel_b(out_dir, trajs, shock_idx=1, t_max=22):
+  nodes = pick_display_nodes(trajs, shock_idx=shock_idx, n_show=10, t_max=t_max)
   ctl = trajs[0][nodes, :t_max]
   shk = trajs[shock_idx][nodes, :t_max]
   diff = shk != ctl
 
-  fig, axes = plt.subplots(2, 1, figsize=(7.6, 6.2))
-  fig.subplots_adjust(hspace=0.42)
+  fig, axes = plt.subplots(2, 1, figsize=(4.4, 4.6))
+  fig.subplots_adjust(hspace=0.30)
   draw_strip(axes[0], ctl)
   draw_strip(axes[1], shk, diff=diff)
   axes[0].set_title('control network', fontsize=13, color=INK, pad=8)
@@ -435,7 +426,7 @@ def panel_b(out_dir, trajs, shock_idx=1, t_max=16):
 # panel c: one concrete shock, outgoing weights before and after
 # ---------------------------------------------------------------------------
 def out_star(ax, c, weights, r_field=0.44, r_node=0.055, gap=0.050,
-             phase=30.0, lw=3.0, ring=INK):
+             phase=30.0, lw=3.0, head=17, bar=0.038, ring=INK):
   """One node with its outgoing edges, drawn in the same language as the
   update rule: identical edge length and stem width, gray level carrying
   the magnitude, pointed head for activation and a bar for repression.
@@ -447,9 +438,9 @@ def out_star(ax, c, weights, r_field=0.44, r_node=0.055, gap=0.050,
     th = np.deg2rad(phase + 360.0 * i / n)
     u = np.array([np.cos(th), np.sin(th)])
     signed_arc(ax, c + (r_node + gap) * u, c + r_field * u, abs(w),
-               np.sign(w), rad=0.12, lw=lw, bar=0.038, head=17)
+               np.sign(w), rad=0.12, lw=lw, bar=bar, head=head)
   ax.add_patch(Circle(c, r_node, facecolor='#1a1a1a', edgecolor=ring,
-                      lw=2.0, zorder=5))
+                      lw=0.65 * lw, zorder=5))
 
 
 def panel_c(out_dir):
@@ -457,7 +448,7 @@ def panel_c(out_dir):
   outgoing edges: mixed signs and magnitudes before, all of magnitude one
   after, some of them with their sign switched."""
   fig, ax = plt.subplots(figsize=(9.6, 3.4))
-  ax.set_xlim(0.0, 2.80)
+  ax.set_xlim(0.04, 2.33)
   ax.set_ylim(0.0, 1.00)
   ax.set_aspect('equal')
   ax.axis('off')
@@ -465,20 +456,24 @@ def panel_c(out_dir):
   before = [0.85, -0.30, 0.45, -0.65, 0.15, -0.55]
   after = [1.0, 1.0, -1.0, -1.0, -1.0, 1.0]
 
-  ca, cb = np.array([0.50, 0.50]), np.array([2.30, 0.50])
-  out_star(ax, ca, before, ring='#000000')
-  out_star(ax, cb, after, ring=AMBER)
+  # the composed figure shows this panel at about half the size it is
+  # drawn at, so everything measured in points is drawn twice as large
+  s = 2.0
+  ca, cb = np.array([0.50, 0.50]), np.array([1.87, 0.50])
+  out_star(ax, ca, before, lw=2.5 * s, head=10 * s, bar=0.048,
+           ring='#000000')
+  out_star(ax, cb, after, lw=2.5 * s, head=10 * s, bar=0.048, ring=AMBER)
 
   # the shock sits centered in the gap between the two stars
   mid = 0.5 * (ca[0] + cb[0])
-  half = 0.35
-  bolt(ax, mid, 0.755, scale=1.35)
+  half = 0.24
+  bolt(ax, mid, 0.825, scale=1.6)
   arrow = FancyArrowPatch((mid - half, 0.50), (mid + half, 0.50),
-                          arrowstyle='-|>', mutation_scale=26, lw=4.5,
+                          arrowstyle='-|>', mutation_scale=26 * s, lw=4.5 * s,
                           color=AMBER, shrinkA=0, shrinkB=0,
                           joinstyle='miter', capstyle='butt')
   ax.add_patch(arrow)
-  ax.text(mid, 0.585, 'shock', fontsize=13, color=AMBER, ha='center')
+  ax.text(mid, 0.575, 'shock', fontsize=13 * s, color=AMBER, ha='center')
   save(fig, out_dir, 'fig1c-shock-closeup')
 
 

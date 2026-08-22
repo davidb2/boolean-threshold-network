@@ -17,9 +17,19 @@ import pathlib
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import numpy as np
 from PIL import Image
 
 INK = '#222222'
+
+
+def trim(im):
+  """Crop a panel to its visible content, so a letter placed above the
+  panel sits at the top of the drawing rather than at the top of an
+  exported image with white margins."""
+  mask = im.convert('L').point(lambda v: 255 if v < 250 else 0)
+  box = mask.getbbox()
+  return im.crop(box) if box else im
 
 
 def main():
@@ -28,7 +38,7 @@ def main():
   args = p.parse_args()
   d = pathlib.Path(args.pics_dir)
 
-  ims = {k: Image.open(d / f) for k, f in [
+  ims = {k: trim(Image.open(d / f)) for k, f in [
       ('a', 'fig1a-domains.png'), ('b', 'fig1b-rule.png'),
       ('c', 'fig1c-shock-closeup.png'), ('d', 'fig1b-dynamics.png'),
       ('e', 'fig1d-inference.png')]}
@@ -36,9 +46,10 @@ def main():
 
   W = 12.0                      # figure width in inches
   M, GX, GY = 0.03, 0.035, 0.030   # margins and gutters, figure fraction
-  LETTER_BAND = 0.24            # inches reserved above each panel
+  LETTER_BAND = 0.20            # inches reserved above each panel
+  CB = 0.80                     # inches reserved for the shared colorbar
 
-  span = 1 - 2 * M - GX
+  span = 1 - 2 * M - GX - CB / W
   gy = GY * W
   # row 1: a on the left, b stacked over c on the right. The column width
   # is set so that b, its letter band, and c together match the height of
@@ -50,8 +61,9 @@ def main():
   ha = wa * W / ar['a']
   hb, hc = u / ar['b'], u / ar['c']
   h1 = ha
-  # row 2: d kept narrow because it is a tall raster, e fills the rest
-  wd, we = span * 0.32, span * 0.68
+  # row 2: no colorbar to leave room for, so it runs to the right margin
+  full = 1 - 2 * M - GX
+  wd, we = full * 0.30, full * 0.70
   hd = wd * W / ar['d']
   he = we * W / ar['e']
   h2 = max(hd, he)
@@ -76,6 +88,27 @@ def main():
   put('a', M, y0, wa, ha)
   put('b', M + wa + GX, y0, wr, hb)
   put('c', M + wa + GX, y0 + hb + band, wr, hc)
+
+  # one colorbar for the weight shading in b and c, standing on the right
+  # between them
+  cbh, cbx, cbw = 1.9, M + wa + GX + wr + 0.12 / W, 0.20 / W
+  cby = y0 + hb + band / 2
+  cax = fig.add_axes([cbx, 1 - (cby + cbh / 2) / H, cbw, cbh / H])
+  cax.imshow(np.linspace(1, 0, 256).reshape(-1, 1), cmap='gray_r',
+             aspect='auto', vmin=0, vmax=1)
+  cax.set_xticks([])
+  cax.set_yticks([])
+  for sp in cax.spines.values():
+    sp.set_linewidth(0.8)
+    sp.set_color('#111111')
+  tx = cbx + cbw + 0.05 / W
+  for lab, yy in [('1', cby - cbh / 2), ('0', cby + cbh / 2)]:
+    fig.text(tx, 1 - yy / H, lab, fontsize=11, color=INK, ha='left',
+             va='center', family='serif')
+  fig.text(cbx + cbw + 0.42 / W, 1 - cby / H, 'Connection strength',
+           fontsize=11.5, color=INK, ha='center', va='center', rotation=90,
+           family='serif')
+
   y0 += h1 + gy + LETTER_BAND
   put('d', M, y0, wd, hd)
   put('e', M + wd + GX, y0, we, he)
