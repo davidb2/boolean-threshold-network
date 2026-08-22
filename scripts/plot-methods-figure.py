@@ -37,7 +37,9 @@ TILE_EDGE = '#d5dbe3'
 
 plt.rcParams.update({
   'font.size': 12,
-  'mathtext.fontset': 'cm',
+  'font.family': 'serif',
+  'font.serif': ['STIX Two Text', 'Times New Roman', 'DejaVu Serif'],
+  'mathtext.fontset': 'stix',
   'svg.fonttype': 'none',
 })
 
@@ -297,7 +299,7 @@ def panel_a_apps(out_dir):
 # ---------------------------------------------------------------------------
 # panel a (right): network + threshold rule inset
 # ---------------------------------------------------------------------------
-def signed_arc(ax, p0, p1, mag, sign, rad=0.0, lw=3.2):
+def signed_arc(ax, p0, p1, mag, sign, rad=0.0, lw=3.2, bar=0.030, head=15):
   """A gently arched edge in one flat color for stem, head, and border.
   The head is a sharp triangle for positive weights and a perpendicular
   bar for negative ones; every edge has the same stem width and head
@@ -307,7 +309,7 @@ def signed_arc(ax, p0, p1, mag, sign, rad=0.0, lw=3.2):
   fc = (1 - mag, 1 - mag, 1 - mag)
   if sign >= 0:
     arrow = FancyArrowPatch(p0, p1, connectionstyle=f'arc3,rad={rad}',
-                            arrowstyle='-|>', mutation_scale=15, lw=lw,
+                            arrowstyle='-|>', mutation_scale=head, lw=lw,
                             facecolor=fc, edgecolor=fc, shrinkA=0, shrinkB=0,
                             capstyle='butt', joinstyle='miter', zorder=3)
     ax.add_patch(arrow)
@@ -323,7 +325,7 @@ def signed_arc(ax, p0, p1, mag, sign, rad=0.0, lw=3.2):
     t = p1 - ctrl
     t = t / np.hypot(*t)
     nt = np.array([-t[1], t[0]])
-    b = 0.030
+    b = bar
     ax.plot([p1[0] - b * nt[0], p1[0] + b * nt[0]],
             [p1[1] - b * nt[1], p1[1] + b * nt[1]],
             color=fc, lw=lw + 2.2, solid_capstyle='butt', zorder=3)
@@ -432,49 +434,48 @@ def panel_b(out_dir, trajs, shock_idx=1, t_max=16):
 # ---------------------------------------------------------------------------
 # panel c: one concrete shock, outgoing weights before and after
 # ---------------------------------------------------------------------------
-def spokes(ax, cx, cy, weights, r=0.24, node_r=0.048, target_state=1):
-  ang = np.linspace(0.25 * np.pi, 1.75 * np.pi, len(weights))
-  for a, w in zip(ang, weights):
-    x2, y2 = cx + r * np.cos(a), cy + r * np.sin(a)
-    arrow = FancyArrowPatch(
-      (cx, cy), (x2, y2), arrowstyle='-|>', mutation_scale=10,
-      shrinkA=12, shrinkB=6,
-      lw=0.7 + 2.6 * abs(w), color=edge_color(w), capstyle='round', zorder=2,
-    )
-    ax.add_patch(arrow)
-    ax.add_patch(Circle((x2, y2), 0.032, facecolor='white', edgecolor='#9aa5b1', lw=1.1, zorder=3))
-    lx, ly = cx + (r + 0.085) * np.cos(a), cy + (r + 0.085) * np.sin(a)
-    ax.text(lx, ly, f'${w:+.1f}$'.replace('+1.0', '+1').replace('-1.0', '-1'),
-            fontsize=9.5, ha='center', va='center', color=MUTED)
-  ax.add_patch(Circle((cx, cy), node_r,
-               facecolor=BLUE if target_state else 'white',
-               edgecolor=AMBER, lw=2.4, zorder=5))
+def out_fan(ax, c, weights, r_field=0.44, r_node=0.055, gap=0.050,
+            spread=50.0, lw=3.0):
+  """One node with its outgoing edges, drawn in the same language as the
+  update rule: identical edge length and stem width, gray level carrying
+  the magnitude, pointed head for activation and a bar for repression,
+  each edge bowed away from the fan and standing off the node."""
+  c = np.asarray(c, float)
+  n = len(weights)
+  for i, w in enumerate(weights):
+    f = ((n - 1) / 2 - i) / ((n - 1) / 2)      # +1 top edge, -1 bottom edge
+    th = np.deg2rad(spread * f)
+    u = np.array([np.cos(th), np.sin(th)])
+    signed_arc(ax, c + (r_node + gap) * u, c + r_field * u, abs(w),
+               np.sign(w), rad=0.14 * f, lw=lw, bar=0.038, head=17)
+  ax.add_patch(Circle(c, r_node, facecolor='#1a1a1a', edgecolor=AMBER,
+                      lw=2.0, zorder=5))
 
 
 def panel_c(out_dir):
-  fig, ax = plt.subplots(figsize=(8.0, 3.4))
-  ax.set_xlim(0, 2.35)
-  ax.set_ylim(0, 1)
+  """The shock, close up. The same active node twice, with the same six
+  outgoing edges: mixed signs and magnitudes before, all of magnitude one
+  after, some of them with their sign switched."""
+  fig, ax = plt.subplots(figsize=(9.6, 3.3))
+  ax.set_xlim(0.16, 2.74)
+  ax.set_ylim(0.09, 0.98)
   ax.set_aspect('equal')
   ax.axis('off')
 
-  before = [0.8, -0.3, 0.5, -0.7]
-  after = [-1.0, 1.0, 1.0, -1.0]
+  before = [0.85, -0.30, 0.45, -0.65, 0.15, -0.55]
+  after = [1.0, 1.0, -1.0, -1.0, -1.0, 1.0]
 
-  spokes(ax, 0.42, 0.48, before)
-  spokes(ax, 1.93, 0.48, after)
-  ax.text(0.42, 0.055, 'before', fontsize=12, ha='center', color=INK)
-  ax.text(1.93, 0.055, 'after', fontsize=12, ha='center', color=AMBER)
+  out_fan(ax, (0.30, 0.50), before)
+  out_fan(ax, (2.20, 0.50), after)
+  ax.text(0.30, 0.88, 'before', fontsize=13, ha='center', color=INK)
+  ax.text(2.20, 0.88, 'after', fontsize=13, ha='center', color=AMBER)
 
-  bolt(ax, 1.175, 0.76, scale=1.2)
-  arrow = FancyArrowPatch((0.86, 0.48), (1.48, 0.48), arrowstyle='-|>',
-                          mutation_scale=15, lw=1.8, color=AMBER)
+  bolt(ax, 1.25, 0.735, scale=1.25)
+  arrow = FancyArrowPatch((0.90, 0.50), (1.60, 0.50), arrowstyle='-|>',
+                          mutation_scale=16, lw=2.0, color=AMBER,
+                          shrinkA=0, shrinkB=0)
   ax.add_patch(arrow)
-  ax.text(1.175, 0.585, 'shock', fontsize=12.5, color=AMBER, ha='center')
-  ax.text(1.175, 0.345, "$w' = \\pm 1$", fontsize=11.5, color=INK, ha='center')
-  ax.text(1.175, 0.235, 'redrawn at random', fontsize=10.5, color=MUTED, ha='center')
-
-  ax.text(0.42, 0.93, 'outgoing weights of one target node', fontsize=11.5, color=INK, ha='center')
+  ax.text(1.25, 0.575, 'shock', fontsize=13, color=AMBER, ha='center')
   save(fig, out_dir, 'fig1c-shock-closeup')
 
 
