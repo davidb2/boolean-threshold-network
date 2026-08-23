@@ -16,13 +16,24 @@ background family; their full curves are in the SI.
 The entropy based strategies stop at m = 16, where the plug in
 estimator they optimize is reliable.
 
+Every curve needs a source carrying the whole size ladder, and two of them are
+easy to get wrong. The GA curve comes from the rescored sweep files, which score
+finished panels on fresh splits; the raw search outputs cover only m = 8 at
+eps = 0.5 and 1. The eps = 1 random baseline comes from the original v7 sweep
+(rho = 0.5), since the rho sweep only ran random selection at m = 8 there;
+sizes past the x limit of 150 are clipped.
+
 Usage:
   python scripts/plot-selection-strategies-figure.py \
     --strategies-dirs data/selection-strategies/rho1.0 \
                       data/selection-strategies/rho0.75-b4 \
                       data/selection-strategies/rho0.5 \
-    --ga-csvs ... ... ... \
-    --random-dirs ... ... ... \
+    --ga-csvs <rescored>/ga-clean-rescored-all-rho1.0.csv \
+              <rescored>/ga-clean-rescored-all-rho0.75-b4.csv \
+              <rescored>/ga-clean-rescored-all-rho0.5.csv \
+    --random-dirs data/drug-rho-sweep/rho1.0/random-results \
+                  data/drug-rho-sweep/rho0.75-b4/random-results \
+                  data/drug-fixed-targets-v7/N5000/random-results-v7 \
     --eps-labels 0 0.5 1 \
     --out-dir plots/fig-strategies
 '''
@@ -69,17 +80,34 @@ def load_dir(results_dir):
   return pd.concat(frames, ignore_index=True)
 
 
+def check_ladder(sizes, label, source, fatal):
+  '''A series with 1 panel size draws a one point line, which is invisible:
+  the curve vanishes from the panel with no error at all. Both the m = 8 only
+  search outputs and the m = 8 only sweep baselines fall into this trap.'''
+  if sizes >= 2:
+    return
+  msg = (f'{label} covers {sizes} panel size, so its curve cannot be drawn '
+         f'({source}). Pass a source with the whole size ladder.')
+  if fatal:
+    raise SystemExit(msg)
+  print(f'  WARNING {msg}')
+
+
 def load_ga(ga_csv):
   ga = pd.read_csv(ga_csv)
   if 'accuracy' in ga.columns:
     # a rescored file: final panels re-evaluated on fresh splits
-    return ga[['original_network_idx', 'max_num_features', 'accuracy']]
-  final = ga.loc[ga.groupby(['original_network_idx', 'max_num_features'])['generation'].idxmax()]
-  df = final.rename(columns={'best_accuracy': 'accuracy'})
-  full = df.pivot(index='original_network_idx', columns='max_num_features', values='accuracy')
-  # a missing cell means the GA stopped early after reaching perfect accuracy
-  full = full.fillna(1.0)
-  return full.stack().rename('accuracy').reset_index()
+    out = ga[['original_network_idx', 'max_num_features', 'accuracy']]
+  else:
+    final = ga.loc[ga.groupby(['original_network_idx', 'max_num_features'])['generation'].idxmax()]
+    df = final.rename(columns={'best_accuracy': 'accuracy'})
+    full = df.pivot(index='original_network_idx', columns='max_num_features', values='accuracy')
+    # a missing cell means the GA stopped early after reaching perfect accuracy
+    full = full.fillna(1.0)
+    out = full.stack().rename('accuracy').reset_index()
+  check_ladder(out['max_num_features'].nunique(), 'the genetic algorithm', ga_csv,
+               fatal=True)
+  return out
 
 
 def draw_panel(ax, strategies_dir, ga_csv, random_dir):
@@ -88,6 +116,7 @@ def draw_panel(ax, strategies_dir, ga_csv, random_dir):
     if not d.exists():
       continue
     mean, sem = agg(load_dir(d))
+    check_ladder(len(mean), f'background heuristic {st}', str(d), fatal=False)
     ax.plot(mean.index.to_numpy(), mean.to_numpy(), color=BG_COLOR, lw=1.3,
             zorder=2, solid_capstyle='round')
 
@@ -103,6 +132,10 @@ def draw_panel(ax, strategies_dir, ga_csv, random_dir):
         continue
       df = load_dir(d)
     mean, sem = agg(df)
+    if name != 'genetic':      # already checked, with a sharper message
+      check_ladder(len(mean), st['label'],
+                   random_dir if name == 'random' else f'{strategies_dir}/{name}-results',
+                   fatal=True)
     x = mean.index.to_numpy()
     ax.fill_between(x, mean - 1.96 * sem, mean + 1.96 * sem,
                     color=st['color'], alpha=0.16, lw=0, zorder=st['zorder'] - 1)
