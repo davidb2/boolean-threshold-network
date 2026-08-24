@@ -4,10 +4,10 @@ and the balance shifts with noise.
 
   a  classification accuracy of evolved k=8 panels vs random panels,
      as a function of initial condition noise
-  b  number of promiscuous nodes in evolved panels vs the random expectation
-  c  accuracy drop when one promiscuous or one dormant member is removed
-  d  the dormant share of the total removal penalty
-  e  the extra penalty per promiscuous node removed, as a function of how many
+  b  number of sensitive nodes in evolved panels vs the random expectation
+  c  accuracy drop when one sensitive or one insensitive member is removed
+  d  the insensitive share of the total removal penalty
+  e  the extra penalty per sensitive node removed, as a function of how many
      panel members are removed, at three noise levels
 
 Panels c to e use the deep ablation campaign (30 RF trials, every removal
@@ -19,6 +19,14 @@ mismatched states. Cohorts are kept as separate statistical units.
 Panel e shows the canonical noise levels eps = 0, 0.5, 1. The eps = 0
 cohort (rho 1.0) has deep ablation data only, so it appears in panel e
 but not on the log noise axes of panels a to d.
+
+Every class label here is the sensitive against insensitive split, a threshold
+on the mean sensitivity B at the antimode cutoff, which is what
+node-ablation-k8.py records in n_sensitive_removed and what panel b counts. It
+is not the breadth rule that defines the promiscuous, dormant, and unresponsive
+classes, since an insensitive node may be dormant or unresponsive. The two
+taxonomies mostly agree but they are not the same partition, so this figure uses
+the names of the rule it actually applies.
 
 x axis is the bit flip probability 1 - rho on a log scale, so noise
 increases to the right.
@@ -238,16 +246,16 @@ def main():
 
   line(ax_b, df, 'n_sens', GA, 'evolved panel')
   line(ax_b, df, 'expect', GRAY, 'random expectation')
-  ax_b.set_ylabel('Promiscuous nodes\nper panel')
+  ax_b.set_ylabel('Sensitive nodes\nper panel')
   ax_b.set_ylim(0, 8)
   ax_b.legend(frameon=False, fontsize=22, loc='center left')
 
-  line(ax_c, deep, 'drop_s', SENS, 'remove one promiscuous')
-  line(ax_c, deep, 'drop_i', INSENS, 'remove one dormant')
+  line(ax_c, deep, 'drop_s', SENS, 'remove one sensitive')
+  line(ax_c, deep, 'drop_i', INSENS, 'remove one insensitive')
   for noise in sorted(deep.noise.unique()):
     g = deep[deep.noise == noise]
-    print(f'panel c: eps={noise:g} drop_prom={g.drop_s.mean():.4f} '
-          f'drop_dorm={g.drop_i.mean():.4f} n={len(g)}')
+    print(f'panel c: eps={noise:g} drop_sens={g.drop_s.mean():.4f} '
+          f'drop_insens={g.drop_i.mean():.4f} n={len(g)}')
   ax_c.set_ylabel('Accuracy drop')
   ax_c.set_ylim(0, 0.19)
   ax_c.legend(frameon=True, facecolor='white', framealpha=1.0, edgecolor='none',
@@ -268,14 +276,14 @@ def main():
       bi = rng.choice(di, len(di)).mean()
       boot.append(bi / (bs + bi))
     lo, hi = np.percentile(boot, [2.5, 97.5])
-    print(f'panel d: eps={noise:g} dormant_share={shares[-1]:.3f} '
+    print(f'panel d: eps={noise:g} insensitive_share={shares[-1]:.3f} '
           f'CI=[{lo:.3f}, {hi:.3f}]')
     xs.append(noise); los.append(lo); his.append(hi)
   ax_d.fill_between(xs, los, his, color=INSENS, alpha=0.20, lw=0)
   ax_d.plot(xs, shares, color=INSENS, lw=2.0, marker='o', markersize=4.5)
   ax_d.axhline(0.5, color='#bbbbbb', lw=1.0, linestyle=(0, (3, 3)))
   ax_d.text(0.011, 0.512, 'equal\nimportance', fontsize=17, color='#999999', va='bottom')
-  ax_d.set_ylabel('Dormant share\nof penalty')
+  ax_d.set_ylabel('Insensitive share\nof penalty')
   ax_d.set_ylim(0.2, 0.56)
 
   for rho_s, color in DEPTH_COLORS.items():
@@ -293,7 +301,7 @@ def main():
   # nudged left, since a centered label under the rightmost panel loses
   # its last glyph to the tight bounding box
   ax_e.xaxis.set_label_coords(0.40, -0.135)
-  ax_e.set_ylabel('Extra penalty per\npromiscuous removed')
+  ax_e.set_ylabel('Extra penalty per\nsensitive removed')
   ax_e.set_xticks(range(1, 8))
   ax_e.legend(frameon=False, fontsize=18, loc='upper right',
               bbox_to_anchor=(1.06, 1.09), handlelength=1.0,
