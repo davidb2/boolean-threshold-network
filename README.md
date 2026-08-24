@@ -156,6 +156,7 @@ Key scripts (run from the repo root; all classifier-based scripts share the rand
   - `check-panel-integrity.py` — every evolved panel has 8 distinct members, and how many ablation cohorts exist per noise level.
   - `check-figure-inputs.py` — which genetic algorithm and random sources carry the whole panel size ladder.
   - `check-cohort-consistency.py` — whether the cohorts of the rho sweep are the same network ensemble, which decides when the stored connectivity arrays may be reused.
+  - `check-degree-sensitivity.py` — whether local wiring predicts sensitivity, backing the SI claim that it does not: in degree correlates at +0.04 to +0.06 and out degree at 0.000, against +0.87 to +0.93 for control state variance.
 
 ## SLURM orchestration
 
