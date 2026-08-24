@@ -147,6 +147,15 @@ Key scripts (run from the repo root; all classifier-based scripts share the rand
 - `scripts/compute-info-redundancy.py` — marginal entropy and pairwise mutual information of panel members on control states, for evolved, random, and matched panels.
 - `scripts/plot-*.py` — one committed generator per paper figure (methods schematic, phase transition, panel size, disks, grand finding, selection strategies, connectivity, SI figures, attractor census); every figure in the manuscript is reproducible from these.
 - `scripts/combine-ga-results.py` — concatenates the per-network `{i}-full.csv` GA outputs in a directory into `combined-full.csv`.
+- `scripts/render-paper-figures.sh` — the verified argument lists behind the rendered figures, one target per figure group. The arguments are not recoverable from the figures themselves, and passing a source that covers a single panel size draws an invisible one point line, so this file is the record of which sources are correct.
+- `scripts/check-*.py` — verification scripts, each one a question that was asked of the published numbers and the answer it returned, recorded in its docstring:
+  - `check-split-leakage.py` — the evaluator splits train and test by snapshot rather than by trajectory; this measures the cost by holding out whole initial conditions (about 1.5 points at eps > 0, no change in the ordering between selectors).
+  - `check-ablation-split.py` — whether the promiscuous versus dormant removal asymmetry survives that clean split (it does, unchanged at eps 1 and slightly larger at eps 0.5).
+  - `check-ablation-cohorts.py` — the same asymmetry across every noise level and cohort, paired within panel (positive and significant in all 18 cohort by level combinations).
+  - `check-scoring-protocols.py` — which of the 2 scoring protocols produced which published accuracy, and the paired spring rule against greedy information gain comparison.
+  - `check-panel-integrity.py` — every evolved panel has 8 distinct members, and how many ablation cohorts exist per noise level.
+  - `check-figure-inputs.py` — which genetic algorithm and random sources carry the whole panel size ladder.
+  - `check-cohort-consistency.py` — whether the cohorts of the rho sweep are the same network ensemble, which decides when the stored connectivity arrays may be reused.
 
 ## SLURM orchestration
 
