@@ -35,9 +35,9 @@ The code predates the paper's final notation. This table is the dictionary; the 
 | `K` | `--expected-connectivity` | mean degree; the matching `γ` at this `N` is solved numerically (give exactly one of the two) |
 | `ε` | *(derived)* | initial condition noise, the fraction of the ideal state that escapes control; `ε = 2(1 − ρ)` |
 | `ρ` | `--initial-condition-correlation` | bit copy probability, `ρ = 1 − ε/2 ∈ [1/2, 1]`; each replicate bit flips with probability `ε/2` |
-| replicates | `--num-initial-conditions` | trials per network and perturbation, all imperfect copies of the same base state |
+| `n_ic` | `--num-initial-conditions` | replicate trials per network and perturbation, all imperfect copies of the same base state; SI §2.1 writes the damage-spreading average over all `C(n_ic, 2)` pairs of them |
 | `T` | `--num-steps` | synchronous updates per trajectory |
-| `L` | `--num-final-states-to-store` | how many final states of each trajectory are written out |
+| `L` | `--num-final-states-to-store` | how many final states of each trajectory are written out; the window the SI averages over in the steady-state Hamming distance |
 | shocks | `--num-drugs` | number of shocks; the code calls shocks "drugs" for historical reasons |
 | `g` | `--num-targets-per-drug` | target nodes per shock |
 | `c` | `--drug-strength` | shock strength in `w′ = (1 − c)w + c·ξ`; the paper uses `c = 1` throughout |
