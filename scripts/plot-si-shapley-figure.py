@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
-'''Why dormant reporters carry information (SI figure).
+'''Why low sensitivity reporters carry information (SI figure).
+
+Classes here are the two sides of the sensitivity cutoff, sens = B[node] > cut,
+not the breadth rule that defines promiscuous, dormant and unresponsive: an
+insensitive member may be dormant or unresponsive, and the unresponsive ones sit
+at S = 0. Labelling the whole below-cutoff pool "dormant" would be wrong, since a
+dormant node answers at least one shock at full strength and so has S >= theta/10.
+Pooling them is conservative for every claim below, because unresponsive members
+carry near zero credit and only drag the insensitive curves down.
 
 Every panel member is scored by its exact Shapley value in the cooperative
 game whose value function is the classification accuracy of a sub panel.
@@ -154,8 +162,8 @@ def main():
 
   # a: Shapley vs sensitivity at high noise
   hi = R[np.isclose(R.eps, 1.0)]
-  for lab, sub, col in [('dormant', hi[~hi.sens], INSENS),
-                        ('promiscuous', hi[hi.sens], SENS)]:
+  for lab, sub, col in [('insensitive', hi[~hi.sens], INSENS),
+                        ('sensitive', hi[hi.sens], SENS)]:
     ax_a.scatter(sub.S, sub.phi, s=16, color=col, alpha=0.45, lw=0, label=lab)
   ax_a.axvline(hi.cut.iloc[0], color='#e8a000', lw=1.6, linestyle=(0, (4, 3)))
   ax_a.axhline(0, color='#bbbbbb', lw=1.0)
@@ -169,7 +177,7 @@ def main():
   leg.get_frame().set_linewidth(0.8)
 
   # b: mean Shapley by class across noise
-  for lab, sub, col in [('promiscuous', R[R.sens], SENS), ('dormant', R[~R.sens], INSENS)]:
+  for lab, sub, col in [('sensitive', R[R.sens], SENS), ('insensitive', R[~R.sens], INSENS)]:
     g = sub.groupby('eps')['phi'].agg(['mean', 'sem'])
     ax_b.fill_between(g.index, g['mean'] - 1.96 * g['sem'], g['mean'] + 1.96 * g['sem'],
                       color=col, alpha=0.18, lw=0)
@@ -185,7 +193,7 @@ def main():
   ax_b.legend(frameon=False, fontsize=14, loc='lower left',
               bbox_to_anchor=(0.02, 0.04))
 
-  # c: how often an dormant member outranks the panel median promiscuous member
+  # c: how often an insensitive member outranks the panel median sensitive member
   def frac_beat(g):
     s, i = g[g.sens], g[~g.sens]
     if not len(s) or not len(i):
@@ -203,9 +211,9 @@ def main():
   ax_c.set_xlim(-0.004, 1.35)
   ax_c.set_ylim(0, None)
   ax_c.set_xlabel('Noise, $\\varepsilon$')
-  ax_c.set_ylabel('Fraction above the panel\nmedian promiscuous member')
+  ax_c.set_ylabel('Fraction above the panel\nmedian sensitive member')
 
-  # d: where the search recruits inside the dormant range
+  # d: where the search recruits inside the insensitive range
   sel, avail, cut = panel_recruitment(args.ga_csv_50,
                                       f'{args.sensitivity_dir}/B-rho0.5.npz', rng)
   bins = np.linspace(0, cut, 26)
