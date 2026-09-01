@@ -391,7 +391,7 @@ def main():
     ax_d.text(x, top + 0.008, f'{v.mean():+.3f}', ha='center', fontsize=12)
   ax_d.set_xticks(xs)
   ax_d.set_xticklabels([f'$\\varepsilon = {e}$' for e in args.eps_labels])
-  ax_d.set_ylabel('Specialisation index\n(confusable $-$ other pairs)')
+  ax_d.set_ylabel('Specialization index\n(confusable $-$ other pairs)')
   ax_d.set_ylim(-0.085, 0.335)
   ax_d.legend(frameon=False, fontsize=12.5, loc='upper right', handlelength=1.1,
               labelspacing=0.3, borderpad=0.1)

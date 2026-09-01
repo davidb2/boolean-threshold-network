@@ -1,10 +1,10 @@
-'''Does the promiscuous versus dormant removal asymmetry survive an initial
+'''Does the sensitive versus insensitive removal asymmetry survive an initial
 condition grouped split?
 
 For every evolved panel each member is removed in turn and the remaining 7 are
 scored under both protocols of check-split-leakage.py. The published claim of
-main text Figure 5c is that losing one promiscuous member costs more than
-losing one dormant member.
+main text Figure 5c is that losing one sensitive member costs more than
+losing one insensitive member.
 
 The statistic must be paired within a panel. Pooling every removal across
 networks lets panel composition and network difficulty confound the two groups
@@ -21,6 +21,10 @@ split at eps 0.5. The grouping was not manufacturing it.
 
 Run on the cluster from the repo root:
   python scripts/check-ablation-split.py
+
+The split here is the sensitivity cutoff, is_sens = B[node] > cut. It is not the
+breadth rule that defines the promiscuous, dormant and unresponsive classes, so
+the premium computed here is not the one plotted in main text Figure 6b.
 '''
 import ast, glob, multiprocessing
 import numpy as np, pandas as pd
@@ -50,7 +54,7 @@ def vote_acc(train, test, feats):
     return ok / len(classes)
 
 def _one(task):
-    net, nodes, is_prom = task
+    net, nodes, is_sens = task
     sub = STATES[STATES.original_network_idx == net]
     rng = np.random.default_rng(SEED + net)
     ics = np.sort(sub.initial_condition_idx.unique())
@@ -70,7 +74,7 @@ def _one(task):
         feats = [f'node-{i}' for i in nodes if i != nd]
         da = base_a - np.mean([vote_acc(a, b, feats) for a, b, _, _ in splits])
         db = base_b - np.mean([vote_acc(c, d, feats) for _, _, c, d in splits])
-        rows.append(dict(net=net, node=nd, promiscuous=bool(is_prom[j]),
+        rows.append(dict(net=net, node=nd, sensitive=bool(is_sens[j]),
                          drop_by_snapshot=float(da), drop_by_ic=float(db)))
     return rows
 
@@ -79,13 +83,13 @@ def paired_gap(d):
     from scipy import stats
     for proto, col in [('by snapshot', 'drop_by_snapshot'),
                        ('by held out IC', 'drop_by_ic')]:
-        s = d[d.promiscuous].groupby('net')[col].mean()
-        i = d[~d.promiscuous].groupby('net')[col].mean()
+        s = d[d.sensitive].groupby('net')[col].mean()
+        i = d[~d.sensitive].groupby('net')[col].mean()
         common = s.index.intersection(i.index)
         diff = (s[common] - i[common]).dropna()
         t = stats.ttest_1samp(diff, 0)
-        print(f'   {proto:15s} paired:   promiscuous {s[common].mean():.4f} | '
-              f'dormant {i[common].mean():.4f} | gap {diff.mean():+.4f} '
+        print(f'   {proto:15s} paired:   sensitive {s[common].mean():.4f} | '
+              f'insensitive {i[common].mean():.4f} | gap {diff.mean():+.4f} '
               f'(SEM {diff.sem():.4f}, p = {t.pvalue:.4f}, '
               f'positive in {int((diff > 0).sum())}/{len(diff)})', flush=True)
 
@@ -117,8 +121,8 @@ def main():
         d.to_csv(f'siwork/ablation-clean-eps{eps}.csv', index=False)
         print(f'--- eps {eps} ({tag}), {d.net.nunique()} networks, cutoff {cut:.3f}', flush=True)
         for proto, col in [('by snapshot', 'drop_by_snapshot'), ('by held out IC', 'drop_by_ic')]:
-            p = d[d.promiscuous][col].mean(); q = d[~d.promiscuous][col].mean()
-            print(f'   {proto:15s} unpaired: promiscuous {p:.4f} | dormant {q:.4f} '
+            p = d[d.sensitive][col].mean(); q = d[~d.sensitive][col].mean()
+            print(f'   {proto:15s} unpaired: sensitive {p:.4f} | insensitive {q:.4f} '
                   f'| gap {p - q:+.4f}  (confounded, see the docstring)', flush=True)
         paired_gap(d)
 main()
