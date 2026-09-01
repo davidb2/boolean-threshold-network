@@ -309,8 +309,7 @@ def main():
 
   for ax in noise_axes:
     ax.set_xscale('log')
-    ax.set_xlabel('Initial condition noise, $\\varepsilon$'
-                  if ax in (ax_a, ax_b) else 'Noise, $\\varepsilon$')
+    ax.set_xlabel('Noise, $\\varepsilon$')
     ax.set_xlim(0.008, 1.2)
   for ax, letter in zip([ax_a, ax_b, ax_c, ax_d, ax_e], 'abcde'):
     ax.text(-0.30, 1.05, letter, transform=ax.transAxes,

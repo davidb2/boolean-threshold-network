@@ -125,8 +125,8 @@ def si_qk(out_dir):
   ax.plot(ks, qs, 'o', color='#1f77b4', markersize=6, label='Simulation')
   ax.set_xscale('log')
   ax.set_yscale('log')
-  ax.set_xlabel('In-degree, $K$')
-  ax.set_ylabel('Single input sensitivity, $q(K)$')
+  ax.set_xlabel('In-degree, $k$')
+  ax.set_ylabel('Single input sensitivity, $q(k)$')
   leg = ax.legend(frameon=True, fontsize=15, framealpha=1.0, borderpad=0.6,
                   edgecolor='#999999', fancybox=False)
   leg.get_frame().set_linewidth(0.8)
